@@ -181,10 +181,12 @@ html,body{height:100%;height:100dvh;overflow:hidden;background:var(--bg);color:v
 .total-num{font-family:'IBM Plex Mono',monospace;font-weight:700;color:#fff;font-size:calc(1.8rem * var(--sz));}
 
 /* Actions */
-.actions{padding:0 11px 20px;display:flex;gap:7px;flex-shrink:0;}
+.actions{padding:0 11px 24px;display:flex;gap:7px;flex-shrink:0;}
 .btn-sec{flex:1;padding:15px;border-radius:13px;background:var(--surface);border:2px solid var(--border);color:var(--text2);font-family:'Sarabun',sans-serif;font-weight:700;cursor:pointer;font-size:calc(1rem * var(--sz));}
 .btn-pri{flex:2;padding:15px;border-radius:13px;background:var(--accent);border:none;color:#fff;font-family:'Sarabun',sans-serif;font-weight:800;cursor:pointer;transition:opacity 0.12s,transform 0.1s;font-size:calc(1rem * var(--sz));}
 .btn-pri:active{opacity:0.88;transform:scale(0.98);}
+.btn-gear-sm{width:50px;height:50px;border-radius:13px;background:var(--bg2);border:2px solid var(--border);color:var(--text);font-size:20px;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:background 0.12s;}
+.btn-gear-sm:active{background:var(--acc-light);border-color:var(--accent);}
 
 /* ══════════════════════
    BILL SCREEN — Cash Bill style
@@ -361,7 +363,27 @@ html,body{height:100%;height:100dvh;overflow:hidden;background:var(--bg);color:v
 .save-btn:active{opacity:0.88;transform:scale(0.98);}
 
 /* Toast */
-.toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(8px);background:var(--text);color:var(--bg);padding:11px 22px;border-radius:100px;font-weight:700;font-size:calc(0.88rem * var(--sz));opacity:0;transition:all 0.25s;z-index:500;white-space:nowrap;pointer-events:none;box-shadow:var(--shadow-lg);}
+.toast{
+  position:fixed;
+  top:68px;
+  left:50%;
+  transform:translateX(-50%) translateY(-12px);
+  background:var(--text);
+  color:var(--bg);
+  padding:9px 18px;
+  border-radius:100px;
+  font-weight:700;
+  font-size:calc(0.82rem * var(--sz));
+  opacity:0;
+  transition:opacity 0.2s, transform 0.2s;
+  z-index:600;
+  white-space:nowrap;
+  pointer-events:none;
+  box-shadow:var(--shadow-lg);
+  max-width:90vw;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
 
 /* Empty */
@@ -515,6 +537,7 @@ html,body{height:100%;height:100dvh;overflow:hidden;background:var(--bg);color:v
   <div class="actions">
     <button class="btn-sec" onclick="goHome()">← กลับ</button>
     <button class="btn-pri" onclick="createBill()">✅ ออกบิล</button>
+    <button class="btn-gear-sm" onclick="openSettings()" title="ตั้งค่า">⚙️</button>
   </div>
 </div>
 
@@ -921,8 +944,9 @@ function applyDark() {
 function showScreen(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById('screen-' + id).classList.add('active');
-  // Show/hide gear button
-  document.getElementById('gear-btn').style.display = (id === 'bill') ? 'none' : 'flex';
+  // Hide floating gear on bill screen (has its own topbar) and confirm screen (gear overlaps actions)
+  const gear = document.getElementById('gear-btn');
+  if (gear) gear.style.display = (id === 'bill' || id === 'confirm') ? 'none' : 'flex';
 }
 function goHome() { showScreen('home'); setStatus('idle', 'พร้อมรับคำสั่งเสียง'); }
 
@@ -2599,8 +2623,11 @@ function setTc(t, empty) {
 }
 function toast(msg) {
   const t = document.getElementById('toast');
-  t.textContent = msg; t.classList.add('show');
-  clearTimeout(t._t); t._t = setTimeout(() => t.classList.remove('show'), 2800);
+  // Trim long messages so they don't wrap or overflow
+  t.textContent = msg.length > 36 ? msg.slice(0, 34) + '…' : msg;
+  t.classList.add('show');
+  clearTimeout(t._t);
+  t._t = setTimeout(() => t.classList.remove('show'), 1800);
 }
 
 refreshAllPKStatus();
