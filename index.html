@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>บิลเสียง · VoiceBill</title>
+<title>บิลเสียง · VoiceBill · Smart QR Invoice</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Sarabun:ital,wght@0,300;0,400;0,600;0,700;0,800;1,400&family=Noto+Serif+Thai:wght@400;600;700;900&family=IBM+Plex+Mono:wght@400;500;700&display=swap');
 
@@ -363,7 +363,7 @@ html,body{height:100%;height:100dvh;overflow:hidden;background:var(--bg);color:v
 .sa-icon{font-size:20px;line-height:1;}
 .sa-label{font-size:10px;font-weight:700;letter-spacing:0.2px;white-space:nowrap;}
 
-/* ── QR MODAL ── */
+/* ── QR MODAL (สำหรับแสดงบิลให้ลูกค้าสแกน) ── */
 .qr-modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.72);z-index:600;align-items:center;justify-content:center;backdrop-filter:blur(4px);}
 .qr-modal-overlay.open{display:flex;}
 .qr-modal-box{background:#fff;border-radius:20px;padding:24px 20px 20px;display:flex;flex-direction:column;align-items:center;gap:10px;max-width:300px;width:90%;box-shadow:0 12px 48px rgba(0,0,0,0.4);}
@@ -374,6 +374,15 @@ html,body{height:100%;height:100dvh;overflow:hidden;background:var(--bg);color:v
 .qr-modal-note{font-size:11px;color:#1a6b3a;font-weight:700;background:#e6f4ec;border:1.5px solid #1a6b3a;border-radius:8px;padding:6px 12px;text-align:center;}
 .qr-modal-close{width:100%;padding:13px;border-radius:12px;background:#1a5fa8;border:none;color:#fff;font-family:'Sarabun',sans-serif;font-weight:700;font-size:15px;cursor:pointer;margin-top:2px;}
 
+/* ── INVOICE VIEWER MODAL (แสดงบิลให้ลูกค้า) ── */
+.invoice-modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:650;align-items:center;justify-content:center;backdrop-filter:blur(8px);}
+.invoice-modal-overlay.open{display:flex;}
+.invoice-modal-box{background:#fff;border-radius:20px;max-width:420px;width:90%;max-height:85dvh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.4);}
+.invoice-modal-header{padding:16px 18px;background:#1a5fa8;color:#fff;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:10;}
+.invoice-modal-header h3{margin:0;font-family:'Noto Serif Thai',serif;}
+.invoice-modal-close{background:rgba(255,255,255,0.2);border:none;color:#fff;font-size:24px;width:36px;height:36px;border-radius:50%;cursor:pointer;}
+.invoice-modal-body{padding:20px 16px;background:#fff;}
+
 /* loading overlay for PNG/PDF */
 .export-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:700;align-items:center;justify-content:center;flex-direction:column;gap:14px;backdrop-filter:blur(3px);}
 .export-overlay.open{display:flex;}
@@ -383,6 +392,7 @@ html,body{height:100%;height:100dvh;overflow:hidden;background:var(--bg);color:v
 </head>
 <body>
 
+<!-- ═══════════ HOME ═══════════ -->
 <div id="screen-home" class="screen active">
   <div class="home-topbar">
     <button class="icon-btn" onclick="toggleDark()" id="dark-btn">🌙 กลางแจ้ง</button>
@@ -424,6 +434,7 @@ html,body{height:100%;height:100dvh;overflow:hidden;background:var(--bg);color:v
       <span id="stxt">พร้อมรับคำสั่งเสียง</span>
     </div>
 
+    <!-- Shop memory quick chips -->
     <div class="memory-bar" id="memory-bar">
       <div class="mem-header">
         <div class="mem-title">🧠 สินค้าประจำร้าน <span id="mem-shop-name"></span></div>
@@ -434,6 +445,7 @@ html,body{height:100%;height:100dvh;overflow:hidden;background:var(--bg);color:v
   </div>
 </div>
 
+<!-- ═══════════ CONFIRM ═══════════ -->
 <div id="screen-confirm" class="screen">
   <div class="topbar">
     <button class="back-btn" onclick="goHome()">←</button>
@@ -479,6 +491,7 @@ html,body{height:100%;height:100dvh;overflow:hidden;background:var(--bg);color:v
   </div>
 </div>
 
+<!-- ═══════════ BILL ═══════════ -->
 <div id="screen-bill" class="screen">
   <div class="bill-topbar">
     <button class="back-btn" onclick="showScreen('confirm')">←</button>
@@ -486,6 +499,7 @@ html,body{height:100%;height:100dvh;overflow:hidden;background:var(--bg);color:v
     <div class="locked-badge">🔒 ล็อค</div>
   </div>
 
+  <!-- Share action bar -->
   <div class="share-bar">
     <button class="share-action-btn" onclick="saveAsPNG()">
       <span class="sa-icon">🖼️</span>
@@ -505,21 +519,9 @@ html,body{height:100%;height:100dvh;overflow:hidden;background:var(--bg);color:v
     </button>
   </div>
 
-  <div id="qr-modal" class="qr-modal-overlay" onclick="closeQRModal()">
-    <div class="qr-modal-box" onclick="event.stopPropagation()">
-      <div class="qr-modal-title">📲 ให้ลูกค้าสแกน</div>
-      <div class="qr-modal-sub">สแกนเพื่อดูบิลบนมือถือ</div>
-      <div class="qr-modal-canvas-wrap">
-        <canvas id="qr-big-canvas" width="220" height="220"></canvas>
-      </div>
-      <div class="qr-modal-hash" id="qr-modal-hash">—</div>
-      <div class="qr-modal-note">🔒 สแกนเพื่อเปิดดูใบเสร็จฉบับเต็ม</div>
-      <button class="qr-modal-close" onclick="closeQRModal()">ปิด</button>
-    </div>
-  </div>
-
   <div class="bill-scroll" id="bill-scroll-area">
-    <div class="bill-paper">
+    <div class="bill-paper" id="bill-paper">
+      <!-- Header -->
       <div class="bhead">
         <div class="bhead-top">
           <div>
@@ -538,26 +540,31 @@ html,body{height:100%;height:100dvh;overflow:hidden;background:var(--bg);color:v
         </div>
       </div>
 
+      <!-- Shop info -->
       <div class="bshop-row">
         <div class="bshop-name" id="b-shop">ร้านค้า</div>
         <div class="bshop-detail" id="b-detail"></div>
         <div class="bshop-tax" id="b-tax"></div>
       </div>
 
+      <!-- Meta: date/time/count -->
       <div class="bmeta">
         <div class="bmc"><div class="bml">วันที่</div><div class="bmv" id="b-date">—</div></div>
         <div class="bmc"><div class="bml">เวลา</div><div class="bmv" id="b-time">—</div></div>
         <div class="bmc"><div class="bml">รายการ</div><div class="bmv" id="b-cnt">—</div></div>
       </div>
 
+      <!-- Column headers -->
       <div class="bitems-head">
         <div class="bih">รายการสินค้า</div>
         <div class="bih right">จำนวน × ราคา</div>
         <div class="bih right">รวม</div>
       </div>
 
+      <!-- Items -->
       <div class="bitems" id="b-items"></div>
 
+      <!-- Total -->
       <div class="btotal-row">
         <div>
           <div class="btl">รวมทั้งสิ้น / TOTAL</div>
@@ -566,18 +573,21 @@ html,body{height:100%;height:100dvh;overflow:hidden;background:var(--bg);color:v
         <div class="btv" id="b-total">0 ฿</div>
       </div>
 
+      <!-- QR -->
       <div class="bqr">
         <div class="bqrl">สแกนตรวจสอบความถูกต้อง</div>
         <div class="bqrw"><canvas id="qr-canvas" width="140" height="140"></canvas></div>
         <div class="bhash" id="b-hash">—</div>
       </div>
 
+      <!-- Collector / signature -->
       <div class="bcollect">
         <div class="bcollect-lbl">ผู้รับเงิน / COLLECTOR</div>
         <canvas class="bcollect-canvas" id="bill-sig-canvas" width="360" height="120"></canvas>
         <div class="bcollect-name" id="bill-collector-name"></div>
       </div>
 
+      <!-- Footer -->
       <div class="bfooter">
         <div class="bfv">✅ บิลลงลายมือชื่อดิจิทัลแล้ว · ไม่สามารถแก้ไขได้</div>
         <div class="bft">ออกโดยระบบบิลเสียง AI · ใช้เป็นหลักฐานค่าใช้จ่ายตามจริงได้</div>
@@ -586,6 +596,7 @@ html,body{height:100%;height:100dvh;overflow:hidden;background:var(--bg);color:v
   </div>
 </div>
 
+<!-- ═══════════ MEMORY SCREEN ═══════════ -->
 <div id="screen-memory" class="screen">
   <div class="topbar">
     <button class="back-btn" onclick="goHome()">←</button>
@@ -604,6 +615,7 @@ html,body{height:100%;height:100dvh;overflow:hidden;background:var(--bg);color:v
   </div>
 </div>
 
+<!-- ═══════════ HISTORY ═══════════ -->
 <div id="screen-history" class="screen">
   <div class="topbar">
     <button class="back-btn" onclick="goHome()">←</button>
@@ -618,10 +630,13 @@ html,body{height:100%;height:100dvh;overflow:hidden;background:var(--bg);color:v
   </div>
 </div>
 
+<!-- Toast -->
 <div class="toast" id="toast"></div>
 
+<!-- Gear button -->
 <button class="gear-btn" onclick="openSettings()" id="gear-btn" title="ตั้งค่า">⚙️</button>
 
+<!-- ═══════════ SETTINGS MODAL ═══════════ -->
 <div class="modal-overlay" id="settings-modal">
   <div class="modal-sheet">
     <div class="modal-handle"></div>
@@ -658,11 +673,10 @@ html,body{height:100%;height:100dvh;overflow:hidden;background:var(--bg);color:v
         </div>
       </div>
 
-
-
       <div class="cfg-section">
         <div class="cfg-label">🔑 API Key แต่ละค่าย</div>
 
+        <!-- Claude -->
         <div class="prov-key-card" id="pkcard-claude">
           <div class="prov-key-header">
             <div class="prov-key-icon">🟠</div>
@@ -682,6 +696,7 @@ html,body{height:100%;height:100dvh;overflow:hidden;background:var(--bg);color:v
           <div class="prov-key-status" id="pkst-claude">⬜ ยังไม่ได้บันทึก</div>
         </div>
 
+        <!-- Gemini -->
         <div class="prov-key-card" id="pkcard-gemini">
           <div class="prov-key-header">
             <div class="prov-key-icon">🔵</div>
@@ -701,6 +716,7 @@ html,body{height:100%;height:100dvh;overflow:hidden;background:var(--bg);color:v
           <div class="prov-key-status" id="pkst-gemini">⬜ ยังไม่ได้บันทึก</div>
         </div>
 
+        <!-- OpenAI -->
         <div class="prov-key-card" id="pkcard-openai">
           <div class="prov-key-header">
             <div class="prov-key-icon">⚫</div>
@@ -720,6 +736,7 @@ html,body{height:100%;height:100dvh;overflow:hidden;background:var(--bg);color:v
           <div class="prov-key-status" id="pkst-openai">⬜ ยังไม่ได้บันทึก</div>
         </div>
 
+        <!-- Llama/Groq -->
         <div class="prov-key-card" id="pkcard-llama">
           <div class="prov-key-header">
             <div class="prov-key-icon">🟣</div>
@@ -754,6 +771,34 @@ html,body{height:100%;height:100dvh;overflow:hidden;background:var(--bg);color:v
   </div>
 </div>
 
+<!-- ═══════════ INVOICE MODAL (สำหรับแสดงบิลให้ลูกค้าสแกน) ═══════════ -->
+<div id="invoice-modal" class="invoice-modal-overlay" onclick="closeInvoiceModal()">
+  <div class="invoice-modal-box" onclick="event.stopPropagation()">
+    <div class="invoice-modal-header">
+      <h3>🧾 ใบเสร็จรับเงิน</h3>
+      <button class="invoice-modal-close" onclick="closeInvoiceModal()">✕</button>
+    </div>
+    <div class="invoice-modal-body" id="invoice-modal-body">
+      <!-- Dynamic invoice content -->
+    </div>
+  </div>
+</div>
+
+<!-- QR Modal (สำหรับแสดง QR Code ให้ลูกค้าสแกน) -->
+<div id="qr-modal" class="qr-modal-overlay" onclick="closeQRModal()">
+  <div class="qr-modal-box" onclick="event.stopPropagation()">
+    <div class="qr-modal-title">📲 ให้ลูกค้าสแกน QR</div>
+    <div class="qr-modal-sub">สแกนเพื่อดูบิลบนมือถือ</div>
+    <div class="qr-modal-canvas-wrap">
+      <canvas id="qr-big-canvas" width="220" height="220"></canvas>
+    </div>
+    <div class="qr-modal-hash" id="qr-modal-hash">—</div>
+    <div class="qr-modal-note">🔒 ข้อมูลบิลฝังอยู่ใน QR · ไม่ต้องพึ่งอินเทอร์เน็ต</div>
+    <button class="qr-modal-close" onclick="closeQRModal()">ปิด</button>
+  </div>
+</div>
+
+<!-- Export loading overlay -->
 <div class="export-overlay" id="export-overlay">
   <div class="export-spinner"></div>
   <div class="export-lbl" id="export-lbl">กำลังสร้างไฟล์...</div>
@@ -814,17 +859,18 @@ function makeRec(onResult) {
   if (!SR) { toast('เบราว์เซอร์นี้ไม่รองรับเสียง ใช้ Chrome หรือ Safari'); return null; }
 
   let active = false;
-  let accumulated = '';   
+  let accumulated = '';   // ข้อความ final ที่ยืนยันแล้ว สะสมข้าม session ย่อย
   let currentSR  = null;
 
   function spawnSR() {
     const r = new SR();
     r.lang = 'th-TH';
-    r.continuous = false;    
+    r.continuous = false;    // false → Chrome จะ stop เอง ป้องกัน result index ค้าง
     r.interimResults = true;
-    let roundFinal = '';     
+    let roundFinal = '';     // final เฉพาะ SR instance นี้ ไม่ reset ใน onresult
 
     r.onresult = e => {
+      // สะสม final เฉพาะ result ใหม่ที่เพิ่งเข้ามา (ใช้ resultIndex ไม่ใช่ 0)
       let interim = '';
       for (let i = e.resultIndex; i < e.results.length; i++) {
         if (e.results[i].isFinal) roundFinal += e.results[i][0].transcript;
@@ -842,8 +888,9 @@ function makeRec(onResult) {
 
     r.onend = () => {
       if (!active) return;
-      accumulated += roundFinal;  
+      accumulated += roundFinal;  // โอน final รอบนี้เข้า accumulated
       roundFinal = '';
+      // spawn SR instance ใหม่ → result index reset เป็น 0 เสมอ ไม่ซ้ำ
       currentSR = spawnSR();
       try { currentSR.start(); } catch(err) {}
     };
@@ -854,7 +901,7 @@ function makeRec(onResult) {
   return {
     start() {
       active = true;
-      accumulated = '';    
+      accumulated = '';    // เริ่มใหม่ทุกครั้งที่กดพูด
       if (currentSR) { try { currentSR.stop(); } catch(e){} currentSR = null; }
       currentSR = spawnSR();
       try { currentSR.start(); } catch(e) {}
@@ -888,6 +935,7 @@ function stopMain(e) {
   document.getElementById('mic-btn').classList.remove('rec');
   document.getElementById('tc').classList.remove('rec');
   document.getElementById('mic-lbl').textContent = 'กดค้างแล้วพูด';
+  // ดึง final ก่อน stop เพื่อให้ได้ข้อความครบ
   const text = (recMain ? recMain.getFinal() : '') || trMain.trim();
   trMain = '';
   if (recMain) { recMain.stop(); recMain = null; }
@@ -935,12 +983,14 @@ const PROVIDERS = {
 };
 
 let cfgProv  = localStorage.getItem('vb_prov')  || 'claude';
+// เก็บ key แยกแต่ละค่าย
 const cfgKeys = {
   claude: localStorage.getItem('vb_key_claude') || '',
   gemini: localStorage.getItem('vb_key_gemini') || '',
   openai: localStorage.getItem('vb_key_openai') || '',
   llama:  localStorage.getItem('vb_key_llama')  || '',
 };
+// cfgKey = key ของค่ายที่ใช้งานอยู่ปัจจุบัน (backward compat)
 let cfgKey = cfgKeys[cfgProv] || localStorage.getItem('vb_key') || '';
 let cfgShop  = localStorage.getItem('vb_shop')  || '';
 let cfgOwner = localStorage.getItem('vb_owner') || '';
@@ -948,8 +998,8 @@ let cfgAddr  = localStorage.getItem('vb_addr')  || '';
 let cfgAddr2 = localStorage.getItem('vb_addr2') || '';
 let cfgPhone = localStorage.getItem('vb_phone') || '';
 let cfgTax       = localStorage.getItem('vb_tax')       || '';
-let cfgSig       = localStorage.getItem('vb_sig')       || '';  
-let cfgCollector = localStorage.getItem('vb_collector') || '';  
+let cfgSig       = localStorage.getItem('vb_sig')       || '';  // base64 ลายเซ็น
+let cfgCollector = localStorage.getItem('vb_collector') || '';  // ชื่อผู้รับเงิน
 
 function openSettings() {
   document.getElementById('cfg-shop').value  = cfgShop;
@@ -958,6 +1008,7 @@ function openSettings() {
   document.getElementById('cfg-addr2').value = cfgAddr2;
   document.getElementById('cfg-phone').value = cfgPhone;
   document.getElementById('cfg-tax').value   = cfgTax;
+  // โหลด key แต่ละค่ายเข้า input
   ['claude','gemini','openai','llama'].forEach(p => {
     const el = document.getElementById('key-' + p);
     if (el) el.value = cfgKeys[p] || '';
@@ -1020,11 +1071,13 @@ document.getElementById('settings-modal').addEventListener('click', function(e) 
     const canvas = document.getElementById('sig-canvas');
     if (!canvas) return;
     const data = canvas.toDataURL('image/png');
+    // ตรวจว่า canvas ว่างเปล่าไหม
     const blank = document.createElement('canvas');
     blank.width = canvas.width; blank.height = canvas.height;
     if (data === blank.toDataURL('image/png')) { toast('กรุณาเซ็นชื่อก่อนบันทึก'); return; }
     cfgSig = data;
     localStorage.setItem('vb_sig', data);
+    // แสดง preview
     document.getElementById('sig-preview-img').src = data;
     document.getElementById('sig-preview-img').style.display = 'block';
     document.getElementById('sig-preview-empty').style.display = 'none';
@@ -1073,6 +1126,7 @@ function savePK(id) {
   const val = inp.value.trim();
   cfgKeys[id] = val;
   localStorage.setItem('vb_key_' + id, val);
+  // ถ้าเป็น provider ที่ใช้งานอยู่ → update cfgKey ด้วย
   if (cfgProv === id) {
     cfgKey = val;
     localStorage.setItem('vb_key', val);
@@ -1084,8 +1138,10 @@ function savePK(id) {
 function usePK(id) {
   const key = cfgKeys[id] || document.getElementById('key-' + id).value.trim();
   if (!key) { toast('⚠️ กรุณาใส่และบันทึก API Key ก่อน'); return; }
+  // บันทึก key ก่อน (ในกรณียังไม่ได้กด save)
   cfgKeys[id] = key;
   localStorage.setItem('vb_key_' + id, key);
+  // เปลี่ยน provider
   cfgProv = id;
   cfgKey  = key;
   localStorage.setItem('vb_prov', id);
@@ -1132,7 +1188,7 @@ function saveSettings() {
   cfgKey       = cfgKeys[cfgProv] || '';
   cfgCollector = document.getElementById('cfg-owner').value.trim();
   localStorage.setItem('vb_prov', cfgProv);
-  localStorage.setItem('vb_key',  cfgKey);  
+  localStorage.setItem('vb_key',  cfgKey);  // key ของ provider ที่ใช้งานอยู่
   localStorage.setItem('vb_shop',  cfgShop);
   localStorage.setItem('vb_owner', cfgOwner);
   localStorage.setItem('vb_addr',  cfgAddr);
@@ -1140,9 +1196,11 @@ function saveSettings() {
   localStorage.setItem('vb_phone', cfgPhone);
   localStorage.setItem('vb_tax',       cfgTax);
   localStorage.setItem('vb_collector', cfgCollector);
+  // vb_sig บันทึกแยกโดย sigSave() เพราะ base64 ใหญ่
   closeSettings();
   toast('💾 บันทึกแล้ว ✅');
 
+  // If shop name changed and has items in history → re-scan memory for new shop
   if (shopChanged) {
     setTimeout(() => {
       learnFromHistory();
@@ -1157,6 +1215,8 @@ function saveSettings() {
 // ══════════════════════════════
 // SHOP MEMORY ENGINE
 // ══════════════════════════════
+// Structure: { shopKey: { category:'', items:{ name:{ count, totalPrice, lastPrice, lastSeen } } } }
+
 function shopKey() {
   return 'mem_' + (cfgShop || 'default').toLowerCase().replace(/\s+/g,'_').slice(0,30);
 }
@@ -1170,6 +1230,7 @@ function saveMemory(mem) {
   try { localStorage.setItem(shopKey(), JSON.stringify(mem)); } catch(e) {}
 }
 
+// Learn from a confirmed bill (called when bill is created)
 function learnFromBill(billItems) {
   if (!billItems || !billItems.length) return;
   const mem = getMemory();
@@ -1186,11 +1247,13 @@ function learnFromBill(billItems) {
   });
   saveMemory(mem);
 
+  // Trigger AI category detection if we have ≥3 unique items and no category yet
   if (!mem.category && Object.keys(mem.items).length >= 3 && cfgKey) {
     detectShopCategory(mem);
   }
 }
 
+// Learn from full history (called when shop name changes)
 function learnFromHistory() {
   const hist = getHist();
   const mem = { category: getMemory().category || '', items: {} };
@@ -1211,6 +1274,7 @@ function learnFromHistory() {
   }
 }
 
+// Ask AI what category this shop sells
 async function detectShopCategory(mem) {
   const names = Object.keys(mem.items).slice(0, 20).join(', ');
   const prompt = `ร้านชื่อ "${cfgShop}" ขายสินค้าเหล่านี้: ${names}
@@ -1250,6 +1314,7 @@ async function detectShopCategory(mem) {
   } catch(e) {}
 }
 
+// Render quick chips on home screen
 function renderMemoryChips() {
   const mem = getMemory();
   const entries = Object.entries(mem.items)
@@ -1278,6 +1343,7 @@ function renderMemoryChips() {
   ).join('');
 }
 
+// Quick-add an item from chip tap → goes straight to confirm screen
 function quickAddItem(name, price) {
   items.push({ name, qty:1, up:price, sub:price });
   renderItems();
@@ -1285,6 +1351,7 @@ function quickAddItem(name, price) {
   toast(`➕ เพิ่ม "${name}" แล้ว`);
 }
 
+// Show full memory management screen
 function showMemoryScreen() {
   const mem = getMemory();
   const entries = Object.entries(mem.items).sort((a,b)=>b[1].count-a[1].count);
@@ -1336,7 +1403,7 @@ function clearMemory() {
   toast('🗑️ ล้างความจำแล้ว');
 }
 
-// Build AI prompt enriched with shop memory
+// Build AI prompt enriched with shop memory and smarter parsing
 function buildPrompt(text) {
   const mem = getMemory();
   const knownItems = Object.entries(mem.items)
@@ -1350,19 +1417,18 @@ function buildPrompt(text) {
     ? `\nสินค้าที่ร้านนี้เคยขาย (ใช้อ้างอิงชื่อและราคา): ${knownItems}`
     : '';
 
-  return `คุณคือ AI ผู้ช่วยสรุปบิลเงินสดขั้นสูง${categoryHint ? ' ของ' + categoryHint : ''}.${memHint}
-ช่วยแยกรายการสินค้าจากข้อความภาษาไทยที่อาจมีคำพูดผิดเพี้ยนต่อไปนี้:
+  return `คุณคือระบบอ่านใบสั่งซื้ออัจฉริยะ${categoryHint ? ' ของ' + categoryHint : ''}.${memHint}
+ช่วยแยกรายการสินค้าจากข้อความภาษาไทยต่อไปนี้:
 "${text}"
 
-กฎการทำงาน (Strict Rules):
-1. ตอบกลับเป็น JSON format เท่านั้น ห้ามมีคำอธิบายอารัมภบท หรือ markdown (\`\`\`) เด็ดขาด
-2. โครงสร้าง: {"items":[{"name":"ชื่อสินค้า","qty":จำนวนชิ้น(เป็นตัวเลข),"unitPrice":ราคาต่อชิ้น(เป็นตัวเลข)}]}
-3. คำว่า "โหล" = 12, "ครึ่งโหล" = 6 (นำไปคูณจำนวนที่บอกมา)
-4. หากได้ยินคำว่า "ตัวละ", "ชิ้นละ", "ใบละ" ให้ถือว่าเป็น unitPrice (ตัวอย่าง: "กางเกง 20 ตัว ตัวละ 150" แปลว่า qty=20, unitPrice=150)
-5. ถ้าระบุแต่ชื่อ ไม่ระบุจำนวน ให้ถือว่า qty = 1
-6. ถ้าระบุชื่อแต่ไม่ระบุราคา ให้พยายามเทียบชื่อจาก "สินค้าที่ร้านนี้เคยขาย" ถ้าไม่มีให้ unitPrice = 0
-7. แก้คำผิดจากเสียงให้เป็นชื่อสินค้าที่ถูกต้อง เช่น "เกงยีนส์" -> "กางเกงยีนส์"
-8. ถ้ารายการชื่อซ้ำกัน ให้จับรวมกันแล้วบวกจำนวน (qty) ทันที`;
+กฎสำคัญ:
+1. ตอบเป็น JSON เท่านั้น ไม่มีข้อความอื่น ไม่มี markdown
+2. ถ้าไม่มีจำนวน ให้ใส่ 1
+3. ถ้าไม่มีราคา ให้ดูจากรายการที่เคยขาย (ถ้ามี) ถ้าไม่มีเลยให้ใส่ 0
+4. รองรับภาษาไทย: โหล = 12, ครึ่งโหล = 6, หน่วยต่างๆ (ตัว,ชิ้น,กิโล,ถุง,กล่อง,แพ็ค,คู่,ผืน,ชุด)
+5. ถ้าข้อความขึ้นต้นด้วย "เพิ่ม" หรือ "อีก" ให้ถือว่าเป็นรายการใหม่ทั้งหมด
+6. ถ้าชื่อสินค้าในข้อความใกล้เคียงกับรายการที่เคยขาย ให้ใช้ชื่อและราคาจากรายการที่เคยขายแทน
+7. รูปแบบ: {"items":[{"name":"ชื่อสินค้า","qty":จำนวน,"unitPrice":ราคาต่อชิ้น}]}`;
 }
 
 // ══════════════════════════════
@@ -1436,6 +1502,7 @@ async function processAI(text, merge) {
       result = d.choices?.[0]?.message?.content || '';
     }
 
+    // ดึงเฉพาะ JSON object ออกมา ป้องกัน AI แนบข้อความพิเศษ
     let raw = result.replace(/```json|```/g, '').trim();
     const jsonMatch = raw.match(/\{[\s\S]*\}/);
     if (!jsonMatch) throw new Error('AI ตอบไม่ถูกรูปแบบ JSON');
@@ -1497,7 +1564,7 @@ function renderItems() {
     el.innerHTML = `
       <div class="item-idx">${i + 1}</div>
       <div class="item-body">
-        <div class="item-name">${item.name}</div>
+        <div class="item-name">${escapeHtml(item.name)}</div>
         <div class="item-detail">${item.qty} × ${fmt(item.up)} บาท</div>
       </div>
       <div class="item-sub">${fmt(item.sub)} ฿</div>
@@ -1505,6 +1572,15 @@ function renderItems() {
     list.appendChild(el);
   });
   updateTotal();
+}
+
+function escapeHtml(str) {
+  return str.replace(/[&<>]/g, function(m) {
+    if (m === '&') return '&amp;';
+    if (m === '<') return '&lt;';
+    if (m === '>') return '&gt;';
+    return m;
+  });
 }
 
 function delItem(i) { items.splice(i, 1); renderItems(); }
@@ -1527,20 +1603,8 @@ function updateTotal() {
   document.getElementById('cnt-txt').textContent   = items.length + ' รายการ';
 }
 
-// ฟังก์ชันสร้าง URL สำหรับให้ลูกค้าสแกน QR 
-function getBillUrl(billDataObj) {
-  try {
-    const jsonStr = JSON.stringify(billDataObj);
-    const base64 = btoa(unescape(encodeURIComponent(jsonStr)));
-    const baseUrl = window.location.href.split('?')[0]; 
-    return baseUrl + '?view=' + base64;
-  } catch(e) {
-    return "";
-  }
-}
-
 // ══════════════════════════════
-// CREATE BILL
+// CREATE BILL (พร้อมสร้าง QR แบบ URL)
 // ══════════════════════════════
 function createBill() {
   if (!items.length) { toast('กรุณาเพิ่มสินค้าอย่างน้อย 1 รายการ'); return; }
@@ -1551,6 +1615,7 @@ function createBill() {
 
   saveHist({ no, date: now.toISOString(), shop: cfgShop || 'ร้านค้า', items: [...items], total, hash });
 
+  // 🧠 Learn from this bill
   learnFromBill(items);
   renderMemoryChips();
 
@@ -1563,27 +1628,43 @@ function createBill() {
   setText('b-total', fmt(total) + ' ฿');
   setText('b-hash', 'Digital Sig: ' + hash);
 
+  // Shop detail
   const details = [cfgOwner, cfgAddr, cfgAddr2, cfgPhone ? '📞 ' + cfgPhone : ''].filter(Boolean).join(' · ');
   setText('b-detail', details);
   setText('b-tax', cfgTax ? 'เลขผู้เสียภาษี: ' + cfgTax : '');
 
   document.getElementById('b-items').innerHTML = items.map(it => `
     <div class="bitem">
-      <div><div class="biname">${it.name}</div><div class="biqty">${it.qty} ชิ้น</div></div>
+      <div><div class="biname">${escapeHtml(it.name)}</div><div class="biqty">${it.qty} ชิ้น</div></div>
       <div class="bicol">${it.qty} × ${fmt(it.up)}</div>
       <div class="bisub">${fmt(it.sub)} ฿</div>
     </div>`).join('');
 
+  // สร้าง URL สำหรับ QR Code ที่จะเปิดแสดงบิล
   const billDataForQR = {
-    n: no,
-    s: cfgShop || 'ร้านค้า',
-    d: document.getElementById('b-date').textContent,
-    t: document.getElementById('b-time').textContent,
-    i: items.map(i => [i.name, i.qty, i.up]),
-    tt: total
+    no: no,
+    shop: cfgShop || 'ร้านค้า',
+    owner: cfgOwner || '',
+    addr: [cfgAddr, cfgAddr2].filter(Boolean).join(' '),
+    phone: cfgPhone || '',
+    tax: cfgTax || '',
+    date: document.getElementById('b-date').textContent,
+    time: document.getElementById('b-time').textContent,
+    items: items.map(i => ({ name: i.name, qty: i.qty, price: i.up })),
+    total: total,
+    hash: hash,
+    collector: cfgCollector || cfgOwner || ''
   };
-  drawQR(getBillUrl(billDataForQR), 'qr-canvas', 140);
+  const jsonStr = JSON.stringify(billDataForQR);
+  const base64 = btoa(unescape(encodeURIComponent(jsonStr)));
+  const qrUrl = window.location.href.split('#')[0] + '?view=invoice#' + base64;
+  
+  drawQR(qrUrl, 'qr-canvas', 140);
+  
+  // Store current bill data for sharing
+  window.currentBillData = billDataForQR;
 
+  // วาดลายเซ็นผู้รับเงินบนบิล
   const sigCanvas = document.getElementById('bill-sig-canvas');
   const sigCtx = sigCanvas.getContext('2d');
   sigCtx.clearRect(0, 0, sigCanvas.width, sigCanvas.height);
@@ -1608,29 +1689,143 @@ function createBill() {
 
 function drawQR(text, canvasId, size) {
   const canvas = document.getElementById(canvasId);
+  if (!canvas) return;
   const ctx = canvas.getContext('2d');
   ctx.clearRect(0, 0, size, size);
   try {
-    const h = document.createElement('div');
-    new QRCode(h, { text, width: size, height: size, colorDark: '#1a3a6b', colorLight: '#fff', correctLevel: QRCode.CorrectLevel.M });
+    // Use QRCode library
+    const tempDiv = document.createElement('div');
+    new QRCode(tempDiv, { text: text, width: size, height: size, colorDark: '#1a3a6b', colorLight: '#fff', correctLevel: QRCode.CorrectLevel.M });
     setTimeout(() => {
-      const src = h.querySelector('img')?.src || h.querySelector('canvas')?.toDataURL();
-      if (src) { const img = new Image(); img.onload = () => ctx.drawImage(img, 0, 0, size, size); img.src = src; }
-    }, 180);
-  } catch (e) {}
+      const img = tempDiv.querySelector('img');
+      if (img) {
+        const imgObj = new Image();
+        imgObj.onload = () => ctx.drawImage(imgObj, 0, 0, size, size);
+        imgObj.src = img.src;
+      } else {
+        const qrCanvas = tempDiv.querySelector('canvas');
+        if (qrCanvas) ctx.drawImage(qrCanvas, 0, 0);
+      }
+    }, 100);
+  } catch(e) { console.error('QR Error', e); }
+}
+
+// ── SHARE: QR MODAL (สร้าง URL แบบ Base64 แล้วแสดง QR) ──
+function shareBillQR() {
+  if (!window.currentBillData) {
+    toast('กรุณาสร้างบิลก่อน');
+    return;
+  }
+  const jsonStr = JSON.stringify(window.currentBillData);
+  const base64 = btoa(unescape(encodeURIComponent(jsonStr)));
+  const qrUrl = window.location.href.split('#')[0] + '?view=invoice#' + base64;
+  
+  document.getElementById('qr-modal-hash').textContent = 'Sig: ' + window.currentBillData.hash;
+  drawQR(qrUrl, 'qr-big-canvas', 220);
+  document.getElementById('qr-modal').classList.add('open');
+}
+
+function closeQRModal() {
+  document.getElementById('qr-modal').classList.remove('open');
+}
+
+// ── SHOW INVOICE FROM QR (เมื่อเปิดหน้าด้วย ?view=invoice#...) ──
+function showInvoiceFromQR() {
+  const urlParams = new URLSearchParams(window.location.search);
+  if (urlParams.get('view') === 'invoice' && window.location.hash) {
+    try {
+      const base64 = window.location.hash.slice(1);
+      const jsonStr = decodeURIComponent(escape(atob(base64)));
+      const bill = JSON.parse(jsonStr);
+      displayInvoiceModal(bill);
+      // Clean URL to avoid re-triggering
+      history.pushState({}, '', window.location.pathname);
+    } catch(e) {
+      console.error('Invalid invoice data', e);
+    }
+  }
+}
+
+function displayInvoiceModal(bill) {
+  const modalBody = document.getElementById('invoice-modal-body');
+  const total = bill.items.reduce((s, i) => s + (i.qty * i.price), 0);
+  modalBody.innerHTML = `
+    <div style="font-family:'Sarabun',sans-serif;">
+      <div style="background:#1a5fa8;color:#fff;padding:12px;text-align:center;border-radius:12px;margin-bottom:16px;">
+        <div style="font-size:20px;font-weight:900;">บิลเงินสด</div>
+        <div style="font-size:12px;">CASH SALE</div>
+        <div style="font-size:10px;margin-top:5px;">${bill.no || ''}</div>
+      </div>
+      
+      <div style="background:#f0ebe0;padding:12px;border-radius:12px;margin-bottom:12px;">
+        <div style="font-weight:800;font-size:16px;">${bill.shop || 'ร้านค้า'}</div>
+        <div style="font-size:11px;color:#6a5e4a;">${bill.owner || ''}${bill.owner && bill.addr ? ' · ' : ''}${bill.addr || ''}</div>
+        <div style="font-size:10px;color:#8a7a60;">${bill.phone ? '📞 ' + bill.phone : ''} ${bill.tax ? 'เลขภาษี: ' + bill.tax : ''}</div>
+      </div>
+      
+      <div style="display:flex;gap:8px;margin-bottom:16px;">
+        <div style="flex:1;background:#faf8f2;padding:8px;border-radius:8px;text-align:center;">
+          <div style="font-size:10px;color:#9a8e78;">วันที่</div>
+          <div style="font-weight:800;">${bill.date || '-'}</div>
+        </div>
+        <div style="flex:1;background:#faf8f2;padding:8px;border-radius:8px;text-align:center;">
+          <div style="font-size:10px;color:#9a8e78;">เวลา</div>
+          <div style="font-weight:800;">${bill.time || '-'}</div>
+        </div>
+        <div style="flex:1;background:#faf8f2;padding:8px;border-radius:8px;text-align:center;">
+          <div style="font-size:10px;color:#9a8e78;">รายการ</div>
+          <div style="font-weight:800;">${bill.items.length} รายการ</div>
+        </div>
+      </div>
+      
+      <div style="background:#1a5fa8;color:#fff;padding:6px 12px;border-radius:8px;margin-bottom:8px;display:flex;font-size:10px;font-weight:700;">
+        <div style="flex:2;">รายการสินค้า</div>
+        <div style="flex:1;text-align:right;">จำนวน×ราคา</div>
+        <div style="flex:1;text-align:right;">รวม</div>
+      </div>
+      
+      ${bill.items.map(item => `
+        <div style="display:flex;padding:8px 0;border-bottom:1px dashed #e0d8c8;font-size:13px;">
+          <div style="flex:2;"><strong>${escapeHtml(item.name)}</strong><div style="font-size:10px;color:#7a6a52;">${item.qty} ชิ้น</div></div>
+          <div style="flex:1;text-align:right;">${item.qty} × ${fmt(item.price)}</div>
+          <div style="flex:1;text-align:right;font-weight:700;">${fmt(item.qty * item.price)} ฿</div>
+        </div>
+      `).join('')}
+      
+      <div style="background:#f0ebe0;padding:12px;border-radius:12px;margin-top:12px;display:flex;justify-content:space-between;">
+        <div><strong>รวมทั้งสิ้น</strong><div style="font-size:10px;color:#9a8e78;">รวมภาษีมูลค่าเพิ่ม (ถ้ามี)</div></div>
+        <div style="font-size:22px;font-weight:900;color:#1a5fa8;">${fmt(total)} ฿</div>
+      </div>
+      
+      <div style="text-align:center;margin-top:16px;padding-top:12px;border-top:1px solid #e0d8c8;">
+        <div style="font-size:10px;color:#1a6b3a;">✅ บิลลงลายมือชื่อดิจิทัลแล้ว · ไม่สามารถแก้ไขได้</div>
+        <div style="font-size:9px;color:#b8aa90;margin-top:5px;">Digital Sig: ${bill.hash || '-'}</div>
+        <div style="font-size:9px;color:#b8aa90;">ผู้รับเงิน: ${bill.collector || '-'}</div>
+      </div>
+    </div>
+  `;
+  document.getElementById('invoice-modal').classList.add('open');
+}
+
+function closeInvoiceModal() {
+  document.getElementById('invoice-modal').classList.remove('open');
 }
 
 // ── SHARE: TEXT (Line/SMS) ──
 function shareBillText() {
-  const no    = document.getElementById('b-no').textContent;
-  const total = items.reduce((s, i) => s + i.sub, 0);
+  if (!window.currentBillData) {
+    toast('กรุณาสร้างบิลก่อน');
+    return;
+  }
+  const bill = window.currentBillData;
+  const total = bill.items.reduce((s, i) => s + (i.qty * i.price), 0);
   const lines = [
-    `🧾 บิลเงินสดดิจิทัล · ${no}`,
-    cfgShop  ? `🏪 ${cfgShop}` : '',
-    cfgPhone ? `📞 ${cfgPhone}` : '',
-    cfgTax   ? `เลขภาษี: ${cfgTax}` : '',
+    `🧾 บิลเงินสดดิจิทัล · ${bill.no}`,
+    bill.shop ? `🏪 ${bill.shop}` : '',
+    bill.phone ? `📞 ${bill.phone}` : '',
+    bill.tax ? `เลขภาษี: ${bill.tax}` : '',
     `─────────────────`,
-    ...items.map(i => `• ${i.name} ×${i.qty} = ${fmt(i.sub)} ฿`),
+    ...bill.items.map(i => `• ${i.name} ×${i.qty} = ${fmt(i.qty * i.price)} ฿`),
     `─────────────────`,
     `💰 รวมทั้งสิ้น ${fmt(total)} ฿`,
     `🔒 ล็อคแก้ไขไม่ได้ · ใช้เป็นหลักฐานค่าใช้จ่ายได้`
@@ -1640,39 +1835,9 @@ function shareBillText() {
   else navigator.clipboard?.writeText(text).then(() => toast('คัดลอกบิลแล้ว ✅'));
 }
 
-// ── SHARE: QR MODAL ──
-function shareBillQR() {
-  const no    = document.getElementById('b-no').textContent;
-  const total = items.reduce((s, i) => s + i.sub, 0);
-  const hash  = document.getElementById('b-hash').textContent.replace('Digital Sig: ','');
-
-  const fullBillData = {
-    v: 1,
-    no: no,
-    shop:  cfgShop || 'ร้านค้า',
-    owner: cfgOwner || '',
-    addr:  [cfgAddr, cfgAddr2].filter(Boolean).join(' '),
-    phone: cfgPhone || '',
-    tax:   cfgTax || '',
-    date:  document.getElementById('b-date').textContent,
-    time:  document.getElementById('b-time').textContent,
-    items: items.map(i => [i.name, i.qty, i.up]), 
-    total: total,
-    hash: hash
-  };
-
-  document.getElementById('qr-modal-hash').textContent = 'Sig: ' + hash;
-  drawQR(getBillUrl(fullBillData), 'qr-big-canvas', 220);
-  document.getElementById('qr-modal').classList.add('open');
-}
-
-function closeQRModal() {
-  document.getElementById('qr-modal').classList.remove('open');
-}
-
 // ── EXPORT: PNG ──
 async function saveAsPNG() {
-  const el = document.querySelector('.bill-paper');
+  const el = document.getElementById('bill-paper');
   if (!el) return;
   showExportOverlay('🖼️ กำลังสร้างภาพบิล...');
   try {
@@ -1717,7 +1882,7 @@ async function saveAsPNG() {
 
 // ── EXPORT: PDF ──
 async function saveAsPDF() {
-  const el = document.querySelector('.bill-paper');
+  const el = document.getElementById('bill-paper');
   if (!el) return;
   showExportOverlay('📄 กำลังสร้าง PDF...');
   try {
@@ -1822,8 +1987,7 @@ function pad(n) { return String(n).padStart(2, '0'); }
 function setText(id, val) { const el = document.getElementById(id); if (el) el.textContent = val || ''; }
 function setStatus(t, txt) {
   const d = document.getElementById('sdot');
-  d.className = 'sdot' + (t === 'live' ? ' live' : t === 'ok' ? ' err' : ''); // fixed err color
-  if (t==='live') d.className='sdot live'; else if(t==='ok') d.className='sdot ok'; else if(t==='err') d.className='sdot err'; else d.className='sdot';
+  d.className = 'sdot' + (t === 'live' ? ' live' : t === 'ok' ? ' ok' : t === 'err' ? ' err' : '');
   document.getElementById('stxt').textContent = txt;
 }
 function setTc(t, empty) {
@@ -1837,83 +2001,15 @@ function toast(msg) {
   clearTimeout(t._t); t._t = setTimeout(() => t.classList.remove('show'), 2800);
 }
 
-// ══════════════════════════════
-// CUSTOMER INVOICE VIEWER MODE (โหมดลูกค้าสแกน QR)
-// ══════════════════════════════
-function checkViewerMode() {
-  const params = new URLSearchParams(window.location.search);
-  const viewData = params.get('view');
-  if (viewData) {
-    try {
-      const decodedStr = decodeURIComponent(escape(atob(viewData)));
-      const data = JSON.parse(decodedStr);
+// Initialize
+refreshAllPKStatus();
 
-      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-      document.getElementById('screen-bill').classList.add('active');
+// 🧠 Init shop memory on load
+learnFromHistory();
+renderMemoryChips();
 
-      document.querySelector('.bill-topbar .back-btn').style.display = 'none';
-      document.querySelector('.share-bar').style.display = 'none';
-      document.getElementById('gear-btn').style.display = 'none';
-      document.querySelector('.locked-badge').textContent = 'ใบเสร็จรับเงิน';
-      document.querySelector('.locked-badge').style.background = 'rgba(26,95,168,0.2)';
-      document.querySelector('.locked-badge').style.color = '#1a5fa8';
-
-      const isShort = !!data.n;
-      const no = isShort ? data.n : data.no;
-      const shop = isShort ? data.s : data.shop;
-      const date = isShort ? data.d : data.date;
-      const time = isShort ? data.t : data.time;
-      const _items = isShort ? data.i : data.items;
-      const total = isShort ? data.tt : data.total;
-
-      setText('b-shop', shop);
-      setText('b-no', no);
-      setText('b-date', date);
-      setText('b-time', time);
-      setText('b-cnt', _items.length + ' รายการ');
-      setText('b-total', fmt(total) + ' ฿');
-
-      if (!isShort) {
-         const details = [data.owner, data.addr, data.phone ? '📞 ' + data.phone : ''].filter(Boolean).join(' · ');
-         setText('b-detail', details);
-         setText('b-tax', data.tax ? 'เลขผู้เสียภาษี: ' + data.tax : '');
-         setText('b-hash', 'Digital Sig: ' + (data.hash || '-'));
-      } else {
-         setText('b-detail', '');
-         setText('b-tax', '');
-         setText('b-hash', 'Scanned QR');
-      }
-
-      let html = '';
-      _items.forEach(arr => {
-        const n = arr[0], q = arr[1], p = arr[2], sub = q * p;
-        html += `
-          <div class="bitem">
-            <div><div class="biname">${n}</div><div class="biqty">${q} ชิ้น</div></div>
-            <div class="bicol">${q} × ${fmt(p)}</div>
-            <div class="bisub">${fmt(sub)} ฿</div>
-          </div>`;
-      });
-      document.getElementById('b-items').innerHTML = html;
-      document.getElementById('bill-sig-canvas').style.display = 'none';
-      
-      return true; 
-    } catch (e) {
-      alert('รูปแบบ QR Code ไม่ถูกต้อง หรือลิงก์เสียหาย');
-      window.history.replaceState({}, document.title, window.location.pathname);
-    }
-  }
-  return false;
-}
-
-const isViewerMode = checkViewerMode();
-
-if (!isViewerMode) {
-  refreshAllPKStatus();
-  learnFromHistory();
-  renderMemoryChips();
-}
-
+// Check for QR invoice on load
+showInvoiceFromQR();
 </script>
 </body>
 </html>
