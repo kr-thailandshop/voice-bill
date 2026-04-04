@@ -1,0 +1,1554 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>บิลเสียง · VoiceBill</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Sarabun:ital,wght@0,300;0,400;0,600;0,700;0,800;1,400&family=Noto+Serif+Thai:wght@400;600;700;900&family=IBM+Plex+Mono:wght@400;500;700&display=swap');
+
+:root {
+  --sz: 1;
+  --bg:        #f5f0e8;
+  --bg2:       #ede7d9;
+  --surface:   #faf7f2;
+  --border:    #c8bfaa;
+  --text:      #1a1410;
+  --text2:     #3d3228;
+  --muted:     #8a7d6b;
+  --accent:    #1a5fa8;
+  --acc-light: #e8f0fa;
+  --acc-dark:  #0d3d72;
+  --green:     #1a6b3a;
+  --grn-bg:    #e6f4ec;
+  --red:       #b02a1f;
+  --red-bg:    #fdecea;
+  --gold:      #c49a2a;
+  --shadow:    0 2px 10px rgba(26,20,16,0.10);
+  --shadow-lg: 0 6px 28px rgba(26,20,16,0.16);
+  --bill-line: #c8bfaa;
+}
+body.dark {
+  --bg:        #111010;
+  --bg2:       #1c1a17;
+  --surface:   #1e1c18;
+  --border:    #3a352c;
+  --text:      #f0ece4;
+  --text2:     #c8bfaa;
+  --muted:     #7a6e60;
+  --acc-light: #0d2040;
+  --acc-dark:  #60a0e0;
+  --grn-bg:    #0d2018;
+  --red-bg:    #1e0d0a;
+  --bill-line: #3a352c;
+}
+
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;height:100dvh;overflow:hidden;background:var(--bg);color:var(--text);font-family:'Sarabun',sans-serif;touch-action:manipulation;transition:background 0.25s,color 0.25s;}
+
+/* ── SCREENS ── */
+.screen{display:none;position:fixed;inset:0;flex-direction:column;background:var(--bg);overflow:hidden;}
+.screen.active{display:flex;}
+
+/* ── TOPBAR ── */
+.topbar{background:var(--surface);border-bottom:2px solid var(--border);padding:10px 14px;display:flex;align-items:center;gap:10px;flex-shrink:0;box-shadow:0 1px 4px rgba(0,0,0,0.06);}
+.back-btn{min-width:46px;height:46px;border-radius:10px;background:var(--bg2);border:2px solid var(--border);color:var(--text);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:1.1rem;font-weight:700;flex-shrink:0;}
+.bar-info{flex:1;}
+.bar-title{font-weight:800;color:var(--text);font-size:calc(1.1rem * var(--sz));}
+.bar-sub{color:var(--muted);margin-top:1px;font-size:calc(0.8rem * var(--sz));}
+
+/* ── HOME ── */
+.home-topbar{background:var(--surface);border-bottom:2px solid var(--border);padding:10px 14px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+.icon-btn{padding:9px 13px;border-radius:10px;background:var(--bg2);border:2px solid var(--border);color:var(--text);font-family:'Sarabun',sans-serif;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px;font-size:calc(0.82rem * var(--sz));white-space:nowrap;}
+
+#screen-home .home-body{flex:1;overflow-y:auto;display:flex;flex-direction:column;align-items:center;justify-content:space-evenly;padding:16px 20px 90px;gap:14px;}
+
+/* Brand */
+.brand{text-align:center;}
+.brand-badge{display:inline-flex;align-items:center;gap:7px;background:var(--acc-light);border:2px solid var(--accent);border-radius:100px;padding:5px 14px;color:var(--accent);font-weight:700;font-size:calc(0.78rem * var(--sz));margin-bottom:8px;}
+.badge-dot{width:8px;height:8px;border-radius:50%;background:var(--accent);animation:blink 1.4s infinite;}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0.2}}
+.brand h1{font-family:'Noto Serif Thai',serif;font-weight:900;color:var(--text);letter-spacing:-0.5px;line-height:1.1;font-size:calc(2.5rem * var(--sz));}
+.brand p{color:var(--muted);margin-top:5px;font-weight:600;font-size:calc(0.9rem * var(--sz));}
+
+/* MIC */
+.mic-outer{position:relative;display:flex;align-items:center;justify-content:center;width:220px;height:220px;flex-shrink:0;}
+.ring{position:absolute;border-radius:50%;border:2px solid rgba(26,95,168,0.15);animation:breathe 3s ease-in-out infinite;}
+.ring-1{width:196px;height:196px;}
+.ring-2{width:218px;height:218px;animation-delay:0.9s;opacity:0.5;}
+@keyframes breathe{0%,100%{transform:scale(0.96);opacity:0.2}50%{transform:scale(1.04);opacity:0.6}}
+.mic-btn{width:166px;height:166px;border-radius:50%;background:var(--surface);border:3px solid var(--border);box-shadow:var(--shadow-lg);cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;transition:all 0.12s ease;user-select:none;position:relative;z-index:2;}
+.mic-btn:active,.mic-btn.rec{background:var(--acc-light);border-color:var(--accent);box-shadow:0 0 0 10px rgba(26,95,168,0.12),var(--shadow-lg);transform:scale(0.95);}
+.mic-btn.rec .ring{border-color:rgba(26,95,168,0.45);animation:ring-rec 0.7s ease-out infinite;}
+.mic-btn.rec .ring-2{animation-delay:0.35s;}
+@keyframes ring-rec{0%{transform:scale(1);opacity:0.8}100%{transform:scale(1.6);opacity:0}}
+.mic-emoji{font-size:48px;line-height:1;}
+.mic-btn.rec .mic-emoji{animation:mpulse 0.5s ease-in-out infinite alternate;}
+@keyframes mpulse{from{transform:scale(1)}to{transform:scale(1.12)}}
+.mic-lbl{font-weight:700;color:var(--text2);font-size:calc(0.88rem * var(--sz));}
+.mic-btn.rec .mic-lbl{color:var(--accent);}
+
+/* Transcript card */
+.tc-card{width:100%;background:var(--surface);border:2px solid var(--border);border-radius:14px;padding:13px 15px;min-height:68px;box-shadow:var(--shadow);position:relative;overflow:hidden;}
+.tc-tag{color:var(--muted);margin-bottom:5px;font-family:'IBM Plex Mono',monospace;display:flex;align-items:center;gap:5px;font-size:calc(0.75rem * var(--sz));}
+.tc-text{color:var(--text);line-height:1.65;min-height:32px;font-weight:600;font-size:calc(0.95rem * var(--sz));}
+.tc-text.empty{color:var(--muted);font-weight:400;font-style:italic;}
+.scan-line{display:none;position:absolute;bottom:0;left:0;right:0;height:3px;background:linear-gradient(90deg,transparent,var(--accent),transparent);animation:scan 1.6s linear infinite;}
+@keyframes scan{from{transform:translateX(-100%)}to{transform:translateX(100%)}}
+.tc-card.rec .scan-line{display:block;}
+
+/* Status */
+.status-pill{display:inline-flex;align-items:center;gap:8px;background:var(--surface);border:2px solid var(--border);border-radius:100px;padding:9px 16px;font-weight:700;color:var(--text2);box-shadow:var(--shadow);font-size:calc(0.82rem * var(--sz));}
+.sdot{width:9px;height:9px;border-radius:50%;background:var(--muted);transition:background 0.2s;}
+.sdot.live{background:var(--accent);animation:blink 0.7s infinite;}
+.sdot.ok{background:var(--green);}
+.sdot.err{background:var(--red);}
+
+/* AI Loading */
+.ai-load{display:none;flex-direction:column;align-items:center;gap:10px;padding:18px;}
+.ai-load.show{display:flex;}
+.spinner{width:38px;height:38px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin 0.75s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg)}}
+.load-lbl{font-weight:700;color:var(--muted);font-size:calc(0.9rem * var(--sz));}
+
+/* Gear button */
+.gear-btn{position:fixed;bottom:22px;right:14px;z-index:300;width:54px;height:54px;border-radius:14px;background:var(--accent);border:none;color:#fff;font-size:24px;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 4px 16px rgba(26,95,168,0.4);transition:transform 0.15s,box-shadow 0.15s;}
+.gear-btn:active{transform:scale(0.93);}
+
+/* ── CONFIRM SCREEN ── */
+#screen-confirm{background:var(--bg);}
+.confirm-scroll{flex:1;overflow-y:auto;padding:10px 11px 6px;display:flex;flex-direction:column;gap:9px;}
+.item-card{background:var(--surface);border:2px solid var(--border);border-radius:13px;padding:13px;display:flex;align-items:center;gap:9px;box-shadow:var(--shadow);animation:popin 0.18s ease;flex-shrink:0;}
+@keyframes popin{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+.item-idx{min-width:32px;height:32px;background:var(--bg2);border:2px solid var(--border);border-radius:9px;display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Mono',monospace;font-weight:700;color:var(--muted);flex-shrink:0;font-size:calc(0.78rem * var(--sz));}
+.item-body{flex:1;min-width:0;}
+.item-name{font-weight:800;color:var(--text);word-break:break-word;font-size:calc(1rem * var(--sz));}
+.item-detail{color:var(--muted);margin-top:2px;font-weight:600;font-size:calc(0.8rem * var(--sz));}
+.item-sub{font-family:'IBM Plex Mono',monospace;font-weight:700;color:var(--accent);white-space:nowrap;font-size:calc(1rem * var(--sz));}
+.del-btn{min-width:40px;height:40px;border-radius:9px;background:var(--red-bg);border:2px solid rgba(176,42,31,0.2);color:var(--red);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:15px;font-weight:700;flex-shrink:0;}
+
+/* Voice more bar */
+.more-bar{margin:0 11px 7px;background:var(--surface);border:2px solid var(--border);border-radius:13px;padding:11px 13px;box-shadow:var(--shadow);flex-shrink:0;}
+.more-label{color:var(--muted);margin-bottom:7px;font-weight:700;font-family:'IBM Plex Mono',monospace;font-size:calc(0.75rem * var(--sz));}
+.more-row{display:flex;gap:8px;align-items:flex-start;}
+.mic-mini{min-width:50px;height:50px;border-radius:11px;background:var(--bg2);border:2px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:22px;cursor:pointer;flex-shrink:0;transition:all 0.12s;}
+.mic-mini.rec{background:var(--acc-light);border-color:var(--accent);box-shadow:0 0 0 4px rgba(26,95,168,0.14);}
+.more-tc{flex:1;background:var(--bg2);border:2px solid var(--border);border-radius:9px;padding:11px 12px;color:var(--text2);min-height:50px;font-family:'Sarabun',sans-serif;font-weight:600;line-height:1.5;font-size:calc(0.88rem * var(--sz));}
+
+/* Manual add */
+.manual-bar{margin:0 11px 7px;background:var(--surface);border:2px solid var(--border);border-radius:13px;padding:11px 13px;box-shadow:var(--shadow);flex-shrink:0;}
+.manual-label{color:var(--muted);margin-bottom:7px;font-weight:700;font-family:'IBM Plex Mono',monospace;font-size:calc(0.75rem * var(--sz));}
+.manual-row{display:flex;gap:5px;flex-wrap:wrap;}
+.f{background:var(--bg2);border:2px solid var(--border);border-radius:9px;padding:9px 11px;font-family:'Sarabun',sans-serif;font-weight:600;color:var(--text);outline:none;min-height:46px;font-size:calc(0.9rem * var(--sz));}
+.f:focus{border-color:var(--accent);}
+.fn{flex:2;min-width:0;}
+.fq{width:58px;text-align:center;}
+.fp{width:88px;text-align:right;}
+.add-btn{min-width:46px;height:46px;background:var(--accent);border:none;border-radius:9px;color:#fff;font-size:22px;font-weight:800;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;}
+
+/* Total section */
+.total-sec{margin:0 11px 7px;background:var(--text);border-radius:14px;padding:16px 18px;display:flex;justify-content:space-between;align-items:center;box-shadow:var(--shadow-lg);flex-shrink:0;}
+.total-lbl{color:rgba(255,255,255,0.55);font-weight:600;font-size:calc(0.9rem * var(--sz));}
+.total-cnt{color:rgba(255,255,255,0.4);font-weight:600;margin-top:2px;font-size:calc(0.8rem * var(--sz));}
+.total-num{font-family:'IBM Plex Mono',monospace;font-weight:700;color:#fff;font-size:calc(1.8rem * var(--sz));}
+
+/* Actions */
+.actions{padding:0 11px 20px;display:flex;gap:7px;flex-shrink:0;}
+.btn-sec{flex:1;padding:15px;border-radius:13px;background:var(--surface);border:2px solid var(--border);color:var(--text2);font-family:'Sarabun',sans-serif;font-weight:700;cursor:pointer;font-size:calc(1rem * var(--sz));}
+.btn-pri{flex:2;padding:15px;border-radius:13px;background:var(--accent);border:none;color:#fff;font-family:'Sarabun',sans-serif;font-weight:800;cursor:pointer;transition:opacity 0.12s,transform 0.1s;font-size:calc(1rem * var(--sz));}
+.btn-pri:active{opacity:0.88;transform:scale(0.98);}
+
+/* ══════════════════════
+   BILL SCREEN — Cash Bill style
+══════════════════════ */
+#screen-bill{background:#e8e0d0;}
+.bill-topbar{background:#1a3a6b;padding:11px 13px;display:flex;align-items:center;gap:7px;flex-shrink:0;}
+.bill-topbar .back-btn{background:rgba(255,255,255,0.12);border-color:rgba(255,255,255,0.25);color:#fff;}
+.bill-tb-title{font-weight:800;color:#fff;flex:1;font-size:calc(1rem * var(--sz));}
+.locked-badge{display:flex;align-items:center;gap:4px;background:rgba(26,107,58,0.35);border:1.5px solid rgba(96,220,140,0.5);border-radius:100px;padding:4px 9px;color:#6efcb0;font-weight:700;font-size:calc(0.75rem * var(--sz));}
+.share-btn{padding:9px 13px;border-radius:9px;background:#c49a2a;border:none;color:#fff;font-family:'Sarabun',sans-serif;font-weight:700;cursor:pointer;font-size:calc(0.85rem * var(--sz));}
+
+.bill-scroll{flex:1;overflow-y:auto;padding:14px 11px 30px;}
+
+/* The actual paper */
+.bill-paper{background:#fff;border-radius:4px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.25),0 1px 4px rgba(0,0,0,0.15);user-select:none;pointer-events:none;max-width:360px;margin:0 auto;border:1px solid #d0c8b8;}
+.bill-paper *{user-select:none;}
+
+/* Bill header — blue stripe like cash bill */
+.bhead{background:#1a5fa8;padding:0;}
+.bhead-top{padding:12px 16px 6px;display:flex;justify-content:space-between;align-items:flex-start;}
+.bhead-book{text-align:right;}
+.bhead-book-lbl{font-size:9px;color:rgba(255,255,255,0.55);letter-spacing:1px;text-transform:uppercase;font-family:'IBM Plex Mono',monospace;}
+.bhead-book-val{font-size:11px;font-family:'IBM Plex Mono',monospace;font-weight:700;color:rgba(255,255,255,0.85);margin-top:1px;}
+.bhead-title-wrap{text-align:center;padding:4px 16px 10px;border-top:1px solid rgba(255,255,255,0.15);}
+.bhead-cash{font-family:'Noto Serif Thai',serif;font-size:20px;font-weight:900;color:#fff;letter-spacing:1px;}
+.bhead-cash-en{font-size:10px;color:rgba(255,255,255,0.65);letter-spacing:3px;text-transform:uppercase;margin-top:1px;}
+.bhead-sub{font-size:10px;color:rgba(255,255,255,0.5);margin-top:3px;font-family:'IBM Plex Mono',monospace;letter-spacing:0.5px;}
+
+/* Shop info row */
+.bshop-row{background:#f0ebe0;padding:10px 16px;border-bottom:1.5px solid #d0c8b0;}
+.bshop-name{font-family:'Noto Serif Thai',serif;font-size:16px;font-weight:700;color:#1a1410;}
+.bshop-detail{font-size:10px;color:#6a5e4a;margin-top:2px;line-height:1.5;}
+.bshop-tax{font-size:9px;color:#8a7a60;font-family:'IBM Plex Mono',monospace;margin-top:3px;letter-spacing:0.5px;}
+
+/* Customer & date row */
+.bmeta{display:flex;background:#faf8f2;border-bottom:1.5px dashed #d0c8b0;}
+.bmc{flex:1;padding:9px 12px;border-right:1.5px dashed #d0c8b0;}
+.bmc:last-child{border-right:none;}
+.bml{font-size:8.5px;color:#9a8e78;text-transform:uppercase;letter-spacing:0.5px;font-family:'IBM Plex Mono',monospace;}
+.bmv{font-size:11.5px;font-weight:800;color:#1a1410;margin-top:2px;}
+
+/* Column headers */
+.bitems-head{display:grid;grid-template-columns:1fr 80px 70px;background:#1a5fa8;padding:7px 16px;gap:4px;}
+.bih{font-size:9px;font-weight:700;color:rgba(255,255,255,0.8);letter-spacing:0.5px;text-transform:uppercase;}
+.bih.right{text-align:right;}
+
+/* Items */
+.bitems{padding:0 16px;}
+.bitem{display:grid;grid-template-columns:1fr 80px 70px;padding:9px 0;border-bottom:1px dashed #e0d8c8;align-items:start;gap:4px;}
+.bitem:last-child{border-bottom:none;}
+.biname{font-size:13px;font-weight:700;color:#1a1410;}
+.biqty{font-size:10px;color:#7a6a52;margin-top:2px;}
+.bicol{font-size:12px;font-weight:600;color:#3d3228;text-align:right;}
+.bisub{font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:700;color:#1a1410;text-align:right;}
+
+/* Total row */
+.btotal-row{background:#f0ebe0;border-top:2px solid #1a5fa8;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;}
+.btl{font-size:13px;color:#6a5e4a;font-weight:700;}
+.btvat{font-size:10px;color:#9a8e78;margin-top:2px;}
+.btv{font-family:'IBM Plex Mono',monospace;font-weight:900;color:#1a5fa8;font-size:22px;}
+
+/* QR row */
+.bqr{padding:16px;display:flex;flex-direction:column;align-items:center;gap:8px;background:#faf8f2;border-top:1.5px dashed #d0c8b0;}
+.bqrl{font-size:9px;color:#9a8e78;letter-spacing:1.5px;text-transform:uppercase;font-family:'IBM Plex Mono',monospace;}
+.bqrw{padding:8px;background:#fff;border-radius:8px;border:1.5px solid #d0c8b0;}
+.bhash{font-family:'IBM Plex Mono',monospace;font-size:7.5px;color:#b8aa90;text-align:center;word-break:break-all;max-width:200px;line-height:1.6;}
+
+/* Footer */
+.bfooter{padding:10px 16px 14px;text-align:center;background:#faf8f2;border-top:1.5px solid #e0d8c8;}
+.bfv{font-size:10px;color:#1a6b3a;font-weight:700;margin-bottom:2px;}
+.bft{font-size:9px;color:#9a8e78;}
+.bsig-line{width:60%;height:1px;background:#d0c8b0;margin:8px auto 4px;}
+.bsig-lbl{font-size:8px;color:#b8aa90;letter-spacing:0.5px;}
+
+/* ── HISTORY ── */
+#screen-history{background:var(--bg);}
+.hist-list{flex:1;overflow-y:auto;padding:10px;display:flex;flex-direction:column;gap:7px;}
+.hcard{background:var(--surface);border:2px solid var(--border);border-radius:13px;padding:13px;box-shadow:var(--shadow);}
+.hc-top{display:flex;justify-content:space-between;align-items:flex-start;}
+.hc-no{color:var(--muted);font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:calc(0.78rem * var(--sz));}
+.hc-total{font-family:'IBM Plex Mono',monospace;font-weight:800;color:var(--accent);font-size:calc(1.1rem * var(--sz));}
+.hc-date{color:var(--muted);margin-top:3px;font-weight:600;font-size:calc(0.78rem * var(--sz));}
+.hc-items{color:var(--text2);margin-top:7px;font-weight:600;line-height:1.6;font-size:calc(0.88rem * var(--sz));}
+.exp-bar{padding:9px 11px 20px;border-top:2px solid var(--border);background:var(--surface);flex-shrink:0;}
+.exp-btn{width:100%;padding:13px;border-radius:11px;background:var(--green);border:none;color:#fff;font-family:'Sarabun',sans-serif;font-weight:700;cursor:pointer;font-size:calc(0.95rem * var(--sz));}
+
+/* ── SETTINGS MODAL ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:400;display:none;align-items:flex-end;backdrop-filter:blur(3px);}
+.modal-overlay.open{display:flex;}
+.modal-sheet{background:var(--surface);border-radius:22px 22px 0 0;width:100%;max-height:88dvh;display:flex;flex-direction:column;box-shadow:0 -8px 40px rgba(0,0,0,0.2);}
+.modal-handle{width:44px;height:4px;background:var(--border);border-radius:99px;margin:12px auto 0;}
+.modal-head{padding:12px 18px;display:flex;align-items:center;gap:10px;border-bottom:2px solid var(--border);flex-shrink:0;}
+.modal-title{font-weight:800;flex:1;font-size:calc(1.1rem * var(--sz));}
+.modal-close{width:42px;height:42px;border-radius:10px;background:var(--bg2);border:2px solid var(--border);color:var(--text);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+.modal-body{overflow-y:auto;padding:14px 16px 32px;display:flex;flex-direction:column;gap:14px;}
+.cfg-section{display:flex;flex-direction:column;gap:8px;}
+.cfg-label{font-weight:700;color:var(--muted);font-family:'IBM Plex Mono',monospace;font-size:calc(0.78rem * var(--sz));}
+
+/* Provider grid */
+.provider-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px;}
+.prov-btn{padding:11px 9px;border-radius:11px;border:2px solid var(--border);background:var(--bg2);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px;transition:all 0.12s;font-family:'Sarabun',sans-serif;}
+.prov-btn.selected{border-color:var(--accent);background:var(--acc-light);box-shadow:0 0 0 3px rgba(26,95,168,0.14);}
+.prov-icon{font-size:22px;}
+.prov-name{font-weight:800;color:var(--text);font-size:12px;}
+.prov-tag{font-size:9.5px;color:var(--muted);font-weight:600;}
+
+/* API */
+.api-hint{font-size:11.5px;color:var(--muted);font-weight:600;line-height:1.5;}
+.api-row{display:flex;gap:7px;}
+.api-input{flex:1;background:var(--bg2);border:2px solid var(--border);border-radius:9px;padding:11px 11px;font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--text);outline:none;min-width:0;}
+.api-input:focus{border-color:var(--accent);}
+.eye-btn{min-width:46px;height:48px;border-radius:9px;background:var(--bg2);border:2px solid var(--border);color:var(--text);font-size:17px;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;}
+.api-status{padding:8px 11px;border-radius:9px;background:var(--bg2);border:2px solid var(--border);font-weight:600;font-size:11.5px;color:var(--muted);}
+.api-status.ok{border-color:var(--green);background:var(--grn-bg);color:var(--green);}
+.api-status.err{border-color:var(--red);background:var(--red-bg);color:var(--red);}
+
+/* Shop inputs */
+.shop-input{width:100%;background:var(--bg2);border:2px solid var(--border);border-radius:9px;padding:11px 11px;font-family:'Sarabun',sans-serif;font-weight:600;font-size:calc(0.95rem * var(--sz));color:var(--text);outline:none;}
+.shop-input:focus{border-color:var(--accent);}
+.shop-input+.shop-input{margin-top:5px;}
+
+/* Font size */
+.sz-row{display:flex;align-items:center;gap:7px;}
+.sz-btn{width:46px;height:46px;border-radius:11px;background:var(--surface);border:2px solid var(--border);color:var(--text);font-size:20px;font-weight:800;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;}
+.sz-btn:active{background:var(--acc-light);border-color:var(--accent);}
+.sz-display{flex:1;text-align:center;font-weight:800;color:var(--accent);background:var(--acc-light);border:2px solid var(--accent);border-radius:9px;padding:9px 7px;font-size:calc(0.95rem * var(--sz));}
+
+/* Save */
+.save-btn{width:100%;padding:16px;border-radius:13px;background:var(--accent);border:none;color:#fff;font-family:'Sarabun',sans-serif;font-weight:800;font-size:calc(1rem * var(--sz));cursor:pointer;transition:opacity 0.12s,transform 0.1s;flex-shrink:0;}
+.save-btn:active{opacity:0.88;transform:scale(0.98);}
+
+/* Toast */
+.toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(8px);background:var(--text);color:var(--bg);padding:11px 22px;border-radius:100px;font-weight:700;font-size:calc(0.88rem * var(--sz));opacity:0;transition:all 0.25s;z-index:500;white-space:nowrap;pointer-events:none;box-shadow:var(--shadow-lg);}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+/* Empty */
+.empty-s{display:flex;flex-direction:column;align-items:center;gap:10px;padding:40px;color:var(--muted);}
+.ei{font-size:44px;}
+
+/* ── SHOP MEMORY BADGE (home screen) ── */
+.memory-bar{width:100%;background:var(--surface);border:2px solid var(--border);border-radius:14px;padding:12px 14px;box-shadow:var(--shadow);display:none;}
+.memory-bar.show{display:block;}
+.mem-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
+.mem-title{font-weight:700;color:var(--accent);font-family:'IBM Plex Mono',monospace;font-size:calc(0.75rem * var(--sz));display:flex;align-items:center;gap:5px;}
+.mem-clear{font-size:10px;color:var(--muted);background:var(--bg2);border:1.5px solid var(--border);border-radius:6px;padding:3px 8px;cursor:pointer;font-family:'Sarabun',sans-serif;font-weight:600;}
+.mem-chips{display:flex;flex-wrap:wrap;gap:6px;}
+.mem-chip{background:var(--acc-light);border:1.5px solid var(--accent);border-radius:100px;padding:4px 12px;font-size:calc(0.78rem * var(--sz));font-weight:700;color:var(--accent);cursor:pointer;transition:all 0.12s;white-space:nowrap;}
+.mem-chip:active{background:var(--accent);color:#fff;}
+.mem-chip .chip-price{opacity:0.65;font-weight:600;font-size:0.85em;}
+
+/* ── SHOP MEMORY SCREEN ── */
+#screen-memory{background:var(--bg);}
+.mem-list{flex:1;overflow-y:auto;padding:10px;display:flex;flex-direction:column;gap:7px;}
+.mcard{background:var(--surface);border:2px solid var(--border);border-radius:13px;padding:12px 14px;box-shadow:var(--shadow);display:flex;align-items:center;gap:10px;}
+.mcard-body{flex:1;min-width:0;}
+.mcard-name{font-weight:800;color:var(--text);font-size:calc(1rem * var(--sz));}
+.mcard-meta{color:var(--muted);font-size:calc(0.78rem * var(--sz));margin-top:2px;font-weight:600;}
+.mcard-price{font-family:'IBM Plex Mono',monospace;font-weight:700;color:var(--accent);font-size:calc(1rem * var(--sz));white-space:nowrap;}
+.mcard-del{min-width:36px;height:36px;border-radius:8px;background:var(--red-bg);border:2px solid rgba(176,42,31,0.18);color:var(--red);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:13px;font-weight:700;flex-shrink:0;}
+.mem-actions{padding:9px 11px 20px;display:flex;gap:7px;border-top:2px solid var(--border);background:var(--surface);flex-shrink:0;}
+.mem-cat-badge{display:inline-flex;align-items:center;gap:5px;background:var(--grn-bg);border:1.5px solid var(--green);border-radius:100px;padding:4px 12px;color:var(--green);font-weight:700;font-size:calc(0.78rem * var(--sz));margin-bottom:8px;}
+/* ── SHARE BAR ── */
+.share-bar{background:#1a3a6b;padding:8px 12px 10px;display:flex;gap:6px;flex-shrink:0;border-bottom:2px solid rgba(255,255,255,0.1);}
+.share-action-btn{flex:1;background:rgba(255,255,255,0.12);border:1.5px solid rgba(255,255,255,0.2);border-radius:10px;color:#fff;padding:8px 4px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;transition:all 0.12s;font-family:'Sarabun',sans-serif;}
+.share-action-btn:active{background:rgba(255,255,255,0.28);transform:scale(0.95);}
+.share-action-line{background:rgba(0,200,80,0.18);border-color:rgba(0,200,80,0.4);}
+.sa-icon{font-size:20px;line-height:1;}
+.sa-label{font-size:10px;font-weight:700;letter-spacing:0.2px;white-space:nowrap;}
+
+/* ── QR MODAL ── */
+.qr-modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.72);z-index:600;align-items:center;justify-content:center;backdrop-filter:blur(4px);}
+.qr-modal-overlay.open{display:flex;}
+.qr-modal-box{background:#fff;border-radius:20px;padding:24px 20px 20px;display:flex;flex-direction:column;align-items:center;gap:10px;max-width:300px;width:90%;box-shadow:0 12px 48px rgba(0,0,0,0.4);}
+.qr-modal-title{font-family:'Noto Serif Thai',serif;font-weight:900;color:#1a1410;font-size:18px;}
+.qr-modal-sub{font-size:12px;color:#8a7d6b;font-weight:600;margin-top:-6px;}
+.qr-modal-canvas-wrap{padding:10px;background:#f8f6f0;border-radius:12px;border:2px solid #d0c8b0;}
+.qr-modal-hash{font-family:'IBM Plex Mono',monospace;font-size:8px;color:#b8aa90;text-align:center;word-break:break-all;max-width:220px;line-height:1.6;}
+.qr-modal-note{font-size:11px;color:#1a6b3a;font-weight:700;background:#e6f4ec;border:1.5px solid #1a6b3a;border-radius:8px;padding:6px 12px;text-align:center;}
+.qr-modal-close{width:100%;padding:13px;border-radius:12px;background:#1a5fa8;border:none;color:#fff;font-family:'Sarabun',sans-serif;font-weight:700;font-size:15px;cursor:pointer;margin-top:2px;}
+
+/* loading overlay for PNG/PDF */
+.export-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:700;align-items:center;justify-content:center;flex-direction:column;gap:14px;backdrop-filter:blur(3px);}
+.export-overlay.open{display:flex;}
+.export-spinner{width:48px;height:48px;border:4px solid rgba(255,255,255,0.2);border-top-color:#fff;border-radius:50%;animation:spin 0.75s linear infinite;}
+.export-lbl{color:#fff;font-weight:700;font-size:16px;}
+</style>
+</head>
+<body>
+
+<!-- ═══════════ HOME ═══════════ -->
+<div id="screen-home" class="screen active">
+  <div class="home-topbar">
+    <button class="icon-btn" onclick="toggleDark()" id="dark-btn">🌙 กลางแจ้ง</button>
+    <button class="icon-btn" onclick="showMemoryScreen()" id="mem-btn" style="display:none;">🧠 สินค้า</button>
+    <button class="icon-btn" onclick="showHistory()">📋 ประวัติ</button>
+  </div>
+
+  <div class="home-body">
+    <div class="brand">
+      <div class="brand-badge"><div class="badge-dot"></div>ระบบบิลดิจิทัล AI</div>
+      <h1>บิลเสียง</h1>
+      <p>พูดชื่อสินค้า · จำนวน · ราคา → บิลทันที</p>
+    </div>
+
+    <div class="mic-outer">
+      <div class="ring ring-1"></div>
+      <div class="ring ring-2"></div>
+      <button class="mic-btn" id="mic-btn"
+        ontouchstart="startMain(event)" ontouchend="stopMain(event)"
+        onmousedown="startMain(event)" onmouseup="stopMain(event)">
+        <div class="mic-emoji">🎙️</div>
+        <div id="mic-lbl" style="font-weight:700;color:var(--text2);font-size:calc(0.88rem * var(--sz));">กดค้างแล้วพูด</div>
+      </button>
+    </div>
+
+    <div class="tc-card" id="tc">
+      <div class="tc-tag">📝 ข้อความที่รับได้</div>
+      <div class="tc-text empty" id="tc-txt">เช่น "เสื้อยืด 12 ตัว ตัวละ 150 กางเกง 6 ตัว ตัวละ 200"</div>
+      <div class="scan-line"></div>
+    </div>
+
+    <div class="ai-load" id="ai-load">
+      <div class="spinner"></div>
+      <div class="load-lbl">AI กำลังวิเคราะห์รายการ…</div>
+    </div>
+
+    <div class="status-pill">
+      <div class="sdot" id="sdot"></div>
+      <span id="stxt">พร้อมรับคำสั่งเสียง</span>
+    </div>
+
+    <!-- Shop memory quick chips -->
+    <div class="memory-bar" id="memory-bar">
+      <div class="mem-header">
+        <div class="mem-title">🧠 สินค้าประจำร้าน <span id="mem-shop-name"></span></div>
+        <button class="mem-clear" onclick="showMemoryScreen()">ดูทั้งหมด →</button>
+      </div>
+      <div class="mem-chips" id="mem-chips"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ CONFIRM ═══════════ -->
+<div id="screen-confirm" class="screen">
+  <div class="topbar">
+    <button class="back-btn" onclick="goHome()">←</button>
+    <div class="bar-info">
+      <div class="bar-title">ตรวจสอบรายการ</div>
+      <div class="bar-sub" id="conf-sub">0 รายการ</div>
+    </div>
+  </div>
+
+  <div class="confirm-scroll" id="items-list"></div>
+
+  <div class="more-bar">
+    <div class="more-label">🎙 พูดเพิ่ม / แก้ไขรายการ</div>
+    <div class="more-row">
+      <button class="mic-mini" id="mic-mini"
+        ontouchstart="startMore(event)" ontouchend="stopMore(event)"
+        onmousedown="startMore(event)" onmouseup="stopMore(event)">🎙️</button>
+      <div class="more-tc" id="more-tc">กดค้างแล้วพูดเพิ่มรายการ...</div>
+    </div>
+  </div>
+
+  <div class="manual-bar">
+    <div class="manual-label">✏️ เพิ่มรายการด้วยมือ</div>
+    <div class="manual-row">
+      <input class="f fn" id="mn" placeholder="ชื่อสินค้า" type="text">
+      <input class="f fq" id="mq" placeholder="จำนวน" type="number" min="1" value="1">
+      <input class="f fp" id="mp" placeholder="ราคา/ชิ้น" type="number" min="0">
+      <button class="add-btn" onclick="addManual()">+</button>
+    </div>
+  </div>
+
+  <div class="total-sec">
+    <div>
+      <div class="total-lbl">ยอดรวม</div>
+      <div class="total-cnt" id="cnt-txt">0 รายการ</div>
+    </div>
+    <div class="total-num" id="total-val">0 ฿</div>
+  </div>
+
+  <div class="actions">
+    <button class="btn-sec" onclick="goHome()">← กลับ</button>
+    <button class="btn-pri" onclick="createBill()">✅ ออกบิล</button>
+  </div>
+</div>
+
+<!-- ═══════════ BILL ═══════════ -->
+<div id="screen-bill" class="screen">
+  <div class="bill-topbar">
+    <button class="back-btn" onclick="showScreen('confirm')">←</button>
+    <div class="bill-tb-title">บิลเงินสดดิจิทัล</div>
+    <div class="locked-badge">🔒 ล็อค</div>
+  </div>
+
+  <!-- Share action bar -->
+  <div class="share-bar">
+    <button class="share-action-btn" onclick="saveAsPNG()">
+      <span class="sa-icon">🖼️</span>
+      <span class="sa-label">บันทึกภาพ</span>
+    </button>
+    <button class="share-action-btn" onclick="saveAsPDF()">
+      <span class="sa-icon">📄</span>
+      <span class="sa-label">PDF</span>
+    </button>
+    <button class="share-action-btn" onclick="shareBillQR()">
+      <span class="sa-icon">📲</span>
+      <span class="sa-label">QR Link</span>
+    </button>
+    <button class="share-action-btn share-action-line" onclick="shareBillText()">
+      <span class="sa-icon">💬</span>
+      <span class="sa-label">แชร์ข้อความ</span>
+    </button>
+  </div>
+
+  <!-- QR Bill Modal (customer view) -->
+  <div id="qr-modal" class="qr-modal-overlay" onclick="closeQRModal()">
+    <div class="qr-modal-box" onclick="event.stopPropagation()">
+      <div class="qr-modal-title">📲 ให้ลูกค้าสแกน</div>
+      <div class="qr-modal-sub">สแกนเพื่อดูบิลบนมือถือ</div>
+      <div class="qr-modal-canvas-wrap">
+        <canvas id="qr-big-canvas" width="220" height="220"></canvas>
+      </div>
+      <div class="qr-modal-hash" id="qr-modal-hash">—</div>
+      <div class="qr-modal-note">🔒 ข้อมูลบิลฝังอยู่ใน QR · ไม่ต้องพึ่งอินเทอร์เน็ต</div>
+      <button class="qr-modal-close" onclick="closeQRModal()">ปิด</button>
+    </div>
+  </div>
+
+  <div class="bill-scroll" id="bill-scroll-area">
+    <div class="bill-paper">
+      <!-- Header -->
+      <div class="bhead">
+        <div class="bhead-top">
+          <div>
+            <div class="bhead-book-lbl">DIGITAL BILL</div>
+            <div class="bhead-book-val" id="b-billtype">บิลเงินสด · CASH SALE</div>
+          </div>
+          <div class="bhead-book">
+            <div class="bhead-book-lbl">เลขที่ · BILL NO.</div>
+            <div class="bhead-book-val" id="b-no">BL-XXXXXX</div>
+          </div>
+        </div>
+        <div class="bhead-title-wrap">
+          <div class="bhead-cash">บิลเงินสด</div>
+          <div class="bhead-cash-en">CASH SALE · 现金收据</div>
+          <div class="bhead-sub" id="b-datetime">—</div>
+        </div>
+      </div>
+
+      <!-- Shop info -->
+      <div class="bshop-row">
+        <div class="bshop-name" id="b-shop">ร้านค้า</div>
+        <div class="bshop-detail" id="b-detail"></div>
+        <div class="bshop-tax" id="b-tax"></div>
+      </div>
+
+      <!-- Meta: date/time/count -->
+      <div class="bmeta">
+        <div class="bmc"><div class="bml">วันที่</div><div class="bmv" id="b-date">—</div></div>
+        <div class="bmc"><div class="bml">เวลา</div><div class="bmv" id="b-time">—</div></div>
+        <div class="bmc"><div class="bml">รายการ</div><div class="bmv" id="b-cnt">—</div></div>
+      </div>
+
+      <!-- Column headers -->
+      <div class="bitems-head">
+        <div class="bih">รายการสินค้า</div>
+        <div class="bih right">จำนวน × ราคา</div>
+        <div class="bih right">รวม</div>
+      </div>
+
+      <!-- Items -->
+      <div class="bitems" id="b-items"></div>
+
+      <!-- Total -->
+      <div class="btotal-row">
+        <div>
+          <div class="btl">รวมทั้งสิ้น / TOTAL</div>
+          <div class="btvat">ราคารวมภาษีมูลค่าเพิ่ม (ถ้ามี)</div>
+        </div>
+        <div class="btv" id="b-total">0 ฿</div>
+      </div>
+
+      <!-- QR -->
+      <div class="bqr">
+        <div class="bqrl">สแกนตรวจสอบความถูกต้อง</div>
+        <div class="bqrw"><canvas id="qr-canvas" width="140" height="140"></canvas></div>
+        <div class="bhash" id="b-hash">—</div>
+      </div>
+
+      <!-- Footer -->
+      <div class="bfooter">
+        <div class="bfv">✅ บิลลงลายมือชื่อดิจิทัลแล้ว · ไม่สามารถแก้ไขได้</div>
+        <div class="bft">ออกโดยระบบบิลเสียง AI · ใช้เป็นหลักฐานค่าใช้จ่ายตามจริงได้</div>
+        <div class="bsig-line"></div>
+        <div class="bsig-lbl">ผู้รับเงิน / COLLECTOR</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ MEMORY SCREEN ═══════════ -->
+<div id="screen-memory" class="screen">
+  <div class="topbar">
+    <button class="back-btn" onclick="goHome()">←</button>
+    <div class="bar-info">
+      <div class="bar-title">🧠 สินค้าที่ AI จำได้</div>
+      <div class="bar-sub" id="mem-sub">—</div>
+    </div>
+  </div>
+  <div style="padding:10px 11px 0;flex-shrink:0;">
+    <div class="mem-cat-badge" id="mem-cat-badge">🏪 กำลังโหลด...</div>
+  </div>
+  <div class="mem-list" id="mem-list"></div>
+  <div class="mem-actions">
+    <button class="btn-sec" onclick="goHome()">← กลับ</button>
+    <button class="btn-pri" style="background:var(--red);flex:1;" onclick="clearMemory()">🗑️ ล้างความจำทั้งหมด</button>
+  </div>
+</div>
+
+<!-- ═══════════ HISTORY ═══════════ -->
+<div id="screen-history" class="screen">
+  <div class="topbar">
+    <button class="back-btn" onclick="goHome()">←</button>
+    <div class="bar-info">
+      <div class="bar-title">ประวัติบิล</div>
+      <div class="bar-sub" id="hist-sub">—</div>
+    </div>
+  </div>
+  <div class="hist-list" id="hist-list"></div>
+  <div class="exp-bar">
+    <button class="exp-btn" onclick="exportCSV()">⬇️ ดาวน์โหลด CSV ทั้งหมด</button>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<!-- Gear button -->
+<button class="gear-btn" onclick="openSettings()" id="gear-btn" title="ตั้งค่า">⚙️</button>
+
+<!-- ═══════════ SETTINGS MODAL ═══════════ -->
+<div class="modal-overlay" id="settings-modal">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-head">
+      <span style="font-size:20px;">⚙️</span>
+      <div class="modal-title">ตั้งค่าระบบ</div>
+      <button class="modal-close" onclick="closeSettings()">✕</button>
+    </div>
+    <div class="modal-body">
+
+      <div class="cfg-section">
+        <div class="cfg-label">🏪 ข้อมูลผู้ขาย (แสดงบนบิล)</div>
+        <input class="shop-input" id="cfg-shop"  placeholder="ชื่อร้าน / ชื่อกิจการ *" type="text">
+        <input class="shop-input" id="cfg-owner" placeholder="ชื่อเจ้าของ / ผู้ประกอบการ" type="text">
+        <input class="shop-input" id="cfg-addr"  placeholder="ที่อยู่ เลขที่ ถนน แขวง เขต" type="text">
+        <input class="shop-input" id="cfg-addr2" placeholder="จังหวัด รหัสไปรษณีย์" type="text">
+        <input class="shop-input" id="cfg-phone" placeholder="เบอร์โทรศัพท์" type="tel">
+        <input class="shop-input" id="cfg-tax"   placeholder="เลขประจำตัวผู้เสียภาษี 13 หลัก" type="text" inputmode="numeric" maxlength="13">
+        <div style="font-size:11px;color:var(--muted);line-height:1.6;">💡 ข้อมูลครบ → ลูกค้านำบิลยื่นสรรพากรเป็นค่าใช้จ่ายได้</div>
+      </div>
+
+      <div class="cfg-section">
+        <div class="cfg-label">🤖 เลือก AI วิเคราะห์เสียง</div>
+        <div class="provider-grid">
+          <button class="prov-btn selected" onclick="selectProv('claude')" id="prov-claude">
+            <div class="prov-icon">🟠</div>
+            <div class="prov-name">Claude</div>
+            <div class="prov-tag">Anthropic · แนะนำ</div>
+          </button>
+          <button class="prov-btn" onclick="selectProv('gemini')" id="prov-gemini">
+            <div class="prov-icon">🔵</div>
+            <div class="prov-name">Gemini</div>
+            <div class="prov-tag">Google · ฟรีมาก</div>
+          </button>
+          <button class="prov-btn" onclick="selectProv('openai')" id="prov-openai">
+            <div class="prov-icon">⚫</div>
+            <div class="prov-name">ChatGPT</div>
+            <div class="prov-tag">OpenAI · GPT-4o</div>
+          </button>
+          <button class="prov-btn" onclick="selectProv('llama')" id="prov-llama">
+            <div class="prov-icon">🟣</div>
+            <div class="prov-name">Llama / Groq</div>
+            <div class="prov-tag">Meta · เร็วมาก</div>
+          </button>
+        </div>
+      </div>
+
+      <div class="cfg-section">
+        <div class="cfg-label">🔑 API Key</div>
+        <div class="api-hint" id="api-hint">เลือก AI ด้านบนก่อน</div>
+        <div class="api-row">
+          <input class="api-input" id="cfg-key" type="password" placeholder="sk-ant-...">
+          <button class="eye-btn" onclick="toggleKeyVis()" id="eye-btn">👁️</button>
+        </div>
+        <div class="api-status" id="api-status">⬜ ยังไม่ได้ใส่ API Key</div>
+        <div class="api-hint" id="api-link-hint" style="margin-top:2px;"></div>
+      </div>
+
+      <div class="cfg-section">
+        <div class="cfg-label">🔠 ขนาดตัวอักษร</div>
+        <div class="sz-row">
+          <button class="sz-btn" onclick="adjSz(-0.1)">−</button>
+          <div class="sz-display" id="sz-display">100%</div>
+          <button class="sz-btn" onclick="adjSz(+0.1)">+</button>
+        </div>
+      </div>
+
+      <button class="save-btn" onclick="saveSettings()">💾 บันทึกการตั้งค่า</button>
+    </div>
+  </div>
+</div>
+
+<!-- Export loading overlay -->
+<div class="export-overlay" id="export-overlay">
+  <div class="export-spinner"></div>
+  <div class="export-lbl" id="export-lbl">กำลังสร้างไฟล์...</div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+// ══════════════════════════════
+// FONT SIZE
+// ══════════════════════════════
+let sz = parseFloat(localStorage.getItem('vb_sz') || '1');
+applySz();
+function adjSz(d) {
+  sz = Math.min(1.6, Math.max(0.7, +(sz + d).toFixed(1)));
+  localStorage.setItem('vb_sz', sz); applySz();
+}
+function applySz() {
+  document.documentElement.style.setProperty('--sz', sz);
+  const el = document.getElementById('sz-display');
+  if (el) el.textContent = Math.round(sz * 100) + '%';
+}
+
+// ══════════════════════════════
+// DARK MODE
+// ══════════════════════════════
+let dark = localStorage.getItem('vb_dark') === '1';
+applyDark();
+function toggleDark() { dark = !dark; localStorage.setItem('vb_dark', dark ? '1' : '0'); applyDark(); }
+function applyDark() {
+  document.body.classList.toggle('dark', dark);
+  const btn = document.getElementById('dark-btn');
+  if (btn) btn.textContent = dark ? '☀️ ในร่ม' : '🌙 กลางแจ้ง';
+}
+
+// ══════════════════════════════
+// SCREENS
+// ══════════════════════════════
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-' + id).classList.add('active');
+  // Show/hide gear button
+  document.getElementById('gear-btn').style.display = (id === 'bill') ? 'none' : 'flex';
+}
+function goHome() { showScreen('home'); setStatus('idle', 'พร้อมรับคำสั่งเสียง'); }
+
+// ══════════════════════════════
+// SPEECH
+// ══════════════════════════════
+let items = [];
+let isMain = false, isMore = false;
+let recMain = null, recMore = null;
+let trMain = '', trMore = '';
+
+function makeRec(onResult) {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) { toast('เบราว์เซอร์นี้ไม่รองรับเสียง ใช้ Chrome หรือ Safari'); return null; }
+  const r = new SR();
+  r.lang = 'th-TH'; r.continuous = true; r.interimResults = true;
+  let fin = '';
+  r.onresult = e => {
+    let tmp = '';
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      if (e.results[i].isFinal) fin += e.results[i][0].transcript + ' ';
+      else tmp += e.results[i][0].transcript;
+    }
+    onResult(fin + tmp, fin.trim());
+  };
+  r.onerror = e => {
+    if (e.error === 'not-allowed') toast('กรุณาอนุญาตไมโครโฟน');
+    else if (e.error !== 'no-speech') toast('ไมโครโฟน: ' + e.error);
+  };
+  r.onend = () => {
+    if (isMain && recMain === r) { try { r.start(); } catch(e){} }
+    if (isMore && recMore === r) { try { r.start(); } catch(e){} }
+  };
+  r._final = () => fin.trim();
+  return r;
+}
+
+function startMain(e) {
+  e.preventDefault(); if (isMain) return;
+  isMain = true; trMain = '';
+  document.getElementById('mic-btn').classList.add('rec');
+  document.getElementById('tc').classList.add('rec');
+  document.getElementById('mic-lbl').textContent = 'กำลังฟัง...';
+  setStatus('live', 'กำลังฟัง...');
+  setTc('', false);
+  recMain = makeRec((d, f) => { trMain = f || d; setTc(d || '...', false); });
+  if (recMain) try { recMain.start(); } catch(e){}
+}
+function stopMain(e) {
+  if (e) e.preventDefault(); if (!isMain) return;
+  isMain = false;
+  document.getElementById('mic-btn').classList.remove('rec');
+  document.getElementById('tc').classList.remove('rec');
+  document.getElementById('mic-lbl').textContent = 'กดค้างแล้วพูด';
+  if (recMain) { try { recMain.stop(); } catch(e){} recMain = null; }
+  const text = trMain.trim();
+  if (!text) { setStatus('idle', 'พร้อมรับคำสั่งเสียง'); return; }
+  items = [];
+  processAI(text, false);
+}
+
+function startMore(e) {
+  e.preventDefault(); if (isMore) return;
+  isMore = true; trMore = '';
+  document.getElementById('mic-mini').classList.add('rec');
+  document.getElementById('more-tc').textContent = 'กำลังฟัง...';
+  recMore = makeRec((d) => { trMore = d; document.getElementById('more-tc').textContent = d || '...'; });
+  if (recMore) try { recMore.start(); } catch(e){}
+}
+function stopMore(e) {
+  if (e) e.preventDefault(); if (!isMore) return;
+  isMore = false;
+  document.getElementById('mic-mini').classList.remove('rec');
+  if (recMore) { try { recMore.stop(); } catch(e){} recMore = null; }
+  const text = trMore.trim();
+  if (!text) { document.getElementById('more-tc').textContent = 'กดค้างแล้วพูดเพิ่มรายการ...'; return; }
+  processAI(text, true);
+}
+
+document.addEventListener('mouseup',     e => { if (isMain) stopMain(e);  if (isMore) stopMore(e); });
+document.addEventListener('touchend',    e => { if (isMain) stopMain(e);  if (isMore) stopMore(e); }, {passive:false});
+document.addEventListener('touchcancel', e => { if (isMain) stopMain(e);  if (isMore) stopMore(e); }, {passive:false});
+document.addEventListener('contextmenu', e => e.preventDefault());
+
+// ══════════════════════════════
+// SETTINGS
+// ══════════════════════════════
+const PROVIDERS = {
+  claude: { hint:'รับ API Key ที่ console.anthropic.com · ภาษาไทยดีมาก', link:'https://console.anthropic.com', ph:'sk-ant-api03-...' },
+  gemini: { hint:'รับ API Key ฟรีที่ aistudio.google.com · quota ฟรีสูง', link:'https://aistudio.google.com/app/apikey', ph:'AIzaSy...' },
+  openai: { hint:'รับ API Key ที่ platform.openai.com · ต้องเติมเครดิต', link:'https://platform.openai.com/api-keys', ph:'sk-proj-...' },
+  llama:  { hint:'รับ API Key ฟรีที่ console.groq.com · เร็วที่สุด', link:'https://console.groq.com/keys', ph:'gsk_...' },
+};
+
+let cfgProv  = localStorage.getItem('vb_prov')  || 'claude';
+let cfgKey   = localStorage.getItem('vb_key')   || '';
+let cfgShop  = localStorage.getItem('vb_shop')  || '';
+let cfgOwner = localStorage.getItem('vb_owner') || '';
+let cfgAddr  = localStorage.getItem('vb_addr')  || '';
+let cfgAddr2 = localStorage.getItem('vb_addr2') || '';
+let cfgPhone = localStorage.getItem('vb_phone') || '';
+let cfgTax   = localStorage.getItem('vb_tax')   || '';
+
+function openSettings() {
+  document.getElementById('cfg-shop').value  = cfgShop;
+  document.getElementById('cfg-owner').value = cfgOwner;
+  document.getElementById('cfg-addr').value  = cfgAddr;
+  document.getElementById('cfg-addr2').value = cfgAddr2;
+  document.getElementById('cfg-phone').value = cfgPhone;
+  document.getElementById('cfg-tax').value   = cfgTax;
+  document.getElementById('cfg-key').value   = cfgKey;
+  selectProv(cfgProv, true);
+  updateApiStatus();
+  document.getElementById('settings-modal').classList.add('open');
+}
+function closeSettings() { document.getElementById('settings-modal').classList.remove('open'); }
+document.getElementById('settings-modal').addEventListener('click', function(e) { if (e.target === this) closeSettings(); });
+
+function selectProv(id, silent) {
+  cfgProv = id;
+  document.querySelectorAll('.prov-btn').forEach(b => b.classList.remove('selected'));
+  const btn = document.getElementById('prov-' + id);
+  if (btn) btn.classList.add('selected');
+  const p = PROVIDERS[id];
+  if (p) {
+    document.getElementById('api-hint').textContent = p.hint;
+    document.getElementById('cfg-key').placeholder  = p.ph;
+    document.getElementById('api-link-hint').innerHTML =
+      `🔗 <a href="${p.link}" target="_blank" style="color:var(--accent);font-weight:700;">${p.link}</a>`;
+  }
+  if (!silent) updateApiStatus();
+}
+function toggleKeyVis() {
+  const inp = document.getElementById('cfg-key'), btn = document.getElementById('eye-btn');
+  inp.type = (inp.type === 'password') ? 'text' : 'password';
+  btn.textContent = (inp.type === 'password') ? '👁️' : '🙈';
+}
+function updateApiStatus() {
+  const el = document.getElementById('api-status'), inp = document.getElementById('cfg-key');
+  if (!inp) return;
+  const key = inp.value.trim();
+  if (!key) { el.className = 'api-status'; el.textContent = '⬜ ยังไม่ได้ใส่ API Key'; }
+  else       { el.className = 'api-status ok'; el.textContent = '✅ มี API Key · เก็บในเครื่องเท่านั้น'; }
+}
+document.getElementById('cfg-key').addEventListener('input', updateApiStatus);
+
+function saveSettings() {
+  const newShop = document.getElementById('cfg-shop').value.trim() || 'ร้านค้า';
+  const shopChanged = newShop !== cfgShop;
+
+  cfgShop  = newShop;
+  cfgOwner = document.getElementById('cfg-owner').value.trim();
+  cfgAddr  = document.getElementById('cfg-addr').value.trim();
+  cfgAddr2 = document.getElementById('cfg-addr2').value.trim();
+  cfgPhone = document.getElementById('cfg-phone').value.trim();
+  cfgTax   = document.getElementById('cfg-tax').value.trim();
+  cfgKey   = document.getElementById('cfg-key').value.trim();
+  localStorage.setItem('vb_prov',  cfgProv);
+  localStorage.setItem('vb_key',   cfgKey);
+  localStorage.setItem('vb_shop',  cfgShop);
+  localStorage.setItem('vb_owner', cfgOwner);
+  localStorage.setItem('vb_addr',  cfgAddr);
+  localStorage.setItem('vb_addr2', cfgAddr2);
+  localStorage.setItem('vb_phone', cfgPhone);
+  localStorage.setItem('vb_tax',   cfgTax);
+  closeSettings();
+  toast('💾 บันทึกแล้ว ✅');
+
+  // If shop name changed and has items in history → re-scan memory for new shop
+  if (shopChanged) {
+    setTimeout(() => {
+      learnFromHistory();
+      renderMemoryChips();
+      toast('🧠 AI กำลังเรียนรู้สินค้าของร้าน "' + cfgShop + '"');
+    }, 400);
+  } else {
+    renderMemoryChips();
+  }
+}
+
+// ══════════════════════════════
+// SHOP MEMORY ENGINE
+// ══════════════════════════════
+// Structure: { shopKey: { category:'', items:{ name:{ count, totalPrice, lastPrice, lastSeen } } } }
+
+function shopKey() {
+  return 'mem_' + (cfgShop || 'default').toLowerCase().replace(/\s+/g,'_').slice(0,30);
+}
+
+function getMemory() {
+  try { return JSON.parse(localStorage.getItem(shopKey()) || '{"category":"","items":{}}'); }
+  catch(e) { return { category:'', items:{} }; }
+}
+
+function saveMemory(mem) {
+  try { localStorage.setItem(shopKey(), JSON.stringify(mem)); } catch(e) {}
+}
+
+// Learn from a confirmed bill (called when bill is created)
+function learnFromBill(billItems) {
+  if (!billItems || !billItems.length) return;
+  const mem = getMemory();
+  billItems.forEach(item => {
+    const key = item.name.trim();
+    if (!key) return;
+    if (!mem.items[key]) {
+      mem.items[key] = { count:0, totalPrice:0, lastPrice:0, lastSeen:'' };
+    }
+    mem.items[key].count++;
+    mem.items[key].totalPrice += item.up || 0;
+    mem.items[key].lastPrice  = item.up || mem.items[key].lastPrice;
+    mem.items[key].lastSeen   = new Date().toISOString();
+  });
+  saveMemory(mem);
+
+  // Trigger AI category detection if we have ≥3 unique items and no category yet
+  if (!mem.category && Object.keys(mem.items).length >= 3 && cfgKey) {
+    detectShopCategory(mem);
+  }
+}
+
+// Learn from full history (called when shop name changes)
+function learnFromHistory() {
+  const hist = getHist();
+  const mem = { category: getMemory().category || '', items: {} };
+  hist.filter(b => b.shop === cfgShop).forEach(b => {
+    (b.items || []).forEach(item => {
+      const key = item.name.trim();
+      if (!key) return;
+      if (!mem.items[key]) mem.items[key] = { count:0, totalPrice:0, lastPrice:0, lastSeen:'' };
+      mem.items[key].count++;
+      mem.items[key].totalPrice += item.up || 0;
+      mem.items[key].lastPrice  = item.up || mem.items[key].lastPrice;
+      mem.items[key].lastSeen   = b.date || mem.items[key].lastSeen;
+    });
+  });
+  saveMemory(mem);
+  if (!mem.category && Object.keys(mem.items).length >= 3 && cfgKey) {
+    detectShopCategory(mem);
+  }
+}
+
+// Ask AI what category this shop sells
+async function detectShopCategory(mem) {
+  const names = Object.keys(mem.items).slice(0, 20).join(', ');
+  const prompt = `ร้านชื่อ "${cfgShop}" ขายสินค้าเหล่านี้: ${names}
+ตอบสั้นๆ ว่าร้านนี้เป็นร้านประเภทอะไร เช่น "ร้านเสื้อผ้า", "ร้านอาหาร", "ร้านของชำ", "ร้านวัสดุก่อสร้าง" ฯลฯ
+ตอบเป็นภาษาไทย ไม่เกิน 20 ตัวอักษร ไม่มีข้อความอื่น`;
+
+  try {
+    let result = '';
+    if (cfgProv === 'claude') {
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method:'POST',
+        headers:{'Content-Type':'application/json','x-api-key':cfgKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+        body: JSON.stringify({ model:'claude-haiku-4-5-20251001', max_tokens:50, messages:[{role:'user',content:prompt}] })
+      });
+      const d = await res.json();
+      result = (d.content||[]).map(c=>c.text||'').join('').trim();
+    } else if (cfgProv === 'gemini') {
+      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${cfgKey}`,
+        {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents:[{parts:[{text:prompt}]}]})});
+      const d = await res.json();
+      result = d.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || '';
+    } else if (cfgProv === 'openai' || cfgProv === 'llama') {
+      const url  = cfgProv==='openai' ? 'https://api.openai.com/v1/chat/completions' : 'https://api.groq.com/openai/v1/chat/completions';
+      const model= cfgProv==='openai' ? 'gpt-4o-mini' : 'llama-3.1-8b-instant';
+      const res  = await fetch(url,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+cfgKey},
+        body:JSON.stringify({model,max_tokens:50,messages:[{role:'user',content:prompt}]})});
+      const d = await res.json();
+      result = d.choices?.[0]?.message?.content?.trim() || '';
+    }
+    if (result) {
+      const m = getMemory();
+      m.category = result.slice(0,30);
+      saveMemory(m);
+      renderMemoryChips();
+      toast('🧠 AI จำได้ว่าเป็น: ' + m.category);
+    }
+  } catch(e) {}
+}
+
+// Render quick chips on home screen
+function renderMemoryChips() {
+  const mem = getMemory();
+  const entries = Object.entries(mem.items)
+    .sort((a,b) => b[1].count - a[1].count)
+    .slice(0, 8);
+
+  const bar   = document.getElementById('memory-bar');
+  const chips = document.getElementById('mem-chips');
+  const btn   = document.getElementById('mem-btn');
+  const nameEl = document.getElementById('mem-shop-name');
+
+  if (!entries.length) {
+    bar.classList.remove('show');
+    if (btn) btn.style.display = 'none';
+    return;
+  }
+
+  bar.classList.add('show');
+  if (btn) btn.style.display = 'flex';
+  if (nameEl) nameEl.textContent = mem.category ? '· ' + mem.category : '';
+
+  chips.innerHTML = entries.map(([name, d]) =>
+    `<div class="mem-chip" onclick="quickAddItem('${name.replace(/'/g,"\\'")}',${d.lastPrice})">
+      ${name}${d.lastPrice ? `<span class="chip-price"> ·${fmt(d.lastPrice)}฿</span>` : ''}
+    </div>`
+  ).join('');
+}
+
+// Quick-add an item from chip tap → goes straight to confirm screen
+function quickAddItem(name, price) {
+  items.push({ name, qty:1, up:price, sub:price });
+  renderItems();
+  showScreen('confirm');
+  toast(`➕ เพิ่ม "${name}" แล้ว`);
+}
+
+// Show full memory management screen
+function showMemoryScreen() {
+  const mem = getMemory();
+  const entries = Object.entries(mem.items).sort((a,b)=>b[1].count-a[1].count);
+  const list = document.getElementById('mem-list');
+  const sub  = document.getElementById('mem-sub');
+  const cat  = document.getElementById('mem-cat-badge');
+
+  sub.textContent = entries.length + ' รายการสินค้า';
+  cat.textContent = mem.category ? ('🏪 ' + mem.category) : '🏪 ' + (cfgShop || 'ร้านค้า');
+
+  list.innerHTML = '';
+  if (!entries.length) {
+    list.innerHTML = '<div class="empty-s"><div class="ei">🧠</div><div>ยังไม่มีข้อมูลสินค้า<br>ออกบิลครั้งแรกก่อน</div></div>';
+    showScreen('memory'); return;
+  }
+
+  entries.forEach(([name, d]) => {
+    const avgPrice = d.count > 0 ? Math.round(d.totalPrice / d.count) : 0;
+    const lastDate = d.lastSeen ? new Date(d.lastSeen).toLocaleDateString('th-TH',{month:'short',day:'numeric'}) : '—';
+    const el = document.createElement('div');
+    el.className = 'mcard';
+    el.innerHTML = `
+      <div style="min-width:36px;height:36px;background:var(--acc-light);border:2px solid var(--accent);border-radius:9px;display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Mono',monospace;font-weight:700;color:var(--accent);font-size:calc(0.78rem * var(--sz));flex-shrink:0;">${d.count}×</div>
+      <div class="mcard-body">
+        <div class="mcard-name">${name}</div>
+        <div class="mcard-meta">ราคาล่าสุด ${fmt(d.lastPrice)} ฿ · เฉลี่ย ${fmt(avgPrice)} ฿ · ล่าสุด ${lastDate}</div>
+      </div>
+      <div class="mcard-price">${fmt(d.lastPrice)} ฿</div>
+      <div class="mcard-del" onclick="forgetItem('${name.replace(/'/g,"\\'")}')">✕</div>`;
+    list.appendChild(el);
+  });
+  showScreen('memory');
+}
+
+function forgetItem(name) {
+  const mem = getMemory();
+  delete mem.items[name];
+  saveMemory(mem);
+  renderMemoryChips();
+  showMemoryScreen();
+  toast(`🗑️ ลืม "${name}" แล้ว`);
+}
+
+function clearMemory() {
+  if (!confirm('ล้างความจำสินค้าทั้งหมดของร้านนี้?')) return;
+  localStorage.removeItem(shopKey());
+  renderMemoryChips();
+  goHome();
+  toast('🗑️ ล้างความจำแล้ว');
+}
+
+// Build AI prompt enriched with shop memory
+function buildPrompt(text) {
+  const mem = getMemory();
+  const knownItems = Object.entries(mem.items)
+    .sort((a,b)=>b[1].count-a[1].count)
+    .slice(0,15)
+    .map(([name,d])=>`"${name}" (ราคาปกติ ${d.lastPrice} บาท)`)
+    .join(', ');
+
+  const categoryHint = mem.category ? `ร้านนี้เป็น${mem.category}` : '';
+  const memHint = knownItems
+    ? `\nสินค้าที่ร้านนี้เคยขาย (ใช้อ้างอิงชื่อและราคา): ${knownItems}`
+    : '';
+
+  return `คุณคือระบบอ่านใบสั่งซื้อ${categoryHint ? ' ของ' + categoryHint : ''}.${memHint}
+ช่วยแยกรายการสินค้าจากข้อความภาษาไทยต่อไปนี้:
+"${text}"
+
+กฎ:
+- ตอบเป็น JSON เท่านั้น ไม่มีข้อความอื่น ไม่มี markdown
+- ถ้าไม่มีจำนวนใส่ 1 ถ้าไม่มีราคาให้ดูจากรายการที่เคยขาย ถ้าไม่มีเลยใส่ 0
+- รูปแบบ: {"items":[{"name":"ชื่อสินค้า","qty":จำนวน,"unitPrice":ราคาต่อชิ้น}]}
+- โหล = 12, ครึ่งโหล = 6
+- ถ้าชื่อสินค้าในข้อความใกล้เคียงกับรายการที่เคยขาย ให้ใช้ชื่อและราคาจากรายการที่เคยขายแทน`;
+}
+
+// ══════════════════════════════
+// AI PROCESSING
+// ══════════════════════════════
+async function processAI(text, merge) {
+  document.getElementById('ai-load').classList.add('show');
+  setStatus('live', 'AI กำลังวิเคราะห์...');
+
+  const prompt = buildPrompt(text);
+
+  try {
+    if (!cfgKey) throw new Error('no-key');
+    let result = '';
+
+    if (cfgProv === 'claude') {
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': cfgKey,
+          'anthropic-version': '2023-06-01',
+          'anthropic-dangerous-direct-browser-access': 'true'
+        },
+        body: JSON.stringify({
+          model: 'claude-haiku-4-5-20251001',
+          max_tokens: 800,
+          messages: [{ role: 'user', content: prompt }]
+        })
+      });
+      const d = await res.json();
+      if (d.error) throw new Error(d.error.message);
+      result = (d.content || []).map(c => c.text || '').join('');
+
+    } else if (cfgProv === 'gemini') {
+      const res = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${cfgKey}`,
+        { method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }) }
+      );
+      const d = await res.json();
+      if (d.error) throw new Error(d.error.message);
+      result = d.candidates?.[0]?.content?.parts?.[0]?.text || '';
+
+    } else if (cfgProv === 'openai') {
+      const res = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + cfgKey },
+        body: JSON.stringify({ model: 'gpt-4o-mini', max_tokens: 800,
+          messages: [{ role: 'user', content: prompt }] })
+      });
+      const d = await res.json();
+      if (d.error) throw new Error(d.error.message);
+      result = d.choices?.[0]?.message?.content || '';
+
+    } else if (cfgProv === 'llama') {
+      const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + cfgKey },
+        body: JSON.stringify({ model: 'llama-3.1-8b-instant', max_tokens: 800,
+          messages: [{ role: 'user', content: prompt }] })
+      });
+      const d = await res.json();
+      if (d.error) throw new Error(d.error.message || JSON.stringify(d.error));
+      result = d.choices?.[0]?.message?.content || '';
+    }
+
+    const raw = result.replace(/```json|```/g, '').trim();
+    const parsed = JSON.parse(raw);
+    const newItems = (parsed.items || []).map(i => ({
+      name: i.name, qty: +i.qty || 1, up: +i.unitPrice || 0,
+      sub: (+i.qty || 1) * (+i.unitPrice || 0)
+    }));
+
+    if (merge) {
+      items = [...items, ...newItems];
+      document.getElementById('more-tc').textContent = `✅ เพิ่มแล้ว ${newItems.length} รายการ`;
+      toast(`✅ เพิ่ม ${newItems.length} รายการแล้ว`);
+    } else {
+      items = newItems;
+    }
+    setStatus('ok', `วิเคราะห์สำเร็จ ${items.length} รายการ`);
+
+  } catch (err) {
+    if (err.message === 'no-key') {
+      document.getElementById('ai-load').classList.remove('show');
+      toast('⚠️ กรุณาใส่ API Key ในการตั้งค่า');
+      openSettings(); return;
+    }
+    toast('AI error: ' + err.message.slice(0, 60));
+    setStatus('err', 'วิเคราะห์ไม่สำเร็จ ใช้โหมดสำรอง');
+    const fb = simpleParse(text);
+    if (merge) items = [...items, ...fb]; else items = fb;
+    if (!items.length) { document.getElementById('ai-load').classList.remove('show'); setStatus('idle', 'พร้อมรับคำสั่งเสียง'); return; }
+  }
+
+  document.getElementById('ai-load').classList.remove('show');
+  renderItems();
+  if (!merge) showScreen('confirm');
+  setTimeout(() => setStatus('idle', 'พร้อมรับคำสั่งเสียง'), 2500);
+}
+
+function simpleParse(text) {
+  const out = [];
+  const re = /([ก-์a-zA-Z\s]+?)\s+(\d+)\s*(?:ตัว|ชิ้น|อัน|กิโล|ถุง|กล่อง|แพ็ค|คู่|ผืน|ชุด)?\s*(?:ตัวละ|ละ|ราคา|x|×)?\s*(\d+)/g;
+  let m;
+  while ((m = re.exec(text)) !== null) {
+    const name = m[1].trim(), qty = +m[2], up = +m[3];
+    if (name && qty > 0) out.push({ name, qty, up, sub: qty * up });
+  }
+  return out;
+}
+
+// ══════════════════════════════
+// CONFIRM / ITEMS
+// ══════════════════════════════
+function renderItems() {
+  const list = document.getElementById('items-list');
+  list.innerHTML = '';
+  items.forEach((item, i) => {
+    const el = document.createElement('div');
+    el.className = 'item-card';
+    el.innerHTML = `
+      <div class="item-idx">${i + 1}</div>
+      <div class="item-body">
+        <div class="item-name">${item.name}</div>
+        <div class="item-detail">${item.qty} × ${fmt(item.up)} บาท</div>
+      </div>
+      <div class="item-sub">${fmt(item.sub)} ฿</div>
+      <div class="del-btn" onclick="delItem(${i})">✕</div>`;
+    list.appendChild(el);
+  });
+  updateTotal();
+}
+
+function delItem(i) { items.splice(i, 1); renderItems(); }
+
+function addManual() {
+  const n = document.getElementById('mn').value.trim();
+  const q = parseInt(document.getElementById('mq').value) || 1;
+  const p = parseFloat(document.getElementById('mp').value) || 0;
+  if (!n) { toast('กรุณาใส่ชื่อสินค้า'); return; }
+  items.push({ name: n, qty: q, up: p, sub: q * p });
+  document.getElementById('mn').value = '';
+  document.getElementById('mp').value = '';
+  renderItems();
+}
+
+function updateTotal() {
+  const total = items.reduce((s, i) => s + i.sub, 0);
+  document.getElementById('total-val').textContent = fmt(total) + ' ฿';
+  document.getElementById('conf-sub').textContent  = items.length + ' รายการ';
+  document.getElementById('cnt-txt').textContent   = items.length + ' รายการ';
+}
+
+// ══════════════════════════════
+// CREATE BILL
+// ══════════════════════════════
+function createBill() {
+  if (!items.length) { toast('กรุณาเพิ่มสินค้าอย่างน้อย 1 รายการ'); return; }
+  const now   = new Date();
+  const no    = 'BL' + now.getFullYear().toString().slice(-2) + pad(now.getMonth() + 1) + pad(now.getDate()) + '-' + (Math.floor(Math.random() * 9000) + 1000);
+  const total = items.reduce((s, i) => s + i.sub, 0);
+  const hash  = simpleHash(no + '|' + now.toISOString().slice(0, 16) + '|' + items.map(i => i.name + i.qty + i.up).join('|') + '|' + total);
+
+  saveHist({ no, date: now.toISOString(), shop: cfgShop || 'ร้านค้า', items: [...items], total, hash });
+
+  // 🧠 Learn from this bill
+  learnFromBill(items);
+  renderMemoryChips();
+
+  setText('b-shop', cfgShop || 'ร้านค้า');
+  setText('b-no', no);
+  setText('b-datetime', now.toLocaleDateString('th-TH', { weekday:'short', year:'numeric', month:'long', day:'numeric' }));
+  setText('b-date', now.toLocaleDateString('th-TH', { year:'numeric', month:'short', day:'numeric' }));
+  setText('b-time', now.toLocaleTimeString('th-TH', { hour:'2-digit', minute:'2-digit' }));
+  setText('b-cnt', items.length + ' รายการ');
+  setText('b-total', fmt(total) + ' ฿');
+  setText('b-hash', 'Digital Sig: ' + hash);
+
+  // Shop detail
+  const details = [cfgOwner, cfgAddr, cfgAddr2, cfgPhone ? '📞 ' + cfgPhone : ''].filter(Boolean).join(' · ');
+  setText('b-detail', details);
+  setText('b-tax', cfgTax ? 'เลขผู้เสียภาษี: ' + cfgTax : '');
+
+  document.getElementById('b-items').innerHTML = items.map(it => `
+    <div class="bitem">
+      <div><div class="biname">${it.name}</div><div class="biqty">${it.qty} ชิ้น</div></div>
+      <div class="bicol">${it.qty} × ${fmt(it.up)}</div>
+      <div class="bisub">${fmt(it.sub)} ฿</div>
+    </div>`).join('');
+
+  drawQR(JSON.stringify({ no, total, items: items.length, hash, shop: cfgShop || 'ร้านค้า' }), 'qr-canvas', 140);
+  showScreen('bill');
+}
+
+function drawQR(text, canvasId, size) {
+  const canvas = document.getElementById(canvasId);
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, size, size);
+  try {
+    const h = document.createElement('div');
+    new QRCode(h, { text, width: size, height: size, colorDark: '#1a3a6b', colorLight: '#fff', correctLevel: QRCode.CorrectLevel.M });
+    setTimeout(() => {
+      const src = h.querySelector('img')?.src || h.querySelector('canvas')?.toDataURL();
+      if (src) { const img = new Image(); img.onload = () => ctx.drawImage(img, 0, 0, size, size); img.src = src; }
+    }, 180);
+  } catch (e) {}
+}
+
+// ── SHARE: TEXT (Line/SMS) ──
+function shareBillText() {
+  const no    = document.getElementById('b-no').textContent;
+  const total = items.reduce((s, i) => s + i.sub, 0);
+  const lines = [
+    `🧾 บิลเงินสดดิจิทัล · ${no}`,
+    cfgShop  ? `🏪 ${cfgShop}` : '',
+    cfgPhone ? `📞 ${cfgPhone}` : '',
+    cfgTax   ? `เลขภาษี: ${cfgTax}` : '',
+    `─────────────────`,
+    ...items.map(i => `• ${i.name} ×${i.qty} = ${fmt(i.sub)} ฿`),
+    `─────────────────`,
+    `💰 รวมทั้งสิ้น ${fmt(total)} ฿`,
+    `🔒 ล็อคแก้ไขไม่ได้ · ใช้เป็นหลักฐานค่าใช้จ่ายได้`
+  ].filter(Boolean);
+  const text = lines.join('\n');
+  if (navigator.share) navigator.share({ title: 'บิลสินค้า', text });
+  else navigator.clipboard?.writeText(text).then(() => toast('คัดลอกบิลแล้ว ✅'));
+}
+
+// ── SHARE: QR MODAL ──
+function shareBillQR() {
+  // Build full bill data URL encoded in QR
+  const no    = document.getElementById('b-no').textContent;
+  const total = items.reduce((s, i) => s + i.sub, 0);
+  const hash  = document.getElementById('b-hash').textContent.replace('Digital Sig: ','');
+
+  // Encode complete bill as compact JSON for QR
+  const billData = JSON.stringify({
+    v: 1,
+    no,
+    shop:  cfgShop || 'ร้านค้า',
+    owner: cfgOwner || '',
+    addr:  [cfgAddr, cfgAddr2].filter(Boolean).join(' '),
+    phone: cfgPhone || '',
+    tax:   cfgTax || '',
+    date:  document.getElementById('b-date').textContent,
+    time:  document.getElementById('b-time').textContent,
+    items: items.map(i => ({ n: i.name, q: i.qty, p: i.up })),
+    total,
+    hash
+  });
+
+  document.getElementById('qr-modal-hash').textContent = 'Sig: ' + hash;
+  drawQR(billData, 'qr-big-canvas', 220);
+  document.getElementById('qr-modal').classList.add('open');
+}
+
+function closeQRModal() {
+  document.getElementById('qr-modal').classList.remove('open');
+}
+
+// ── EXPORT: PNG ──
+async function saveAsPNG() {
+  const el = document.querySelector('.bill-paper');
+  if (!el) return;
+  showExportOverlay('🖼️ กำลังสร้างภาพบิล...');
+  try {
+    // Temporarily make paper non-interactive for capture
+    const prev = el.style.pointerEvents;
+    el.style.pointerEvents = 'auto';
+    const canvas = await html2canvas(el, {
+      scale: 2.5,
+      useCORS: true,
+      backgroundColor: '#ffffff',
+      logging: false,
+      letterRendering: true
+    });
+    el.style.pointerEvents = prev;
+
+    const dataUrl = canvas.toDataURL('image/png');
+    const no = document.getElementById('b-no').textContent;
+
+    // Try native share with file (mobile)
+    if (navigator.canShare) {
+      try {
+        const res  = await fetch(dataUrl);
+        const blob = await res.blob();
+        const file = new File([blob], `bill-${no}.png`, { type: 'image/png' });
+        if (navigator.canShare({ files: [file] })) {
+          hideExportOverlay();
+          await navigator.share({ files: [file], title: 'บิล ' + no });
+          return;
+        }
+      } catch(e) {}
+    }
+
+    // Fallback: download
+    const a = document.createElement('a');
+    a.href = dataUrl;
+    a.download = `bill-${no}.png`;
+    a.click();
+    hideExportOverlay();
+    toast('🖼️ บันทึกภาพบิลแล้ว ✅');
+  } catch (err) {
+    hideExportOverlay();
+    toast('ไม่สามารถสร้างภาพได้: ' + err.message.slice(0,40));
+  }
+}
+
+// ── EXPORT: PDF ──
+async function saveAsPDF() {
+  const el = document.querySelector('.bill-paper');
+  if (!el) return;
+  showExportOverlay('📄 กำลังสร้าง PDF...');
+  try {
+    const canvas = await html2canvas(el, {
+      scale: 2.5,
+      useCORS: true,
+      backgroundColor: '#ffffff',
+      logging: false
+    });
+
+    const { jsPDF } = window.jspdf;
+    const imgData   = canvas.toDataURL('image/png');
+    const pxW = canvas.width, pxH = canvas.height;
+    // A4 width = 210mm; calculate height proportionally
+    const pdfW  = 210;
+    const pdfH  = (pxH / pxW) * pdfW;
+    const doc   = new jsPDF({ orientation: 'portrait', unit: 'mm', format: [pdfW, pdfH] });
+    doc.addImage(imgData, 'PNG', 0, 0, pdfW, pdfH);
+
+    const no = document.getElementById('b-no').textContent;
+    doc.save(`bill-${no}.pdf`);
+    hideExportOverlay();
+    toast('📄 ดาวน์โหลด PDF แล้ว ✅');
+  } catch (err) {
+    hideExportOverlay();
+    toast('ไม่สามารถสร้าง PDF: ' + err.message.slice(0,40));
+  }
+}
+
+function showExportOverlay(msg) {
+  document.getElementById('export-lbl').textContent = msg;
+  document.getElementById('export-overlay').classList.add('open');
+}
+function hideExportOverlay() {
+  document.getElementById('export-overlay').classList.remove('open');
+}
+
+// ══════════════════════════════
+// HISTORY
+// ══════════════════════════════
+function saveHist(b) {
+  const h = getHist(); h.unshift(b);
+  if (h.length > 200) h.pop();
+  try { localStorage.setItem('vb_hist', JSON.stringify(h)); } catch (e) {}
+}
+function getHist() {
+  try { return JSON.parse(localStorage.getItem('vb_hist') || '[]'); } catch (e) { return []; }
+}
+function showHistory() {
+  const hist = getHist();
+  const list = document.getElementById('hist-list');
+  list.innerHTML = '';
+  document.getElementById('hist-sub').textContent = hist.length + ' ใบ';
+  if (!hist.length) {
+    list.innerHTML = '<div class="empty-s"><div class="ei">🧾</div><div>ยังไม่มีบิล</div></div>';
+    showScreen('history'); return;
+  }
+  hist.forEach(b => {
+    const d  = new Date(b.date);
+    const el = document.createElement('div');
+    el.className = 'hcard';
+    el.innerHTML = `
+      <div class="hc-top">
+        <div>
+          <div class="hc-no">${b.no}</div>
+          <div class="hc-date">${d.toLocaleDateString('th-TH', { year:'numeric', month:'long', day:'numeric' })} · ${d.toLocaleTimeString('th-TH', { hour:'2-digit', minute:'2-digit' })}</div>
+        </div>
+        <div class="hc-total">${fmt(b.total)} ฿</div>
+      </div>
+      <div class="hc-items">${(b.items || []).slice(0, 3).map(i => `${i.name} ×${i.qty}`).join(' · ')}${b.items.length > 3 ? ' · ...' : ''}</div>`;
+    list.appendChild(el);
+  });
+  showScreen('history');
+}
+
+function exportCSV() {
+  const hist = getHist();
+  if (!hist.length) { toast('ไม่มีข้อมูล'); return; }
+  let csv = 'เลขบิล,วันที่,เวลา,ร้านค้า,ชื่อสินค้า,จำนวน,ราคาต่อชิ้น,รวม\n';
+  hist.forEach(b => {
+    const d = new Date(b.date);
+    (b.items || []).forEach(i => {
+      csv += `"${b.no}","${d.toLocaleDateString('th-TH')}","${d.toLocaleTimeString('th-TH', { hour:'2-digit', minute:'2-digit' })}","${b.shop || ''}","${i.name}",${i.qty},${i.up || 0},${i.sub}\n`;
+    });
+  });
+  const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'bills-' + new Date().toISOString().slice(0, 10) + '.csv';
+  a.click(); toast('ดาวน์โหลด CSV แล้ว ✅');
+}
+
+// ══════════════════════════════
+// HELPERS
+// ══════════════════════════════
+function simpleHash(s) {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = (h * 0x01000193) >>> 0; }
+  return h.toString(16).toUpperCase().padStart(8, '0') + '-' + (s.length * 31 ^ 0xdeadbeef).toString(16).toUpperCase().slice(-4);
+}
+function fmt(n) { return Number(n).toLocaleString('th-TH'); }
+function pad(n) { return String(n).padStart(2, '0'); }
+function setText(id, val) { const el = document.getElementById(id); if (el) el.textContent = val || ''; }
+function setStatus(t, txt) {
+  const d = document.getElementById('sdot');
+  d.className = 'sdot' + (t === 'live' ? ' live' : t === 'ok' ? ' ok' : t === 'err' ? ' err' : '');
+  document.getElementById('stxt').textContent = txt;
+}
+function setTc(t, empty) {
+  const el = document.getElementById('tc-txt');
+  el.textContent = t || (empty ? 'เช่น "เสื้อยืด 12 ตัว ตัวละ 150 กางเกง 6 ตัว ตัวละ 200"' : '');
+  el.className = 'tc-text' + ((!t || empty) ? ' empty' : '');
+}
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(t._t); t._t = setTimeout(() => t.classList.remove('show'), 2800);
+}
+
+selectProv(cfgProv, true);
+
+// 🧠 Init shop memory on load
+learnFromHistory();
+renderMemoryChips();
+</script>
+</body>
+</html>
