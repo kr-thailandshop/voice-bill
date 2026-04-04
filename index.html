@@ -731,49 +731,78 @@ let trMain = '', trMore = '';
 function makeRec(onResult) {
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   if (!SR) { toast('เบราว์เซอร์นี้ไม่รองรับเสียง ใช้ Chrome หรือ Safari'); return null; }
-  const r = new SR();
-  r.lang = 'th-TH'; r.continuous = true; r.interimResults = true;
-  // allFin เก็บข้อความ final สะสมทั้งหมดตลอด session (ไม่ reset เมื่อ restart)
-  // sessionFin เก็บเฉพาะรอบปัจจุบัน (reset ทุกครั้งที่ start ใหม่)
-  let allFin = '';
-  let sessionFin = '';
-  r.onresult = e => {
-    let tmp = '';
-    for (let i = e.resultIndex; i < e.results.length; i++) {
-      if (e.results[i].isFinal) sessionFin += e.results[i][0].transcript + ' ';
-      else tmp += e.results[i][0].transcript;
-    }
-    const combined = allFin + sessionFin + tmp;
-    onResult(combined.trim(), (allFin + sessionFin).trim());
+
+  // state ร่วมกันทุก SR instance ใน session นี้
+  const state = { accumulated: '', active: true, currentSR: null };
+
+  function spawnSR() {
+    const r = new SR();
+    r.lang = 'th-TH';
+    r.continuous = false;    // ปิด continuous → ป้องกัน Chrome loop ซ้ำเอง
+    r.interimResults = true;
+    let finThisRound = '';   // final เฉพาะ instance นี้ (reset ทุกครั้งที่ spawn ใหม่)
+
+    r.onresult = e => {
+      finThisRound = '';
+      let interim = '';
+      // อ่านจาก 0 เสมอ เพราะแต่ละ instance เริ่ม index ใหม่
+      for (let i = 0; i < e.results.length; i++) {
+        if (e.results[i].isFinal) finThisRound += e.results[i][0].transcript + ' ';
+        else interim += e.results[i][0].transcript;
+      }
+      onResult(
+        (state.accumulated + finThisRound + interim).trim(),
+        (state.accumulated + finThisRound).trim()
+      );
+    };
+
+    r.onerror = e => {
+      if (e.error === 'not-allowed') toast('กรุณาอนุญาตไมโครโฟน');
+      else if (e.error !== 'no-speech') toast('ไมโครโฟน: ' + e.error);
+    };
+
+    r.onend = () => {
+      if (!state.active) return;
+      state.accumulated += finThisRound; // โอน final รอบนี้เข้า accumulated
+      finThisRound = '';
+      // spawn instance ใหม่ทุกครั้ง → result index เริ่มจาก 0 เสมอ ไม่ซ้ำ
+      state.currentSR = spawnSR();
+      try { state.currentSR.start(); } catch(e) {}
+    };
+
+    return r;
+  }
+
+  // wrapper ที่ startMain/stopMain/startMore/stopMore ถือไว้
+  const wrapper = {
+    start() {
+      state.active  = true;
+      state.accumulated = '';
+      state.currentSR = spawnSR();
+      try { state.currentSR.start(); } catch(e) {}
+    },
+    stop() {
+      state.active = false;
+      if (state.currentSR) { try { state.currentSR.stop(); } catch(e) {} state.currentSR = null; }
+    },
+    _final() { return state.accumulated.trim(); }
   };
-  r.onerror = e => {
-    if (e.error === 'not-allowed') toast('กรุณาอนุญาตไมโครโฟน');
-    else if (e.error !== 'no-speech') toast('ไมโครโฟน: ' + e.error);
-  };
-  r.onend = () => {
-    // บันทึก sessionFin ลง allFin ก่อน restart เพื่อไม่ให้ซ้ำ
-    allFin += sessionFin;
-    sessionFin = '';
-    if (isMain && recMain === r) { try { r.start(); } catch(e){} }
-    if (isMore && recMore === r) { try { r.start(); } catch(e){} }
-  };
-  r._final = () => (allFin + sessionFin).trim();
-  return r;
+
+  return wrapper;
 }
 
 function startMain(e) {
   e.preventDefault(); if (isMain) return;
-  isMain = true;
-  // ล้างค่าเก่าทั้งหมดก่อนเริ่มพูดใหม่ทุกครั้ง
-  trMain = '';
-  if (recMain) { try { recMain.stop(); } catch(e){} recMain = null; }
+  isMain = true; trMain = '';
+  // หยุด instance เก่าก่อน (ถ้ามี) แล้วสร้างใหม่สะอาด
+  if (recMain) { recMain.stop(); recMain = null; }
   document.getElementById('mic-btn').classList.add('rec');
   document.getElementById('tc').classList.add('rec');
   document.getElementById('mic-lbl').textContent = 'กำลังฟัง...';
   setStatus('live', 'กำลังฟัง...');
   setTc('', false);
   recMain = makeRec((d, f) => { trMain = f || d; setTc(d || '...', false); });
-  if (recMain) try { recMain.start(); } catch(e){}
+  recMain.start(); // wrapper.start() → reset accumulated + spawn SR ใหม่
 }
 function stopMain(e) {
   if (e) e.preventDefault(); if (!isMain) return;
@@ -781,9 +810,9 @@ function stopMain(e) {
   document.getElementById('mic-btn').classList.remove('rec');
   document.getElementById('tc').classList.remove('rec');
   document.getElementById('mic-lbl').textContent = 'กดค้างแล้วพูด';
-  if (recMain) { try { recMain.stop(); } catch(e){} recMain = null; }
   const text = trMain.trim();
-  trMain = ''; // ล้างหลัง stop ด้วย
+  trMain = '';
+  if (recMain) { recMain.stop(); recMain = null; }
   if (!text) { setStatus('idle', 'พร้อมรับคำสั่งเสียง'); return; }
   items = [];
   processAI(text, false);
@@ -791,22 +820,20 @@ function stopMain(e) {
 
 function startMore(e) {
   e.preventDefault(); if (isMore) return;
-  isMore = true;
-  // ล้างค่าเก่าทั้งหมดก่อนเริ่มพูดซ้ำ
-  trMore = '';
-  if (recMore) { try { recMore.stop(); } catch(e){} recMore = null; }
+  isMore = true; trMore = '';
+  if (recMore) { recMore.stop(); recMore = null; }
   document.getElementById('mic-mini').classList.add('rec');
   document.getElementById('more-tc').textContent = 'กำลังฟัง...';
   recMore = makeRec((d) => { trMore = d; document.getElementById('more-tc').textContent = d || '...'; });
-  if (recMore) try { recMore.start(); } catch(e){}
+  recMore.start();
 }
 function stopMore(e) {
   if (e) e.preventDefault(); if (!isMore) return;
   isMore = false;
   document.getElementById('mic-mini').classList.remove('rec');
-  if (recMore) { try { recMore.stop(); } catch(e){} recMore = null; }
   const text = trMore.trim();
-  trMore = ''; // ล้างหลัง stop ด้วย
+  trMore = '';
+  if (recMore) { recMore.stop(); recMore = null; }
   if (!text) { document.getElementById('more-tc').textContent = 'กดค้างแล้วพูดเพิ่มรายการ...'; return; }
   processAI(text, true);
 }
