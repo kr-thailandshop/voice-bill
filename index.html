@@ -394,7 +394,8 @@ html,body{height:100%;height:100dvh;overflow:hidden;background:var(--bg);color:v
 .share-bar{background:#1a3a6b;padding:8px 12px 10px;display:flex;gap:6px;flex-shrink:0;border-bottom:2px solid rgba(255,255,255,0.1);}
 .share-action-btn{flex:1;background:rgba(255,255,255,0.12);border:1.5px solid rgba(255,255,255,0.2);border-radius:10px;color:#fff;padding:8px 4px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;transition:all 0.12s;font-family:'Sarabun',sans-serif;}
 .share-action-btn:active{background:rgba(255,255,255,0.28);transform:scale(0.95);}
-.share-action-line{background:rgba(0,200,80,0.18);border-color:rgba(0,200,80,0.4);}
+.share-action-main{background:rgba(255,200,0,0.22);border-color:rgba(255,200,0,0.55);flex:1.6;}
+.share-action-main:active{background:rgba(255,200,0,0.38);}
 .sa-icon{font-size:20px;line-height:1;}
 .sa-label{font-size:10px;font-weight:700;letter-spacing:0.2px;white-space:nowrap;}
 
@@ -527,6 +528,10 @@ html,body{height:100%;height:100dvh;overflow:hidden;background:var(--bg);color:v
 
   <!-- Share action bar -->
   <div class="share-bar">
+    <button class="share-action-btn share-action-main" onclick="shareBillHTML()">
+      <span class="sa-icon">📨</span>
+      <span class="sa-label">ส่งบิลให้ลูกค้า</span>
+    </button>
     <button class="share-action-btn" onclick="saveAsPNG()">
       <span class="sa-icon">🖼️</span>
       <span class="sa-label">บันทึกภาพ</span>
@@ -535,13 +540,9 @@ html,body{height:100%;height:100dvh;overflow:hidden;background:var(--bg);color:v
       <span class="sa-icon">📄</span>
       <span class="sa-label">PDF</span>
     </button>
-    <button class="share-action-btn" onclick="shareBillQR()">
-      <span class="sa-icon">📲</span>
-      <span class="sa-label">QR Link</span>
-    </button>
-    <button class="share-action-btn share-action-line" onclick="shareBillText()">
+    <button class="share-action-btn" onclick="shareBillText()">
       <span class="sa-icon">💬</span>
-      <span class="sa-label">แชร์ข้อความ</span>
+      <span class="sa-label">ข้อความ</span>
     </button>
   </div>
 
@@ -1829,6 +1830,10 @@ function createBill() {
   // Store for QR modal to reuse
   window._lastBillQRData = billQRData;
   window._lastBillHash   = hash;
+  window._lastBillNonce  = nonce;
+  window._lastBillNow    = now.toISOString().slice(0,16);
+  window._lastBillItems  = items.map(i=>({name:i.name,qty:i.qty,up:i.up,sub:i.sub}));
+  window._lastBillTotal  = total;
   drawQR(billQRData, 'qr-anchor', 140);
 
   // วาดลายเซ็นผู้รับเงินบนบิล
@@ -1857,7 +1862,216 @@ function createBill() {
 
 // drawQR — implemented by the pure-JS QR engine at bottom of file (window.drawQR)
 
-// ── SHARE: TEXT (Line/SMS) ──
+// ── SHARE: HTML BILL FILE (หลัก) ──
+// สร้างไฟล์ bill-XXXX.html ที่เปิดได้ทุกเครื่อง offline แล้วแชร์ผ่าน Line/WhatsApp
+function shareBillHTML() {
+  if (!window._lastBillHash) { toast('กรุณาออกบิลก่อน'); return; }
+
+  const no         = document.getElementById('b-no').textContent;
+  const date       = document.getElementById('b-date').textContent;
+  const time       = document.getElementById('b-time').textContent;
+  const cnt        = document.getElementById('b-cnt').textContent;
+  const totalTxt   = document.getElementById('b-total').textContent;
+  const hash       = window._lastBillHash;
+  const nonce      = window._lastBillNonce || '';
+  const nowISO     = window._lastBillNow   || '';
+  const billItems  = window._lastBillItems || items.map(i=>({name:i.name,qty:i.qty,up:i.up,sub:i.sub}));
+  const billTotal  = window._lastBillTotal || 0;
+
+  const shop   = document.getElementById('b-shop').textContent;
+  const detail = document.getElementById('b-detail').textContent;
+  const tax    = document.getElementById('b-tax').textContent;
+  const itemsHTML = document.getElementById('b-items').innerHTML;
+
+  let sigDataURL = '';
+  try {
+    const sc = document.getElementById('bill-sig-canvas');
+    if (sc) sigDataURL = sc.toDataURL('image/png');
+  } catch(e) {}
+  const collectorName = document.getElementById('bill-collector-name').textContent;
+
+  // fmt helper inlined for the copy HTML
+  const fmtInline = n => Number(n).toLocaleString('th-TH');
+
+  const itemsVerifyJSON = JSON.stringify(billItems);
+
+  const html = `<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>บิลสำเนา · ${no}</title>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700;800&family=Noto+Serif+Thai:wght@700;900&family=IBM+Plex+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+body{background:#e8e0d0;font-family:'Sarabun',sans-serif;padding:0 0 48px;min-height:100vh;}
+.topbar{background:#1a3a6b;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10;}
+.topbar-title{font-weight:800;color:#fff;font-size:15px;}
+.copy-badge-top{background:rgba(255,200,0,.25);border:1.5px solid rgba(255,200,0,.6);border-radius:100px;padding:3px 12px;color:#ffe080;font-size:10px;font-weight:700;letter-spacing:1px;}
+.verify-bar{margin:10px 12px 0;border-radius:12px;padding:12px 16px;display:flex;align-items:center;gap:12px;border:2px solid #ccc;background:#fff;}
+.vi{font-size:24px;flex-shrink:0;}
+.vt{font-size:12px;font-weight:800;}
+.vs{font-size:11px;font-weight:600;margin-top:2px;}
+.paper{background:#fff;margin:10px 12px 0;border-radius:6px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,.18);border:1px solid #d0c8b8;position:relative;}
+.copy-watermark{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-28deg);font-size:80px;font-weight:900;color:rgba(26,95,168,.06);pointer-events:none;white-space:nowrap;z-index:1;letter-spacing:6px;font-family:'Noto Serif Thai',serif;}
+.bhead{background:#1a5fa8;position:relative;z-index:2;}
+.bhead-top{padding:12px 16px 6px;display:flex;justify-content:space-between;align-items:flex-start;}
+.bl{font-size:9px;color:rgba(255,255,255,.55);letter-spacing:1px;text-transform:uppercase;font-family:'IBM Plex Mono',monospace;}
+.bv{font-size:11px;font-family:'IBM Plex Mono',monospace;font-weight:700;color:rgba(255,255,255,.85);margin-top:1px;}
+.bhead-c{text-align:center;padding:4px 16px 10px;border-top:1px solid rgba(255,255,255,.15);}
+.bth{font-family:'Noto Serif Thai',serif;font-size:20px;font-weight:900;color:#fff;letter-spacing:1px;}
+.ben{font-size:10px;color:rgba(255,255,255,.65);letter-spacing:3px;text-transform:uppercase;margin-top:1px;}
+.cbadge{display:inline-block;background:rgba(255,200,0,.2);border:1.5px solid rgba(255,200,0,.5);border-radius:100px;padding:2px 10px;color:#ffe080;font-size:9px;font-weight:700;letter-spacing:1.5px;margin-top:4px;}
+.bshop{background:#f0ebe0;padding:10px 16px;border-bottom:1.5px solid #d0c8b0;position:relative;z-index:2;}
+.bsn{font-family:'Noto Serif Thai',serif;font-size:16px;font-weight:700;color:#1a1410;}
+.bsd{font-size:10px;color:#6a5e4a;margin-top:2px;line-height:1.5;}
+.bst{font-size:9px;color:#8a7a60;font-family:'IBM Plex Mono',monospace;margin-top:3px;}
+.bmeta{display:flex;background:#faf8f2;border-bottom:1.5px dashed #d0c8b0;position:relative;z-index:2;}
+.bmc{flex:1;padding:9px 12px;border-right:1.5px dashed #d0c8b0;}
+.bmc:last-child{border-right:none;}
+.bml{font-size:8.5px;color:#9a8e78;text-transform:uppercase;letter-spacing:.5px;font-family:'IBM Plex Mono',monospace;}
+.bmv{font-size:11.5px;font-weight:800;color:#1a1410;margin-top:2px;}
+.bih-row{display:grid;grid-template-columns:1fr 80px 70px;background:#1a5fa8;padding:7px 16px;gap:4px;position:relative;z-index:2;}
+.bih{font-size:9px;font-weight:700;color:rgba(255,255,255,.8);letter-spacing:.5px;text-transform:uppercase;}
+.bih.r{text-align:right;}
+.bitems{padding:0 16px;position:relative;z-index:2;}
+.bitem{display:grid;grid-template-columns:1fr 80px 70px;padding:9px 0;border-bottom:1px dashed #e0d8c8;align-items:start;gap:4px;}
+.bitem:last-child{border-bottom:none;}
+.biname{font-size:13px;font-weight:700;color:#1a1410;}
+.biqty{font-size:10px;color:#7a6a52;margin-top:2px;}
+.bicol{font-size:12px;font-weight:600;color:#3d3228;text-align:right;}
+.bisub{font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:700;color:#1a1410;text-align:right;}
+.btotal{background:#f0ebe0;border-top:2px solid #1a5fa8;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;position:relative;z-index:2;}
+.btl{font-size:13px;color:#6a5e4a;font-weight:700;}
+.btvat{font-size:10px;color:#9a8e78;margin-top:2px;}
+.btv{font-family:'IBM Plex Mono',monospace;font-weight:900;color:#1a5fa8;font-size:22px;}
+.bcollect{padding:10px 16px 8px;background:#faf8f2;border-top:1.5px dashed #d0c8b0;display:flex;flex-direction:column;align-items:center;gap:4px;position:relative;z-index:2;}
+.bc-lbl{font-size:8.5px;color:#9a8e78;text-transform:uppercase;letter-spacing:1px;font-family:'IBM Plex Mono',monospace;}
+.sig-img{height:60px;max-width:180px;object-fit:contain;display:block;}
+.sig-blank{width:160px;height:1px;background:#c0b89a;margin:30px 0 0;}
+.bc-name{font-size:10px;color:#6a5e4a;font-weight:700;margin-top:2px;}
+.bhash{padding:10px 16px 12px;background:#faf8f2;border-top:1.5px dashed #d0c8b0;text-align:center;position:relative;z-index:2;}
+.bhash-txt{font-family:'IBM Plex Mono',monospace;font-size:7.5px;color:#b8aa90;word-break:break-all;line-height:1.6;}
+.bfooter{padding:10px 16px 14px;text-align:center;background:#faf8f2;border-top:1.5px solid #e0d8c8;position:relative;z-index:2;}
+.bfv{font-size:10px;color:#1a6b3a;font-weight:700;margin-bottom:2px;}
+.bft{font-size:9px;color:#9a8e78;}
+.save-hint{margin:12px 12px 0;background:rgba(26,63,107,.08);border:1.5px dashed #1a5fa8;border-radius:10px;padding:10px 14px;text-align:center;font-size:11px;color:#1a3a6b;font-weight:600;line-height:1.6;}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="topbar-title">🧾 บิลเงินสดดิจิทัล</div>
+  <div class="copy-badge-top">📋 สำเนา</div>
+</div>
+
+<div class="verify-bar" id="vbar">
+  <div class="vi">🔐</div>
+  <div><div class="vt">ตรวจสอบความถูกต้อง</div><div class="vs" id="vstatus">กำลังตรวจสอบ...</div></div>
+</div>
+
+<div class="paper">
+  <div class="copy-watermark">สำเนา</div>
+  <div class="bhead">
+    <div class="bhead-top">
+      <div><div class="bl">DIGITAL BILL · COPY</div><div class="bv">บิลเงินสด · สำเนา</div></div>
+      <div style="text-align:right"><div class="bl">เลขที่ · BILL NO.</div><div class="bv">${no}</div></div>
+    </div>
+    <div class="bhead-c">
+      <div class="bth">บิลเงินสด</div>
+      <div class="ben">CASH SALE · 现金收据</div>
+      <div class="cbadge">📋 สำเนา / COPY</div>
+    </div>
+  </div>
+  <div class="bshop">
+    <div class="bsn">${shop}</div>
+    ${detail ? `<div class="bsd">${detail}</div>` : ''}
+    ${tax    ? `<div class="bst">${tax}</div>`    : ''}
+  </div>
+  <div class="bmeta">
+    <div class="bmc"><div class="bml">วันที่</div><div class="bmv">${date}</div></div>
+    <div class="bmc"><div class="bml">เวลา</div><div class="bmv">${time}</div></div>
+    <div class="bmc"><div class="bml">รายการ</div><div class="bmv">${cnt}</div></div>
+  </div>
+  <div class="bih-row">
+    <div class="bih">รายการสินค้า</div>
+    <div class="bih r">จำนวน × ราคา</div>
+    <div class="bih r">รวม</div>
+  </div>
+  <div class="bitems">${itemsHTML}</div>
+  <div class="btotal">
+    <div><div class="btl">รวมทั้งสิ้น / TOTAL</div><div class="btvat">ราคารวมภาษีมูลค่าเพิ่ม (ถ้ามี)</div></div>
+    <div class="btv">${totalTxt}</div>
+  </div>
+  <div class="bcollect">
+    <div class="bc-lbl">ผู้รับเงิน / COLLECTOR</div>
+    ${sigDataURL ? `<img class="sig-img" src="${sigDataURL}" alt="">` : '<div class="sig-blank"></div>'}
+    ${collectorName ? `<div class="bc-name">${collectorName}</div>` : ''}
+  </div>
+  <div class="bhash">
+    <div class="bhash-txt">Digital Sig: ${hash}</div>
+  </div>
+  <div class="bfooter">
+    <div class="bfv">✅ บิลลงลายมือชื่อดิจิทัลแล้ว · ไม่สามารถแก้ไขได้</div>
+    <div class="bft">ออกโดยระบบบิลเสียง AI · ใช้เป็นหลักฐานค่าใช้จ่ายตามจริงได้</div>
+  </div>
+</div>
+
+<div class="save-hint">💡 บันทึกหน้านี้ไว้ในเครื่อง เพื่อเปิดดูได้ตลอดโดยไม่ต้องอินเทอร์เน็ต</div>
+
+<script>
+(function(){
+  var hash='${hash}';
+  var no='${no}';
+  var nonce='${nonce}';
+  var nowISO='${nowISO}';
+  var items=${itemsVerifyJSON};
+  var total=${billTotal};
+  function sHash(s){var h=0x811c9dc5;for(var i=0;i<s.length;i++){h^=s.charCodeAt(i);h=(h*0x01000193)>>>0;}return h.toString(16).toUpperCase().padStart(8,'0')+'-'+(s.length*31^0xdeadbeef).toString(16).toUpperCase().slice(-4);}
+  var chk=sHash(no+'|'+nowISO+'|'+items.map(function(i){return i.name+i.qty+i.up;}).join('|')+'|'+total+'|'+nonce);
+  var el=document.getElementById('vstatus');
+  var bar=document.getElementById('vbar');
+  if(chk===hash){
+    el.textContent='✅ บิลถูกต้อง ไม่ถูกแก้ไข';
+    el.style.color='#1a6b3a';
+    bar.style.borderColor='#1a6b3a';
+    bar.style.background='#e6f4ec';
+  } else {
+    el.textContent='⚠️ ไม่ตรง อาจถูกแก้ไข — อย่าใช้เป็นหลักฐาน';
+    el.style.color='#b02a1f';
+    bar.style.borderColor='#b02a1f';
+    bar.style.background='#fdecea';
+  }
+})();
+<\/script>
+</body>
+</html>`;
+
+  const filename = `bill-${no}.html`;
+  const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+
+  // Try Web Share API with file (Android Chrome, iOS Safari 15+)
+  if (navigator.canShare) {
+    const file = new File([blob], filename, { type: 'text/html' });
+    if (navigator.canShare({ files: [file] })) {
+      navigator.share({ files: [file], title: `บิล ${no}`, text: `บิลสำเนา ${shop} ยอด ${totalTxt}` })
+        .then(() => toast('📨 แชร์บิลแล้ว ✅'))
+        .catch(e => { if (e.name !== 'AbortError') downloadBillHTML(blob, filename); });
+      return;
+    }
+  }
+  // Fallback: download file
+  downloadBillHTML(blob, filename);
+}
+
+function downloadBillHTML(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const a   = document.createElement('a');
+  a.href     = url;
+  a.download = filename;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 3000);
+  toast('⬇️ ดาวน์โหลดไฟล์บิลแล้ว · ส่งไฟล์ให้ลูกค้าผ่าน Line ได้เลย ✅');
+}
 function shareBillText() {
   const no    = document.getElementById('b-no').textContent;
   const total = items.reduce((s, i) => s + i.sub, 0);
@@ -1877,14 +2091,196 @@ function shareBillText() {
   else navigator.clipboard?.writeText(text).then(() => toast('คัดลอกบิลแล้ว ✅'));
 }
 
-// ── SHARE: QR MODAL ──
+// ── SHARE: QR MODAL — บิลสำเนา offline ทั้งใบฝังใน QR ──
 function shareBillQR() {
-  // Reuse EXACT same data that was encoded in the bill QR → identical signature
-  const data = window._lastBillQRData;
-  const hash = window._lastBillHash || '';
-  if (!data) { toast('กรุณาออกบิลก่อน'); return; }
+  if (!window._lastBillHash) { toast('กรุณาออกบิลก่อน'); return; }
+
+  const no    = document.getElementById('b-no').textContent;
+  const date  = document.getElementById('b-date').textContent;
+  const time  = document.getElementById('b-time').textContent;
+  const cnt   = document.getElementById('b-cnt').textContent;
+  const total = document.getElementById('b-total').textContent;
+  const hash  = window._lastBillHash;
+  const nonce = window._lastBillNonce || '';
+  const now   = window._lastBillNow   || '';
+  const billItems = window._lastBillItems || items.map(i=>({name:i.name,qty:i.qty,up:i.up,sub:i.sub}));
+  const billTotal = window._lastBillTotal || items.reduce((s,i)=>s+i.sub,0);
+
+  const shop   = document.getElementById('b-shop').textContent;
+  const detail = document.getElementById('b-detail').textContent;
+  const tax    = document.getElementById('b-tax').textContent;
+
+  // Collect items HTML from b-items (already rendered)
+  const itemsHTML = document.getElementById('b-items').innerHTML;
+
+  // Get signature image if any
+  const sigCvs = document.getElementById('bill-sig-canvas');
+  let sigDataURL = '';
+  try { sigDataURL = sigCvs ? sigCvs.toDataURL('image/png') : ''; } catch(e) {}
+  const collectorName = document.getElementById('bill-collector-name').textContent;
+
+  // Build compact self-contained copy bill HTML
+  // Uses Google Fonts CDN (loads only when customer has internet; degrades gracefully offline)
+  const copyHTML = `<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<title>บิลสำเนา · ${no}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700;800&family=Noto+Serif+Thai:wght@700;900&family=IBM+Plex+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:#e8e0d0;font-family:'Sarabun',sans-serif;padding:16px 10px 40px;min-height:100vh;}
+.paper{background:#fff;border-radius:4px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,.2);max-width:400px;margin:0 auto;border:1px solid #d0c8b8;position:relative;}
+/* COPY watermark */
+.copy-stamp{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-30deg);font-size:72px;font-weight:900;color:rgba(26,95,168,.08);pointer-events:none;white-space:nowrap;z-index:10;letter-spacing:4px;}
+.bhead{background:#1a5fa8;}
+.bhead-top{padding:12px 16px 6px;display:flex;justify-content:space-between;align-items:flex-start;}
+.bhead-lbl{font-size:9px;color:rgba(255,255,255,.55);letter-spacing:1px;text-transform:uppercase;font-family:'IBM Plex Mono',monospace;}
+.bhead-val{font-size:11px;font-family:'IBM Plex Mono',monospace;font-weight:700;color:rgba(255,255,255,.85);margin-top:1px;}
+.bhead-center{text-align:center;padding:4px 16px 10px;border-top:1px solid rgba(255,255,255,.15);}
+.bhead-th{font-family:'Noto Serif Thai',serif;font-size:20px;font-weight:900;color:#fff;letter-spacing:1px;}
+.bhead-en{font-size:10px;color:rgba(255,255,255,.65);letter-spacing:3px;text-transform:uppercase;margin-top:1px;}
+.copy-badge{display:inline-block;background:rgba(255,200,0,.25);border:1.5px solid rgba(255,200,0,.6);border-radius:100px;padding:2px 10px;color:#ffe080;font-size:9px;font-weight:700;letter-spacing:2px;margin-top:4px;}
+.bshop{background:#f0ebe0;padding:10px 16px;border-bottom:1.5px solid #d0c8b0;}
+.bshop-name{font-family:'Noto Serif Thai',serif;font-size:16px;font-weight:700;color:#1a1410;}
+.bshop-det{font-size:10px;color:#6a5e4a;margin-top:2px;line-height:1.5;}
+.bshop-tax{font-size:9px;color:#8a7a60;font-family:'IBM Plex Mono',monospace;margin-top:3px;}
+.bmeta{display:flex;background:#faf8f2;border-bottom:1.5px dashed #d0c8b0;}
+.bmc{flex:1;padding:9px 12px;border-right:1.5px dashed #d0c8b0;}
+.bmc:last-child{border-right:none;}
+.bml{font-size:8.5px;color:#9a8e78;text-transform:uppercase;letter-spacing:.5px;font-family:'IBM Plex Mono',monospace;}
+.bmv{font-size:11.5px;font-weight:800;color:#1a1410;margin-top:2px;}
+.bitems-head{display:grid;grid-template-columns:1fr 80px 70px;background:#1a5fa8;padding:7px 16px;gap:4px;}
+.bih{font-size:9px;font-weight:700;color:rgba(255,255,255,.8);letter-spacing:.5px;text-transform:uppercase;}
+.bih.r{text-align:right;}
+.bitems{padding:0 16px;}
+.bitem{display:grid;grid-template-columns:1fr 80px 70px;padding:9px 0;border-bottom:1px dashed #e0d8c8;align-items:start;gap:4px;}
+.bitem:last-child{border-bottom:none;}
+.biname{font-size:13px;font-weight:700;color:#1a1410;}
+.biqty{font-size:10px;color:#7a6a52;margin-top:2px;}
+.bicol{font-size:12px;font-weight:600;color:#3d3228;text-align:right;}
+.bisub{font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:700;color:#1a1410;text-align:right;}
+.btotal{background:#f0ebe0;border-top:2px solid #1a5fa8;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;}
+.btl{font-size:13px;color:#6a5e4a;font-weight:700;}
+.btvat{font-size:10px;color:#9a8e78;margin-top:2px;}
+.btv{font-family:'IBM Plex Mono',monospace;font-weight:900;color:#1a5fa8;font-size:22px;}
+.bcollect{padding:10px 16px 8px;background:#faf8f2;border-top:1.5px dashed #d0c8b0;display:flex;flex-direction:column;align-items:center;gap:4px;}
+.bcollect-lbl{font-size:8.5px;color:#9a8e78;text-transform:uppercase;letter-spacing:1px;font-family:'IBM Plex Mono',monospace;}
+.sig-img{height:60px;max-width:180px;object-fit:contain;display:block;}
+.sig-line{width:180px;height:1px;background:#c0b89a;margin:4px 0 2px;}
+.collect-name{font-size:10px;color:#6a5e4a;font-weight:700;}
+.bfooter{padding:10px 16px 14px;text-align:center;background:#faf8f2;border-top:1.5px solid #e0d8c8;}
+.bfv{font-size:10px;color:#1a6b3a;font-weight:700;margin-bottom:2px;}
+.bft{font-size:9px;color:#9a8e78;}
+.hash-row{padding:10px 16px 12px;background:#faf8f2;border-top:1.5px dashed #d0c8b0;text-align:center;}
+.hash-txt{font-family:'IBM Plex Mono',monospace;font-size:7.5px;color:#b8aa90;word-break:break-all;line-height:1.6;}
+.verify-row{margin:16px 10px 0;background:#fff;border:2px solid #1a5fa8;border-radius:10px;padding:10px 14px;display:flex;align-items:center;gap:10px;}
+.verify-icon{font-size:22px;flex-shrink:0;}
+.verify-body{flex:1;}
+.verify-title{font-size:12px;font-weight:800;color:#1a5fa8;}
+.verify-status{font-size:11px;font-weight:600;margin-top:2px;}
+</style>
+</head>
+<body>
+<div class="paper">
+  <div class="copy-stamp">COPY</div>
+  <div class="bhead">
+    <div class="bhead-top">
+      <div><div class="bhead-lbl">DIGITAL BILL · COPY</div><div class="bhead-val">บิลเงินสด · สำเนา</div></div>
+      <div style="text-align:right"><div class="bhead-lbl">เลขที่ · BILL NO.</div><div class="bhead-val">${no}</div></div>
+    </div>
+    <div class="bhead-center">
+      <div class="bhead-th">บิลเงินสด</div>
+      <div class="bhead-en">CASH SALE · 现金收据</div>
+      <div class="copy-badge">📋 สำเนา / COPY</div>
+    </div>
+  </div>
+  <div class="bshop">
+    <div class="bshop-name">${shop}</div>
+    ${detail ? `<div class="bshop-det">${detail}</div>` : ''}
+    ${tax ? `<div class="bshop-tax">${tax}</div>` : ''}
+  </div>
+  <div class="bmeta">
+    <div class="bmc"><div class="bml">วันที่</div><div class="bmv">${date}</div></div>
+    <div class="bmc"><div class="bml">เวลา</div><div class="bmv">${time}</div></div>
+    <div class="bmc"><div class="bml">รายการ</div><div class="bmv">${cnt}</div></div>
+  </div>
+  <div class="bitems-head">
+    <div class="bih">รายการสินค้า</div>
+    <div class="bih r">จำนวน × ราคา</div>
+    <div class="bih r">รวม</div>
+  </div>
+  <div class="bitems">${itemsHTML}</div>
+  <div class="btotal">
+    <div><div class="btl">รวมทั้งสิ้น / TOTAL</div><div class="btvat">ราคารวมภาษีมูลค่าเพิ่ม (ถ้ามี)</div></div>
+    <div class="btv">${total}</div>
+  </div>
+  <div class="bcollect">
+    <div class="bcollect-lbl">ผู้รับเงิน / COLLECTOR</div>
+    ${sigDataURL ? `<img class="sig-img" src="${sigDataURL}" alt="signature">` : '<div class="sig-line"></div>'}
+    ${collectorName ? `<div class="collect-name">${collectorName}</div>` : ''}
+  </div>
+  <div class="hash-row">
+    <div class="hash-txt">Digital Sig: ${hash}</div>
+  </div>
+  <div class="bfooter">
+    <div class="bfv">✅ บิลลงลายมือชื่อดิจิทัลแล้ว · ไม่สามารถแก้ไขได้</div>
+    <div class="bft">ออกโดยระบบบิลเสียง AI · ใช้เป็นหลักฐานค่าใช้จ่ายตามจริงได้</div>
+  </div>
+</div>
+<div class="verify-row" id="vrow">
+  <div class="verify-icon">🔐</div>
+  <div class="verify-body">
+    <div class="verify-title">ตรวจสอบความถูกต้อง</div>
+    <div class="verify-status" id="vstatus">กำลังตรวจสอบ...</div>
+  </div>
+</div>
+<script>
+(function(){
+  var hash='${hash}';
+  var no='${no}';
+  var items=${JSON.stringify(billItems)};
+  var total=${billTotal};
+  var now='${now}';
+  function sHash(s){var h=0x811c9dc5;for(var i=0;i<s.length;i++){h^=s.charCodeAt(i);h=(h*0x01000193)>>>0;}return h.toString(16).toUpperCase().padStart(8,'0')+'-'+(s.length*31^0xdeadbeef).toString(16).toUpperCase().slice(-4);}
+  var nonce='${nonce}';
+  var chk=sHash(no+'|'+now+'|'+items.map(function(i){return i.name+i.qty+i.up;}).join('|')+'|'+total+'|'+nonce);
+  var el=document.getElementById('vstatus');
+  var row=document.getElementById('vrow');
+  if(chk===hash){
+    el.textContent='✅ บิลถูกต้อง ไม่ถูกแก้ไข';
+    el.style.color='#1a6b3a';
+    row.style.borderColor='#1a6b3a';
+    row.style.background='#e6f4ec';
+  } else {
+    el.textContent='⚠️ บิลไม่ตรง อาจถูกแก้ไข';
+    el.style.color='#b02a1f';
+    row.style.borderColor='#b02a1f';
+    row.style.background='#fdecea';
+  }
+})();
+<\/script>
+</body></html>`;
+
+  // Encode as data URL for QR
+  const encoded = 'data:text/html;charset=utf-8,' + encodeURIComponent(copyHTML);
+
   document.getElementById('qr-modal-hash').textContent = 'Sig: ' + hash;
-  drawQR(data, 'qr-big-anchor', 220);
+
+  // Check if it fits in QR (data URL must be < ~2000 chars for QR v20)
+  if (encoded.length > 2800) {
+    // Fallback: show hash + bill number only, instruct to save PNG instead
+    document.getElementById('qr-big-anchor').innerHTML =
+      `<div style="width:220px;padding:16px;text-align:center;background:#faf8f2;border-radius:8px;border:1.5px dashed #c8bfaa;">
+        <div style="font-size:13px;font-weight:700;color:#1a1410;margin-bottom:6px;">บิลนี้มีข้อมูลมากเกินไปสำหรับ QR</div>
+        <div style="font-size:11px;color:#6a5e4a;line-height:1.6;">กรุณาใช้ปุ่ม<br><strong>🖼️ บันทึกภาพ</strong><br>แล้วส่งให้ลูกค้าแทน</div>
+        <div style="margin-top:10px;font-family:'IBM Plex Mono',monospace;font-size:8px;color:#b8aa90;word-break:break-all;">${hash}</div>
+      </div>`;
+  } else {
+    drawQR(encoded, 'qr-big-anchor', 220);
+  }
   document.getElementById('qr-modal').classList.add('open');
 }
 
