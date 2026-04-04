@@ -1456,7 +1456,10 @@ async function processAI(text, merge) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + cfgKey },
         body: JSON.stringify({ model: 'gpt-4o-mini', max_tokens: 800,
-          messages: [{ role: 'user', content: prompt }] })
+          messages: [
+            { role: 'system', content: 'ตอบเป็น JSON เท่านั้น ห้ามมีข้อความอื่น ห้ามมี markdown' },
+            { role: 'user', content: prompt }
+          ] })
       });
       const d = await res.json();
       if (d.error) throw new Error(d.error.message);
@@ -1466,15 +1469,22 @@ async function processAI(text, merge) {
       const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + cfgKey },
-        body: JSON.stringify({ model: 'llama-3.1-8b-instant', max_tokens: 800,
-          messages: [{ role: 'user', content: prompt }] })
+        body: JSON.stringify({ model: 'llama-3.3-70b-versatile', max_tokens: 800,
+          messages: [
+            { role: 'system', content: 'ตอบเป็น JSON เท่านั้น ห้ามมีข้อความอื่น ห้ามมี markdown' },
+            { role: 'user', content: prompt }
+          ] })
       });
       const d = await res.json();
       if (d.error) throw new Error(d.error.message || JSON.stringify(d.error));
       result = d.choices?.[0]?.message?.content || '';
     }
 
-    const raw = result.replace(/```json|```/g, '').trim();
+    // ดึงเฉพาะ JSON object ออกมา ป้องกัน AI แนบข้อความพิเศษ
+    let raw = result.replace(/```json|```/g, '').trim();
+    const jsonMatch = raw.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) throw new Error('AI ตอบไม่ถูกรูปแบบ JSON');
+    raw = jsonMatch[0];
     const parsed = JSON.parse(raw);
     const newItems = (parsed.items || []).map(i => ({
       name: i.name, qty: +i.qty || 1, up: +i.unitPrice || 0,
