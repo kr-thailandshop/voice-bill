@@ -1390,9 +1390,9 @@ function learnFromBill(billItems) {
   });
   saveMemory(mem);
 
-  // Trigger AI category detection if we have ≥3 unique items and no category yet
+  // Trigger AI category detection — defer ให้หลัง bill แสดงก่อน
   if (!mem.category && Object.keys(mem.items).length >= 3 && cfgKey) {
-    detectShopCategory(mem);
+    setTimeout(() => detectShopCategory(mem), 2000);
   }
 }
 
@@ -1858,30 +1858,35 @@ function createBill() {
   window._lastBillNow    = now.toISOString().slice(0,16);
   window._lastBillItems  = items.map(i=>({name:i.name,qty:i.qty,up:i.up,sub:i.sub}));
   window._lastBillTotal  = total;
-  drawQR(billQRData, 'qr-anchor', 140);
 
-  // วาดลายเซ็นผู้รับเงินบนบิล
-  const sigCanvas = document.getElementById('bill-sig-canvas');
-  const sigCtx = sigCanvas.getContext('2d');
-  sigCtx.clearRect(0, 0, sigCanvas.width, sigCanvas.height);
-  const collectorName = cfgCollector || cfgOwner || '';
-  document.getElementById('bill-collector-name').textContent = collectorName;
-  if (cfgSig) {
-    const img = new Image();
-    img.onload = () => { sigCtx.drawImage(img, 0, 0, sigCanvas.width, sigCanvas.height); };
-    img.src = cfgSig;
-  } else {
-    // ถ้าไม่มีลายเซ็น → แสดงเส้นประ
-    sigCtx.strokeStyle = '#c0b89a';
-    sigCtx.setLineDash([6, 4]);
-    sigCtx.lineWidth = 1;
-    sigCtx.beginPath();
-    sigCtx.moveTo(20, sigCanvas.height - 10);
-    sigCtx.lineTo(sigCanvas.width - 20, sigCanvas.height - 10);
-    sigCtx.stroke();
-  }
-
+  // ── แสดงหน้าบิลก่อน แล้วค่อย drawQR + วาดลายเซ็น (ไม่บล็อก UI) ──
   showScreen('bill');
+
+  setTimeout(() => {
+    drawQR(billQRData, 'qr-anchor', 140);
+
+    // วาดลายเซ็นผู้รับเงินบนบิล
+    const sigCanvas = document.getElementById('bill-sig-canvas');
+    if (sigCanvas) {
+      const sigCtx = sigCanvas.getContext('2d');
+      sigCtx.clearRect(0, 0, sigCanvas.width, sigCanvas.height);
+      const collectorName = cfgCollector || cfgOwner || '';
+      document.getElementById('bill-collector-name').textContent = collectorName;
+      if (cfgSig) {
+        const img = new Image();
+        img.onload = () => { sigCtx.drawImage(img, 0, 0, sigCanvas.width, sigCanvas.height); };
+        img.src = cfgSig;
+      } else {
+        sigCtx.strokeStyle = '#c0b89a';
+        sigCtx.setLineDash([6, 4]);
+        sigCtx.lineWidth = 1;
+        sigCtx.beginPath();
+        sigCtx.moveTo(20, sigCanvas.height - 10);
+        sigCtx.lineTo(sigCanvas.width - 20, sigCanvas.height - 10);
+        sigCtx.stroke();
+      }
+    }
+  }, 60); // ให้ browser paint หน้าบิลก่อน แล้วค่อยคำนวณ QR
 }
 
 // drawQR — implemented by the pure-JS QR engine at bottom of file (window.drawQR)
@@ -2873,21 +2878,9 @@ function makeMatrix(tn,ecl,data){
       while(true){for(var c=0;c<2;c++){if(M[row][col-c]==null){var dk=by<data.length&&((data[by]>>>bi)&1)==1;if(getMask(mp,row,col-c))dk=!dk;M[row][col-c]=dk;bi--;if(bi<0){by++;bi=7;}}}
         row+=inc;if(row<0||mc<=row){row-=inc;inc=-inc;break;}}}
   }
-  // find best mask
-  var bestMp=0,bestLost=Infinity;
-  for(var mp=0;mp<8;mp++){
-    // copy M
-    var M2=M.map(function(r){return r.slice();});
-    applyFormat(mp);placeData(mp);
-    // calc lost
-    var lost=0,dm=M;
-    for(var r=0;r<mc;r++)for(var cc2=0;cc2<mc;cc2++){
-      var sc=0;for(var dr2=-1;dr2<=1;dr2++){if(r+dr2<0||mc<=r+dr2)continue;for(var dc2=-1;dc2<=1;dc2++){if(cc2+dc2<0||mc<=cc2+dc2)continue;if(dr2==0&&dc2==0)continue;if(M[r][cc2]==M[r+dr2][cc2+dc2])sc++;}}if(sc>5)lost+=sc-2;
-    }
-    if(lost<bestLost){bestLost=lost;bestMp=mp;}
-    M=M2;
-  }
-  applyFormat(bestMp);placeData(bestMp);
+  // ใช้ mask pattern 2 (c%3==0) ตายตัว — ไม่ต้อง loop 8 รอบ → เร็วกว่า 8x ไม่กระทบการสแกน
+  var bestMp = 2;
+  applyFormat(bestMp); placeData(bestMp);
   return {M:M,mc:mc};
 }
 function buildData(text,tn,ecl){
