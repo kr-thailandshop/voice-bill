@@ -126,6 +126,16 @@ html,body{height:100%;height:100dvh;overflow:hidden;background:var(--bg);color:v
 .item-detail{color:var(--muted);margin-top:2px;font-weight:600;font-size:calc(0.8rem * var(--sz));}
 .item-sub{font-family:'IBM Plex Mono',monospace;font-weight:700;color:var(--accent);white-space:nowrap;font-size:calc(1rem * var(--sz));}
 .del-btn{min-width:40px;height:40px;border-radius:9px;background:var(--red-bg);border:2px solid rgba(176,42,31,0.2);color:var(--red);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:15px;font-weight:700;flex-shrink:0;}
+/* inline edit */
+.item-card{flex-wrap:wrap;}
+.item-edit-row{width:100%;display:flex;gap:6px;align-items:center;margin-top:8px;padding-top:8px;border-top:1.5px dashed var(--border);}
+.ie-lbl{font-size:calc(0.72rem * var(--sz));color:var(--muted);font-weight:700;white-space:nowrap;}
+.ie-input{background:var(--bg2);border:2px solid var(--border);border-radius:8px;padding:7px 9px;font-family:'Sarabun',sans-serif;font-weight:700;color:var(--text);outline:none;font-size:calc(0.92rem * var(--sz));min-height:40px;text-align:center;transition:border-color 0.15s;}
+.ie-input:focus{border-color:var(--accent);}
+.ie-qty{width:60px;}
+.ie-price{width:84px;}
+.ie-eq{font-size:calc(0.8rem * var(--sz));color:var(--muted);font-weight:700;padding:0 1px;}
+.ie-sub{font-family:'IBM Plex Mono',monospace;font-weight:800;color:var(--accent);font-size:calc(1rem * var(--sz));white-space:nowrap;min-width:64px;text-align:right;}
 
 /* Voice more bar */
 .more-bar{margin:0 11px 7px;background:var(--surface);border:2px solid var(--border);border-radius:13px;padding:11px 13px;box-shadow:var(--shadow);flex-shrink:0;}
@@ -523,7 +533,7 @@ html,body{height:100%;height:100dvh;overflow:hidden;background:var(--bg);color:v
       <div class="qr-modal-title">📲 ให้ลูกค้าสแกน</div>
       <div class="qr-modal-sub">สแกนเพื่อดูบิลบนมือถือ</div>
       <div class="qr-modal-canvas-wrap">
-        <canvas id="qr-big-canvas" width="220" height="220"></canvas>
+        <img id="qr-big-img" width="220" height="220" style="display:block;border-radius:6px;" alt="QR Code">
       </div>
       <div class="qr-modal-hash" id="qr-modal-hash">—</div>
       <div class="qr-modal-note">🔒 ข้อมูลบิลฝังอยู่ใน QR · ไม่ต้องพึ่งอินเทอร์เน็ต</div>
@@ -588,7 +598,7 @@ html,body{height:100%;height:100dvh;overflow:hidden;background:var(--bg);color:v
       <!-- QR -->
       <div class="bqr">
         <div class="bqrl">สแกนตรวจสอบความถูกต้อง</div>
-        <div class="bqrw"><canvas id="qr-canvas" width="140" height="140"></canvas></div>
+        <div class="bqrw" id="qr-wrap"><img id="qr-img" width="140" height="140" style="display:block;border-radius:4px;" alt="QR Code"></div>
         <div class="bhash" id="b-hash">—</div>
       </div>
 
@@ -1038,7 +1048,7 @@ const PROVIDERS = {
   llama:  { hint:'รับ API Key ฟรีที่ console.groq.com · เร็วที่สุด', link:'https://console.groq.com/keys', ph:'gsk_...' },
 };
 
-let cfgProv  = localStorage.getItem('vb_prov')  || 'claude';
+let cfgProv  = localStorage.getItem('vb_prov') || 'gemini';
 // เก็บ key แยกแต่ละค่าย
 const cfgKeys = {
   claude: localStorage.getItem('vb_key_claude') || '',
@@ -1528,24 +1538,21 @@ function buildPrompt(text) {
 - ถ้ามีแค่ตัวเลขท้ายสุดหลัง qty = ราคาต่อหน่วย
 - ถ้าบอกเป็นยอดรวม (เช่น "รวม 500") ให้คำนวณ unitPrice = ยอดรวม ÷ qty
 
-รูปแบบ "คูณ" (สำคัญมาก):
-- เมื่อเห็นตัวเลข * ตัวเลข หรือ ตัวเลข x ตัวเลข หรือ ตัวเลข × ตัวเลข ให้แปลงเป็น qty × unitPrice เสมอ
-- "หมวกไหมพรม 5 * 10" → qty:5, unitPrice:10 (5 ชิ้น × 10 บาท)
-- "หมวก 10 * 5" → qty:10, unitPrice:5 (10 ชิ้น × 5 บาท)
-- "เสื้อ 12x50" → qty:12, unitPrice:50
-- ไม่ว่าจำนวนหรือราคาจะอยู่หน้า/หลัง * ก็แปลงเป็น qty คูณ unitPrice เสมอ
-- ตัวเลขที่เล็กกว่าอาจเป็นราคา ตัวที่ใหญ่กว่าอาจเป็นจำนวน — แต่ถ้าบริบทไม่ชัดให้ใช้ตัวแรก=qty ตัวหลัง=unitPrice
+รูปแบบ "คูณ" — สำคัญมาก:
+- "N คูณ M" หรือ "N * M" หรือ "N x M" หรือ "N × M" ให้แปลงเป็น qty=N, unitPrice=M เสมอ
+- "เสื้อ 20 คูณ 50" → qty:20, unitPrice:50 (ไม่ใช่ 20×20)
+- "หมวก 5 * 10" → qty:5, unitPrice:10
+- "ผ้าพันคอ 12 x 80" → qty:12, unitPrice:80
+- คำว่า "คูณ" / "ตัวคูณ" / "คูณกัน" ให้ถือว่าตัวแรก=จำนวน ตัวหลัง=ราคาต่อชิ้น
 
-ตัวอย่างสำนวนพูด:
+ตัวอย่างสำนวนพูดทั่วไป:
 - "เสื้อ 5 ตัว 100 บาท" → qty:5, unitPrice:100
 - "กางเกง 8 ตัว ตัวละ 120" → qty:8, unitPrice:120
 - "กระเป๋าโหลนึง 40 บาท" → qty:12, unitPrice:40
 - "เสื้อยืดสามโหล ตัวละ 50" → qty:36, unitPrice:50
 - "ถุงเท้า 3 แพ็ค แพ็คละ 60" → qty:3, unitPrice:60
 - "กางเกงยีนส์ 8 ตัว 120" → qty:8, unitPrice:120
-- "หมวกไหมพรม 5 * 10" → qty:5, unitPrice:10
-- "ผ้าพันคอ 20 x 35" → qty:20, unitPrice:35
-- "ถุงมือ 6*80" → qty:6, unitPrice:80
+- "เสื้อยืดคอกลม 20 คูณ 50" → qty:20, unitPrice:50
 
 ถ้าชื่อสินค้าใกล้เคียงกับรายการที่เคยขาย ให้ใช้ชื่อมาตรฐานนั้น`;
 }
@@ -1670,12 +1677,12 @@ function simpleParse(text) {
   let t = text;
   unitMap.forEach(([w,v]) => { t = t.replace(new RegExp(w,'g'), v); });
 
-  // กรณี "ชื่อสินค้า จำนวน * ราคา" หรือ "ชื่อสินค้า จำนวน x ราคา"
-  const reMul = /([ก-์a-zA-Z][ก-์a-zA-Z\s]*?)\s+(\d+)\s*[*×xX]\s*(\d+)/g;
+  // รูปแบบ "คูณ": ชื่อสินค้า N คูณ M
+  const reMul = /([ก-์a-zA-Z][ก-์a-zA-Z\s]*?)\s+(\d+)\s*(?:คูณ|ตัวคูณ|\*|×|[xX])\s*(\d+)/g;
   let mm;
   while ((mm = reMul.exec(t)) !== null) {
     const name = mm[1].trim().replace(/\s+/g,' ');
-    const qty  = +mm[2], up = +mm[3];
+    const qty = +mm[2], up = +mm[3];
     if (name && qty > 0) out.push({ name, qty, up, sub: qty * up });
   }
   const re = /([ก-์a-zA-Z][ก-์a-zA-Z\s]*?)\s+(\d+)\s*(?:ตัว|ชิ้น|อัน|กิโล|ถุง|กล่อง|แพ็ค|แพค|คู่|ผืน|ชุด|ใบ)?\s*(?:ตัวละ|ชิ้นละ|อันละ|ตัวๆละ|คู่ละ|ละ|ราคา|@)?\s*(\d+)/g;
@@ -1700,14 +1707,39 @@ function renderItems() {
     el.className = 'item-card';
     el.innerHTML = `
       <div class="item-idx">${i + 1}</div>
-      <div class="item-body">
+      <div class="item-body" style="flex:1;min-width:0;">
         <div class="item-name">${item.name}</div>
-        <div class="item-detail">${item.qty} × ${fmt(item.up)} บาท</div>
       </div>
       <div class="item-sub">${fmt(item.sub)} ฿</div>
-      <div class="del-btn" onclick="delItem(${i})">✕</div>`;
+      <div class="del-btn" onclick="delItem(${i})">✕</div>
+      <div class="item-edit-row">
+        <span class="ie-lbl">จำนวน</span>
+        <input class="ie-input ie-qty" type="number" min="1" value="${item.qty}"
+          oninput="editItem(${i},'qty',this.value)"
+          onchange="editItem(${i},'qty',this.value)">
+        <span class="ie-eq">×</span>
+        <span class="ie-lbl">ราคา/ชิ้น</span>
+        <input class="ie-input ie-price" type="number" min="0" value="${item.up}"
+          oninput="editItem(${i},'up',this.value)"
+          onchange="editItem(${i},'up',this.value)">
+        <span class="ie-eq">=</span>
+        <span class="ie-sub" id="sub-${i}">${fmt(item.sub)} ฿</span>
+      </div>`;
     list.appendChild(el);
   });
+  updateTotal();
+}
+
+function editItem(i, field, val) {
+  const v = parseFloat(val) || 0;
+  items[i][field] = v;
+  items[i].sub = (items[i].qty || 0) * (items[i].up || 0);
+  // update subtotal label live — no full re-render (avoid losing focus)
+  const subEl = document.getElementById('sub-' + i);
+  if (subEl) subEl.textContent = fmt(items[i].sub) + ' ฿';
+  // also update the header subtotal badge
+  const cards = document.querySelectorAll('.item-sub');
+  if (cards[i]) cards[i].textContent = fmt(items[i].sub) + ' ฿';
   updateTotal();
 }
 
@@ -1790,7 +1822,7 @@ function createBill() {
   // Store for QR modal to reuse
   window._lastBillQRData = billQRData;
   window._lastBillHash   = hash;
-  drawQR(billQRData, 'qr-canvas', 140);
+  drawQR(billQRData, 'qr-img', 140);
 
   // วาดลายเซ็นผู้รับเงินบนบิล
   const sigCanvas = document.getElementById('bill-sig-canvas');
@@ -1816,15 +1848,15 @@ function createBill() {
   showScreen('bill');
 }
 
-function drawQR(text, canvasId, size) {
-  const canvas = document.getElementById(canvasId);
-  if (!canvas) return;
-  const ctx = canvas.getContext('2d');
-  ctx.clearRect(0, 0, size, size);
+// ── drawQR: uses <img> not <canvas> so pointer-events:none doesn't block ──
+function drawQR(text, imgId, size) {
+  const imgEl = document.getElementById(imgId);
+  if (!imgEl) return;
+  imgEl.src = '';  // clear previous
 
-  // Use a hidden offscreen div (not inside bill-paper) to avoid pointer-events:none
+  // Render QR into a detached offscreen div (appended to body so layout engine runs)
   const holder = document.createElement('div');
-  holder.style.cssText = 'position:fixed;left:-9999px;top:-9999px;width:'+size+'px;height:'+size+'px;z-index:-1;pointer-events:auto;';
+  holder.style.cssText = 'position:fixed;left:-9999px;top:0;pointer-events:auto;z-index:-999;';
   document.body.appendChild(holder);
 
   try {
@@ -1841,31 +1873,28 @@ function drawQR(text, canvasId, size) {
     return;
   }
 
-  // Poll until img/canvas is ready
-  let attempts = 0;
-  const tryDraw = () => {
-    attempts++;
-    const qrImg = holder.querySelector('img');
-    const qrCvs = holder.querySelector('canvas');
+  let tries = 0;
+  const poll = () => {
+    tries++;
+    const qImg = holder.querySelector('img');
+    const qCvs = holder.querySelector('canvas');
     let src = null;
-    if (qrImg && qrImg.complete && qrImg.naturalWidth > 0) src = qrImg.src;
-    else if (qrCvs) src = qrCvs.toDataURL();
-
+    if (qImg && qImg.complete && qImg.naturalWidth > 10) {
+      src = qImg.src;
+    } else if (qCvs && qCvs.width > 0) {
+      try { src = qCvs.toDataURL('image/png'); } catch(e2) {}
+    }
     if (src) {
-      const img = new Image();
-      img.onload = () => {
-        ctx.clearRect(0, 0, size, size);
-        ctx.drawImage(img, 0, 0, size, size);
-        document.body.removeChild(holder);
-      };
-      img.src = src;
-    } else if (attempts < 20) {
-      setTimeout(tryDraw, 80);
+      imgEl.src = src;
+      imgEl.style.display = 'block';
+      try { document.body.removeChild(holder); } catch(e3) {}
+    } else if (tries < 30) {
+      setTimeout(poll, 60);
     } else {
-      document.body.removeChild(holder);
+      try { document.body.removeChild(holder); } catch(e4) {}
     }
   };
-  setTimeout(tryDraw, 60);
+  setTimeout(poll, 80);
 }
 
 // ── SHARE: TEXT (Line/SMS) ──
@@ -1895,7 +1924,7 @@ function shareBillQR() {
   const hash = window._lastBillHash || '';
   if (!data) { toast('กรุณาออกบิลก่อน'); return; }
   document.getElementById('qr-modal-hash').textContent = 'Sig: ' + hash;
-  drawQR(data, 'qr-big-canvas', 220);
+  drawQR(data, 'qr-big-img', 220);
   document.getElementById('qr-modal').classList.add('open');
 }
 
