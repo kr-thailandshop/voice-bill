@@ -230,6 +230,21 @@ html,body{height:100%;height:100dvh;overflow:hidden;background:var(--bg);color:v
 .bft{font-size:9px;color:#9a8e78;}
 .bsig-line{width:60%;height:1px;background:#d0c8b0;margin:8px auto 4px;}
 .bsig-lbl{font-size:8px;color:#b8aa90;letter-spacing:0.5px;}
+/* Collector / signature section */
+.bcollect{padding:10px 16px 6px;background:#faf8f2;border-top:1.5px dashed #d0c8b0;display:flex;flex-direction:column;align-items:center;gap:4px;}
+.bcollect-lbl{font-size:8.5px;color:#9a8e78;text-transform:uppercase;letter-spacing:1px;font-family:'IBM Plex Mono',monospace;}
+.bcollect-canvas{border-bottom:1.5px solid #c0b89a;width:180px;height:60px;display:block;}
+.bcollect-name{font-size:10px;color:#6a5e4a;font-weight:700;margin-top:2px;}
+/* Settings: signature pad */
+.sig-section{display:flex;flex-direction:column;gap:6px;}
+.sig-canvas-wrap{position:relative;border:2px solid var(--border);border-radius:10px;background:var(--bg2);overflow:hidden;}
+.sig-canvas{display:block;width:100%;height:90px;cursor:crosshair;touch-action:none;}
+.sig-actions{display:flex;gap:6px;}
+.sig-clear{flex:1;padding:10px;border-radius:9px;background:var(--red-bg);border:2px solid rgba(176,42,31,0.2);color:var(--red);font-family:'Sarabun',sans-serif;font-weight:700;cursor:pointer;font-size:calc(0.88rem * var(--sz));}
+.sig-save-btn{flex:2;padding:10px;border-radius:9px;background:var(--green);border:none;color:#fff;font-family:'Sarabun',sans-serif;font-weight:700;cursor:pointer;font-size:calc(0.88rem * var(--sz));}
+.sig-preview{width:100%;height:50px;border:1.5px solid var(--border);border-radius:8px;background:var(--surface);display:flex;align-items:center;justify-content:center;overflow:hidden;}
+.sig-preview img{max-height:46px;max-width:100%;object-fit:contain;}
+.sig-preview-empty{color:var(--muted);font-size:11px;font-weight:600;}
 
 /* ── HISTORY ── */
 #screen-history{background:var(--bg);}
@@ -283,6 +298,28 @@ html,body{height:100%;height:100dvh;overflow:hidden;background:var(--bg);color:v
 .sz-btn{width:46px;height:46px;border-radius:11px;background:var(--surface);border:2px solid var(--border);color:var(--text);font-size:20px;font-weight:800;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;}
 .sz-btn:active{background:var(--acc-light);border-color:var(--accent);}
 .sz-display{flex:1;text-align:center;font-weight:800;color:var(--accent);background:var(--acc-light);border:2px solid var(--accent);border-radius:9px;padding:9px 7px;font-size:calc(0.95rem * var(--sz));}
+
+/* Per-provider API key cards */
+.prov-key-card{background:var(--bg2);border:2px solid var(--border);border-radius:12px;padding:11px 13px;display:flex;flex-direction:column;gap:8px;transition:border-color 0.15s;}
+.prov-key-card.active-prov{border-color:var(--accent);background:var(--acc-light);}
+.prov-key-header{display:flex;align-items:center;gap:8px;}
+.prov-key-icon{font-size:20px;line-height:1;flex-shrink:0;}
+.prov-key-info{flex:1;}
+.prov-key-name{font-weight:800;color:var(--text);font-size:calc(0.95rem * var(--sz));}
+.prov-key-tag{font-size:10px;color:var(--muted);font-weight:600;}
+.active-badge{font-size:9px;background:var(--accent);color:#fff;border-radius:100px;padding:2px 8px;font-weight:700;display:none;}
+.prov-key-card.active-prov .active-badge{display:inline-block;}
+.prov-key-row{display:flex;gap:6px;align-items:center;}
+.prov-key-input{flex:1;background:var(--surface);border:2px solid var(--border);border-radius:8px;padding:9px 10px;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--text);outline:none;min-width:0;}
+.prov-key-input:focus{border-color:var(--accent);}
+.prov-eye{min-width:38px;height:38px;border-radius:8px;background:var(--bg2);border:2px solid var(--border);color:var(--text);font-size:15px;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;}
+.prov-key-btns{display:flex;gap:5px;}
+.prov-save-btn{flex:1;padding:8px 6px;border-radius:8px;background:var(--surface);border:2px solid var(--border);color:var(--text2);font-family:'Sarabun',sans-serif;font-weight:700;cursor:pointer;font-size:calc(0.8rem * var(--sz));white-space:nowrap;}
+.prov-use-btn{flex:1;padding:8px 6px;border-radius:8px;background:var(--accent);border:none;color:#fff;font-family:'Sarabun',sans-serif;font-weight:700;cursor:pointer;font-size:calc(0.8rem * var(--sz));white-space:nowrap;}
+.prov-use-btn:disabled{background:var(--muted);cursor:default;opacity:0.55;}
+.prov-key-status{font-size:10.5px;font-weight:600;color:var(--muted);}
+.prov-key-status.ok{color:var(--green);}
+.prov-key-status.err{color:var(--red);}
 
 /* Save */
 .save-btn{width:100%;padding:16px;border-radius:13px;background:var(--accent);border:none;color:#fff;font-family:'Sarabun',sans-serif;font-weight:800;font-size:calc(1rem * var(--sz));cursor:pointer;transition:opacity 0.12s,transform 0.1s;flex-shrink:0;}
@@ -548,12 +585,17 @@ html,body{height:100%;height:100dvh;overflow:hidden;background:var(--bg);color:v
         <div class="bhash" id="b-hash">—</div>
       </div>
 
+      <!-- Collector / signature -->
+      <div class="bcollect">
+        <div class="bcollect-lbl">ผู้รับเงิน / COLLECTOR</div>
+        <canvas class="bcollect-canvas" id="bill-sig-canvas" width="360" height="120"></canvas>
+        <div class="bcollect-name" id="bill-collector-name"></div>
+      </div>
+
       <!-- Footer -->
       <div class="bfooter">
         <div class="bfv">✅ บิลลงลายมือชื่อดิจิทัลแล้ว · ไม่สามารถแก้ไขได้</div>
         <div class="bft">ออกโดยระบบบิลเสียง AI · ใช้เป็นหลักฐานค่าใช้จ่ายตามจริงได้</div>
-        <div class="bsig-line"></div>
-        <div class="bsig-lbl">ผู้รับเงิน / COLLECTOR</div>
       </div>
     </div>
   </div>
@@ -621,41 +663,105 @@ html,body{height:100%;height:100dvh;overflow:hidden;background:var(--bg);color:v
         <div style="font-size:11px;color:var(--muted);line-height:1.6;">💡 ข้อมูลครบ → ลูกค้านำบิลยื่นสรรพากรเป็นค่าใช้จ่ายได้</div>
       </div>
 
-      <div class="cfg-section">
-        <div class="cfg-label">🤖 เลือก AI วิเคราะห์เสียง</div>
-        <div class="provider-grid">
-          <button class="prov-btn selected" onclick="selectProv('claude')" id="prov-claude">
-            <div class="prov-icon">🟠</div>
-            <div class="prov-name">Claude</div>
-            <div class="prov-tag">Anthropic · แนะนำ</div>
-          </button>
-          <button class="prov-btn" onclick="selectProv('gemini')" id="prov-gemini">
-            <div class="prov-icon">🔵</div>
-            <div class="prov-name">Gemini</div>
-            <div class="prov-tag">Google · ฟรีมาก</div>
-          </button>
-          <button class="prov-btn" onclick="selectProv('openai')" id="prov-openai">
-            <div class="prov-icon">⚫</div>
-            <div class="prov-name">ChatGPT</div>
-            <div class="prov-tag">OpenAI · GPT-4o</div>
-          </button>
-          <button class="prov-btn" onclick="selectProv('llama')" id="prov-llama">
-            <div class="prov-icon">🟣</div>
-            <div class="prov-name">Llama / Groq</div>
-            <div class="prov-tag">Meta · เร็วมาก</div>
-          </button>
+      <div class="cfg-section sig-section">
+        <div class="cfg-label">✍️ ลายเซ็นผู้รับเงิน (แสดงบนบิล)</div>
+        <div class="sig-canvas-wrap">
+          <canvas class="sig-canvas" id="sig-canvas" width="600" height="180"></canvas>
+        </div>
+        <div class="sig-actions">
+          <button class="sig-clear" onclick="sigClear()">🗑️ ล้าง</button>
+          <button class="sig-save-btn" onclick="sigSave()">💾 บันทึกลายเซ็น</button>
+        </div>
+        <div class="sig-preview" id="sig-preview">
+          <span class="sig-preview-empty" id="sig-preview-empty">ยังไม่มีลายเซ็น</span>
+          <img id="sig-preview-img" src="" style="display:none;">
         </div>
       </div>
 
+
+
       <div class="cfg-section">
-        <div class="cfg-label">🔑 API Key</div>
-        <div class="api-hint" id="api-hint">เลือก AI ด้านบนก่อน</div>
-        <div class="api-row">
-          <input class="api-input" id="cfg-key" type="password" placeholder="sk-ant-...">
-          <button class="eye-btn" onclick="toggleKeyVis()" id="eye-btn">👁️</button>
+        <div class="cfg-label">🔑 API Key แต่ละค่าย</div>
+
+        <!-- Claude -->
+        <div class="prov-key-card" id="pkcard-claude">
+          <div class="prov-key-header">
+            <div class="prov-key-icon">🟠</div>
+            <div class="prov-key-info">
+              <div class="prov-key-name">Claude <span class="active-badge">✅ ใช้งานอยู่</span></div>
+              <div class="prov-key-tag">Anthropic · console.anthropic.com</div>
+            </div>
+          </div>
+          <div class="prov-key-row">
+            <input class="prov-key-input" id="key-claude" type="password" placeholder="sk-ant-api03-...">
+            <button class="prov-eye" onclick="togglePK('claude')">👁️</button>
+          </div>
+          <div class="prov-key-btns">
+            <button class="prov-save-btn" onclick="savePK('claude')">💾 บันทึก</button>
+            <button class="prov-use-btn" id="usebtn-claude" onclick="usePK('claude')">⚡ ใช้งาน</button>
+          </div>
+          <div class="prov-key-status" id="pkst-claude">⬜ ยังไม่ได้บันทึก</div>
         </div>
-        <div class="api-status" id="api-status">⬜ ยังไม่ได้ใส่ API Key</div>
-        <div class="api-hint" id="api-link-hint" style="margin-top:2px;"></div>
+
+        <!-- Gemini -->
+        <div class="prov-key-card" id="pkcard-gemini">
+          <div class="prov-key-header">
+            <div class="prov-key-icon">🔵</div>
+            <div class="prov-key-info">
+              <div class="prov-key-name">Gemini <span class="active-badge">✅ ใช้งานอยู่</span></div>
+              <div class="prov-key-tag">Google · aistudio.google.com · ฟรีมาก</div>
+            </div>
+          </div>
+          <div class="prov-key-row">
+            <input class="prov-key-input" id="key-gemini" type="password" placeholder="AIzaSy...">
+            <button class="prov-eye" onclick="togglePK('gemini')">👁️</button>
+          </div>
+          <div class="prov-key-btns">
+            <button class="prov-save-btn" onclick="savePK('gemini')">💾 บันทึก</button>
+            <button class="prov-use-btn" id="usebtn-gemini" onclick="usePK('gemini')">⚡ ใช้งาน</button>
+          </div>
+          <div class="prov-key-status" id="pkst-gemini">⬜ ยังไม่ได้บันทึก</div>
+        </div>
+
+        <!-- OpenAI -->
+        <div class="prov-key-card" id="pkcard-openai">
+          <div class="prov-key-header">
+            <div class="prov-key-icon">⚫</div>
+            <div class="prov-key-info">
+              <div class="prov-key-name">ChatGPT <span class="active-badge">✅ ใช้งานอยู่</span></div>
+              <div class="prov-key-tag">OpenAI · platform.openai.com · ต้องเติมเครดิต</div>
+            </div>
+          </div>
+          <div class="prov-key-row">
+            <input class="prov-key-input" id="key-openai" type="password" placeholder="sk-proj-...">
+            <button class="prov-eye" onclick="togglePK('openai')">👁️</button>
+          </div>
+          <div class="prov-key-btns">
+            <button class="prov-save-btn" onclick="savePK('openai')">💾 บันทึก</button>
+            <button class="prov-use-btn" id="usebtn-openai" onclick="usePK('openai')">⚡ ใช้งาน</button>
+          </div>
+          <div class="prov-key-status" id="pkst-openai">⬜ ยังไม่ได้บันทึก</div>
+        </div>
+
+        <!-- Llama/Groq -->
+        <div class="prov-key-card" id="pkcard-llama">
+          <div class="prov-key-header">
+            <div class="prov-key-icon">🟣</div>
+            <div class="prov-key-info">
+              <div class="prov-key-name">Llama / Groq <span class="active-badge">✅ ใช้งานอยู่</span></div>
+              <div class="prov-key-tag">Meta · console.groq.com · เร็วมาก · ฟรี</div>
+            </div>
+          </div>
+          <div class="prov-key-row">
+            <input class="prov-key-input" id="key-llama" type="password" placeholder="gsk_...">
+            <button class="prov-eye" onclick="togglePK('llama')">👁️</button>
+          </div>
+          <div class="prov-key-btns">
+            <button class="prov-save-btn" onclick="savePK('llama')">💾 บันทึก</button>
+            <button class="prov-use-btn" id="usebtn-llama" onclick="usePK('llama')">⚡ ใช้งาน</button>
+          </div>
+          <div class="prov-key-status" id="pkst-llama">⬜ ยังไม่ได้บันทึก</div>
+        </div>
       </div>
 
       <div class="cfg-section">
@@ -732,28 +838,27 @@ function makeRec(onResult) {
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   if (!SR) { toast('เบราว์เซอร์นี้ไม่รองรับเสียง ใช้ Chrome หรือ Safari'); return null; }
 
-  // state ร่วมกันทุก SR instance ใน session นี้
-  const state = { accumulated: '', active: true, currentSR: null };
+  let active = false;
+  let accumulated = '';   // ข้อความ final ที่ยืนยันแล้ว สะสมข้าม session ย่อย
+  let currentSR  = null;
 
   function spawnSR() {
     const r = new SR();
     r.lang = 'th-TH';
-    r.continuous = false;    // ปิด continuous → ป้องกัน Chrome loop ซ้ำเอง
+    r.continuous = false;    // false → Chrome จะ stop เอง ป้องกัน result index ค้าง
     r.interimResults = true;
-    let finThisRound = '';   // final เฉพาะ instance นี้ (reset ทุกครั้งที่ spawn ใหม่)
+    let roundFinal = '';     // final เฉพาะ SR instance นี้ ไม่ reset ใน onresult
 
     r.onresult = e => {
-      finThisRound = '';
+      // สะสม final เฉพาะ result ใหม่ที่เพิ่งเข้ามา (ใช้ resultIndex ไม่ใช่ 0)
       let interim = '';
-      // อ่านจาก 0 เสมอ เพราะแต่ละ instance เริ่ม index ใหม่
-      for (let i = 0; i < e.results.length; i++) {
-        if (e.results[i].isFinal) finThisRound += e.results[i][0].transcript + ' ';
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        if (e.results[i].isFinal) roundFinal += e.results[i][0].transcript;
         else interim += e.results[i][0].transcript;
       }
-      onResult(
-        (state.accumulated + finThisRound + interim).trim(),
-        (state.accumulated + finThisRound).trim()
-      );
+      const display = (accumulated + roundFinal + interim).trim();
+      const finalTxt = (accumulated + roundFinal).trim();
+      onResult(display, finalTxt);
     };
 
     r.onerror = e => {
@@ -762,47 +867,47 @@ function makeRec(onResult) {
     };
 
     r.onend = () => {
-      if (!state.active) return;
-      state.accumulated += finThisRound; // โอน final รอบนี้เข้า accumulated
-      finThisRound = '';
-      // spawn instance ใหม่ทุกครั้ง → result index เริ่มจาก 0 เสมอ ไม่ซ้ำ
-      state.currentSR = spawnSR();
-      try { state.currentSR.start(); } catch(e) {}
+      if (!active) return;
+      accumulated += roundFinal;  // โอน final รอบนี้เข้า accumulated
+      roundFinal = '';
+      // spawn SR instance ใหม่ → result index reset เป็น 0 เสมอ ไม่ซ้ำ
+      currentSR = spawnSR();
+      try { currentSR.start(); } catch(err) {}
     };
 
     return r;
   }
 
-  // wrapper ที่ startMain/stopMain/startMore/stopMore ถือไว้
-  const wrapper = {
+  return {
     start() {
-      state.active  = true;
-      state.accumulated = '';
-      state.currentSR = spawnSR();
-      try { state.currentSR.start(); } catch(e) {}
+      active = true;
+      accumulated = '';    // เริ่มใหม่ทุกครั้งที่กดพูด
+      if (currentSR) { try { currentSR.stop(); } catch(e){} currentSR = null; }
+      currentSR = spawnSR();
+      try { currentSR.start(); } catch(e) {}
     },
     stop() {
-      state.active = false;
-      if (state.currentSR) { try { state.currentSR.stop(); } catch(e) {} state.currentSR = null; }
+      active = false;
+      if (currentSR) { try { currentSR.stop(); } catch(e){} currentSR = null; }
     },
-    _final() { return state.accumulated.trim(); }
+    getFinal() { return accumulated.trim(); }
   };
-
-  return wrapper;
 }
 
 function startMain(e) {
   e.preventDefault(); if (isMain) return;
   isMain = true; trMain = '';
-  // หยุด instance เก่าก่อน (ถ้ามี) แล้วสร้างใหม่สะอาด
   if (recMain) { recMain.stop(); recMain = null; }
   document.getElementById('mic-btn').classList.add('rec');
   document.getElementById('tc').classList.add('rec');
   document.getElementById('mic-lbl').textContent = 'กำลังฟัง...';
   setStatus('live', 'กำลังฟัง...');
   setTc('', false);
-  recMain = makeRec((d, f) => { trMain = f || d; setTc(d || '...', false); });
-  recMain.start(); // wrapper.start() → reset accumulated + spawn SR ใหม่
+  recMain = makeRec((display, finalTxt) => {
+    trMain = finalTxt || display;
+    setTc(display || '...', false);
+  });
+  recMain.start();
 }
 function stopMain(e) {
   if (e) e.preventDefault(); if (!isMain) return;
@@ -810,7 +915,8 @@ function stopMain(e) {
   document.getElementById('mic-btn').classList.remove('rec');
   document.getElementById('tc').classList.remove('rec');
   document.getElementById('mic-lbl').textContent = 'กดค้างแล้วพูด';
-  const text = trMain.trim();
+  // ดึง final ก่อน stop เพื่อให้ได้ข้อความครบ
+  const text = (recMain ? recMain.getFinal() : '') || trMain.trim();
   trMain = '';
   if (recMain) { recMain.stop(); recMain = null; }
   if (!text) { setStatus('idle', 'พร้อมรับคำสั่งเสียง'); return; }
@@ -824,14 +930,17 @@ function startMore(e) {
   if (recMore) { recMore.stop(); recMore = null; }
   document.getElementById('mic-mini').classList.add('rec');
   document.getElementById('more-tc').textContent = 'กำลังฟัง...';
-  recMore = makeRec((d) => { trMore = d; document.getElementById('more-tc').textContent = d || '...'; });
+  recMore = makeRec((display) => {
+    trMore = display;
+    document.getElementById('more-tc').textContent = display || '...';
+  });
   recMore.start();
 }
 function stopMore(e) {
   if (e) e.preventDefault(); if (!isMore) return;
   isMore = false;
   document.getElementById('mic-mini').classList.remove('rec');
-  const text = trMore.trim();
+  const text = (recMore ? recMore.getFinal() : '') || trMore.trim();
   trMore = '';
   if (recMore) { recMore.stop(); recMore = null; }
   if (!text) { document.getElementById('more-tc').textContent = 'กดค้างแล้วพูดเพิ่มรายการ...'; return; }
@@ -854,13 +963,23 @@ const PROVIDERS = {
 };
 
 let cfgProv  = localStorage.getItem('vb_prov')  || 'claude';
-let cfgKey   = localStorage.getItem('vb_key')   || '';
+// เก็บ key แยกแต่ละค่าย
+const cfgKeys = {
+  claude: localStorage.getItem('vb_key_claude') || '',
+  gemini: localStorage.getItem('vb_key_gemini') || '',
+  openai: localStorage.getItem('vb_key_openai') || '',
+  llama:  localStorage.getItem('vb_key_llama')  || '',
+};
+// cfgKey = key ของค่ายที่ใช้งานอยู่ปัจจุบัน (backward compat)
+let cfgKey = cfgKeys[cfgProv] || localStorage.getItem('vb_key') || '';
 let cfgShop  = localStorage.getItem('vb_shop')  || '';
 let cfgOwner = localStorage.getItem('vb_owner') || '';
 let cfgAddr  = localStorage.getItem('vb_addr')  || '';
 let cfgAddr2 = localStorage.getItem('vb_addr2') || '';
 let cfgPhone = localStorage.getItem('vb_phone') || '';
-let cfgTax   = localStorage.getItem('vb_tax')   || '';
+let cfgTax       = localStorage.getItem('vb_tax')       || '';
+let cfgSig       = localStorage.getItem('vb_sig')       || '';  // base64 ลายเซ็น
+let cfgCollector = localStorage.getItem('vb_collector') || '';  // ชื่อผู้รับเงิน
 
 function openSettings() {
   document.getElementById('cfg-shop').value  = cfgShop;
@@ -869,41 +988,172 @@ function openSettings() {
   document.getElementById('cfg-addr2').value = cfgAddr2;
   document.getElementById('cfg-phone').value = cfgPhone;
   document.getElementById('cfg-tax').value   = cfgTax;
-  document.getElementById('cfg-key').value   = cfgKey;
-  selectProv(cfgProv, true);
-  updateApiStatus();
+  // โหลด key แต่ละค่ายเข้า input
+  ['claude','gemini','openai','llama'].forEach(p => {
+    const el = document.getElementById('key-' + p);
+    if (el) el.value = cfgKeys[p] || '';
+  });
+  refreshAllPKStatus();
+  sigLoad();
   document.getElementById('settings-modal').classList.add('open');
 }
 function closeSettings() { document.getElementById('settings-modal').classList.remove('open'); }
 document.getElementById('settings-modal').addEventListener('click', function(e) { if (e.target === this) closeSettings(); });
 
+// ══════════════════════════════
+// SIGNATURE PAD (Settings)
+// ══════════════════════════════
+(function() {
+  let drawing = false;
+  let lastX = 0, lastY = 0;
+
+  function initSigPad() {
+    const canvas = document.getElementById('sig-canvas');
+    if (!canvas || canvas._sigInit) return;
+    canvas._sigInit = true;
+    const ctx = canvas.getContext('2d');
+    ctx.strokeStyle = '#1a1410';
+    ctx.lineWidth = 2.5;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+
+    function getPos(e) {
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = canvas.width / rect.width;
+      const scaleY = canvas.height / rect.height;
+      const src = e.touches ? e.touches[0] : e;
+      return { x: (src.clientX - rect.left) * scaleX, y: (src.clientY - rect.top) * scaleY };
+    }
+    function down(e) { e.preventDefault(); drawing = true; const p = getPos(e); lastX = p.x; lastY = p.y; }
+    function move(e) {
+      e.preventDefault(); if (!drawing) return;
+      const p = getPos(e);
+      ctx.beginPath(); ctx.moveTo(lastX, lastY); ctx.lineTo(p.x, p.y); ctx.stroke();
+      lastX = p.x; lastY = p.y;
+    }
+    function up(e) { e.preventDefault(); drawing = false; }
+    canvas.addEventListener('mousedown', down);
+    canvas.addEventListener('mousemove', move);
+    canvas.addEventListener('mouseup', up);
+    canvas.addEventListener('mouseleave', up);
+    canvas.addEventListener('touchstart', down, { passive: false });
+    canvas.addEventListener('touchmove', move, { passive: false });
+    canvas.addEventListener('touchend', up, { passive: false });
+  }
+
+  window.sigClear = function() {
+    const canvas = document.getElementById('sig-canvas');
+    if (!canvas) return;
+    canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
+  };
+
+  window.sigSave = function() {
+    const canvas = document.getElementById('sig-canvas');
+    if (!canvas) return;
+    const data = canvas.toDataURL('image/png');
+    // ตรวจว่า canvas ว่างเปล่าไหม
+    const blank = document.createElement('canvas');
+    blank.width = canvas.width; blank.height = canvas.height;
+    if (data === blank.toDataURL('image/png')) { toast('กรุณาเซ็นชื่อก่อนบันทึก'); return; }
+    cfgSig = data;
+    localStorage.setItem('vb_sig', data);
+    // แสดง preview
+    document.getElementById('sig-preview-img').src = data;
+    document.getElementById('sig-preview-img').style.display = 'block';
+    document.getElementById('sig-preview-empty').style.display = 'none';
+    toast('✍️ บันทึกลายเซ็นแล้ว ✅');
+  };
+
+  window.sigLoad = function() {
+    initSigPad();
+    const saved = localStorage.getItem('vb_sig') || '';
+    cfgSig = saved;
+    if (saved) {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.getElementById('sig-canvas');
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(img, 0, 0);
+      };
+      img.src = saved;
+      document.getElementById('sig-preview-img').src = saved;
+      document.getElementById('sig-preview-img').style.display = 'block';
+      document.getElementById('sig-preview-empty').style.display = 'none';
+    } else {
+      document.getElementById('sig-preview-img').style.display = 'none';
+      document.getElementById('sig-preview-empty').style.display = 'block';
+    }
+  };
+})();
+
 function selectProv(id, silent) {
   cfgProv = id;
-  document.querySelectorAll('.prov-btn').forEach(b => b.classList.remove('selected'));
-  const btn = document.getElementById('prov-' + id);
-  if (btn) btn.classList.add('selected');
-  const p = PROVIDERS[id];
-  if (p) {
-    document.getElementById('api-hint').textContent = p.hint;
-    document.getElementById('cfg-key').placeholder  = p.ph;
-    document.getElementById('api-link-hint').innerHTML =
-      `🔗 <a href="${p.link}" target="_blank" style="color:var(--accent);font-weight:700;">${p.link}</a>`;
-  }
-  if (!silent) updateApiStatus();
+  cfgKey  = cfgKeys[id] || '';
+  refreshAllPKStatus();
 }
-function toggleKeyVis() {
-  const inp = document.getElementById('cfg-key'), btn = document.getElementById('eye-btn');
-  inp.type = (inp.type === 'password') ? 'text' : 'password';
-  btn.textContent = (inp.type === 'password') ? '👁️' : '🙈';
-}
-function updateApiStatus() {
-  const el = document.getElementById('api-status'), inp = document.getElementById('cfg-key');
+
+function togglePK(id) {
+  const inp = document.getElementById('key-' + id);
   if (!inp) return;
-  const key = inp.value.trim();
-  if (!key) { el.className = 'api-status'; el.textContent = '⬜ ยังไม่ได้ใส่ API Key'; }
-  else       { el.className = 'api-status ok'; el.textContent = '✅ มี API Key · เก็บในเครื่องเท่านั้น'; }
+  inp.type = inp.type === 'password' ? 'text' : 'password';
 }
-document.getElementById('cfg-key').addEventListener('input', updateApiStatus);
+
+function savePK(id) {
+  const inp = document.getElementById('key-' + id);
+  if (!inp) return;
+  const val = inp.value.trim();
+  cfgKeys[id] = val;
+  localStorage.setItem('vb_key_' + id, val);
+  // ถ้าเป็น provider ที่ใช้งานอยู่ → update cfgKey ด้วย
+  if (cfgProv === id) {
+    cfgKey = val;
+    localStorage.setItem('vb_key', val);
+  }
+  refreshAllPKStatus();
+  toast('💾 บันทึก API Key ' + id + ' แล้ว ✅');
+}
+
+function usePK(id) {
+  const key = cfgKeys[id] || document.getElementById('key-' + id).value.trim();
+  if (!key) { toast('⚠️ กรุณาใส่และบันทึก API Key ก่อน'); return; }
+  // บันทึก key ก่อน (ในกรณียังไม่ได้กด save)
+  cfgKeys[id] = key;
+  localStorage.setItem('vb_key_' + id, key);
+  // เปลี่ยน provider
+  cfgProv = id;
+  cfgKey  = key;
+  localStorage.setItem('vb_prov', id);
+  localStorage.setItem('vb_key', key);
+  refreshAllPKStatus();
+  toast('⚡ เปลี่ยนมาใช้ ' + id.charAt(0).toUpperCase() + id.slice(1) + ' แล้ว ✅');
+}
+
+function refreshAllPKStatus() {
+  ['claude','gemini','openai','llama'].forEach(p => {
+    const card   = document.getElementById('pkcard-' + p);
+    const status = document.getElementById('pkst-' + p);
+    const useBtn = document.getElementById('usebtn-' + p);
+    const key    = cfgKeys[p] || '';
+    if (!card || !status) return;
+    const isActive = cfgProv === p;
+    card.classList.toggle('active-prov', isActive);
+    if (!key) {
+      status.className = 'prov-key-status';
+      status.textContent = '⬜ ยังไม่ได้บันทึก';
+      if (useBtn) { useBtn.disabled = true; useBtn.textContent = '⚡ ใช้งาน'; }
+    } else if (isActive) {
+      status.className = 'prov-key-status ok';
+      status.textContent = '✅ มี Key · กำลังใช้งานอยู่';
+      if (useBtn) { useBtn.disabled = true; useBtn.textContent = '✅ ใช้งานอยู่'; }
+    } else {
+      status.className = 'prov-key-status ok';
+      status.textContent = '✅ มี Key · พร้อมใช้งาน';
+      if (useBtn) { useBtn.disabled = false; useBtn.textContent = '⚡ ใช้งาน'; }
+    }
+  });
+}
 
 function saveSettings() {
   const newShop = document.getElementById('cfg-shop').value.trim() || 'ร้านค้า';
@@ -915,15 +1165,18 @@ function saveSettings() {
   cfgAddr2 = document.getElementById('cfg-addr2').value.trim();
   cfgPhone = document.getElementById('cfg-phone').value.trim();
   cfgTax   = document.getElementById('cfg-tax').value.trim();
-  cfgKey   = document.getElementById('cfg-key').value.trim();
-  localStorage.setItem('vb_prov',  cfgProv);
-  localStorage.setItem('vb_key',   cfgKey);
+  cfgKey       = cfgKeys[cfgProv] || '';
+  cfgCollector = document.getElementById('cfg-owner').value.trim();
+  localStorage.setItem('vb_prov', cfgProv);
+  localStorage.setItem('vb_key',  cfgKey);  // key ของ provider ที่ใช้งานอยู่
   localStorage.setItem('vb_shop',  cfgShop);
   localStorage.setItem('vb_owner', cfgOwner);
   localStorage.setItem('vb_addr',  cfgAddr);
   localStorage.setItem('vb_addr2', cfgAddr2);
   localStorage.setItem('vb_phone', cfgPhone);
-  localStorage.setItem('vb_tax',   cfgTax);
+  localStorage.setItem('vb_tax',       cfgTax);
+  localStorage.setItem('vb_collector', cfgCollector);
+  // vb_sig บันทึกแยกโดย sigSave() เพราะ base64 ใหญ่
   closeSettings();
   toast('💾 บันทึกแล้ว ✅');
 
@@ -1347,6 +1600,28 @@ function createBill() {
     </div>`).join('');
 
   drawQR(JSON.stringify({ no, total, items: items.length, hash, shop: cfgShop || 'ร้านค้า' }), 'qr-canvas', 140);
+
+  // วาดลายเซ็นผู้รับเงินบนบิล
+  const sigCanvas = document.getElementById('bill-sig-canvas');
+  const sigCtx = sigCanvas.getContext('2d');
+  sigCtx.clearRect(0, 0, sigCanvas.width, sigCanvas.height);
+  const collectorName = cfgCollector || cfgOwner || '';
+  document.getElementById('bill-collector-name').textContent = collectorName;
+  if (cfgSig) {
+    const img = new Image();
+    img.onload = () => { sigCtx.drawImage(img, 0, 0, sigCanvas.width, sigCanvas.height); };
+    img.src = cfgSig;
+  } else {
+    // ถ้าไม่มีลายเซ็น → แสดงเส้นประ
+    sigCtx.strokeStyle = '#c0b89a';
+    sigCtx.setLineDash([6, 4]);
+    sigCtx.lineWidth = 1;
+    sigCtx.beginPath();
+    sigCtx.moveTo(20, sigCanvas.height - 10);
+    sigCtx.lineTo(sigCanvas.width - 20, sigCanvas.height - 10);
+    sigCtx.stroke();
+  }
+
   showScreen('bill');
 }
 
@@ -1586,7 +1861,7 @@ function toast(msg) {
   clearTimeout(t._t); t._t = setTimeout(() => t.classList.remove('show'), 2800);
 }
 
-selectProv(cfgProv, true);
+refreshAllPKStatus();
 
 // 🧠 Init shop memory on load
 learnFromHistory();
