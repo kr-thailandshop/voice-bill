@@ -1822,23 +1822,10 @@ function createBill() {
       <div class="bisub">${fmt(it.sub)} ฿</div>
     </div>`).join('');
 
-  // Build complete bill data — same object used in BOTH QR codes
-  const billQRData = JSON.stringify({
-    v: 3,
-    no,
-    nonce,   // ← ฝัง nonce ใน QR ด้วย → แก้ไขไม่ได้โดยไม่ทำลาย hash
-    shop:  cfgShop  || 'ร้านค้า',
-    owner: cfgOwner || '',
-    addr:  [cfgAddr, cfgAddr2].filter(Boolean).join(' '),
-    phone: cfgPhone || '',
-    tax:   cfgTax   || '',
-    date:  now.toLocaleDateString('th-TH', { year:'numeric', month:'long', day:'numeric' }),
-    time:  now.toLocaleTimeString('th-TH', { hour:'2-digit', minute:'2-digit' }),
-    iso:   now.toISOString(),   // ← timestamp แม่นยำสำหรับ verify
-    items: items.map(i => ({ n:i.name, q:i.qty, p:i.up, s:i.sub })),
-    total,
-    hash
-  });
+  // Build QR payload — keep SHORT to fit in QR version ≤ 8 (RSBT table limit)
+  // Full bill is stored in history; QR just needs enough to verify + identify
+  const shortItems = items.map(i => i.name.slice(0,10) + ':' + i.qty + 'x' + i.up).join('|');
+  const billQRData = 'BL3|' + no + '|' + (cfgShop||'').slice(0,20) + '|' + total + '|' + shortItems.slice(0,120) + '|' + hash;
   // Store for QR modal to reuse
   window._lastBillQRData = billQRData;
   window._lastBillHash   = hash;
@@ -1868,79 +1855,7 @@ function createBill() {
   showScreen('bill');
 }
 
-// ── drawQR ── robust version: renders into ANY container, works inside pointer-events:none
-function drawQR(text, anchorId, size) {
-  const anchor = document.getElementById(anchorId);
-  if (!anchor) return;
-
-  // Clear previous content
-  anchor.innerHTML = '';
-  anchor.style.width  = size + 'px';
-  anchor.style.height = size + 'px';
-  anchor.style.display = 'flex';
-  anchor.style.alignItems = 'center';
-  anchor.style.justifyContent = 'center';
-
-  // Create a fresh canvas OUTSIDE bill-paper (appended to body),
-  // draw QR there, then copy as <img> into anchor — avoids all pointer-events/taint issues
-  const holder = document.createElement('div');
-  holder.style.cssText = 'position:fixed;left:-9999px;top:-9999px;width:'+size+'px;height:'+size+'px;pointer-events:none;z-index:-1;';
-  document.body.appendChild(holder);
-
-  let done = false;
-
-  const finish = (src) => {
-    if (done) return;
-    done = true;
-    try { document.body.removeChild(holder); } catch(e) {}
-    if (!src) { anchor.innerHTML = '<div style="font-size:10px;color:#999;text-align:center;padding:8px;">QR ไม่พร้อมใช้งาน</div>'; return; }
-    const img = document.createElement('img');
-    img.src = src;
-    img.width  = size;
-    img.height = size;
-    img.style.cssText = 'display:block;border-radius:4px;';
-    img.draggable = false;
-    anchor.appendChild(img);
-  };
-
-  try {
-    new QRCode(holder, {
-      text,
-      width:  size,
-      height: size,
-      colorDark:  '#1a3a6b',
-      colorLight: '#ffffff',
-      correctLevel: QRCode.CorrectLevel.M
-    });
-  } catch(e) {
-    finish(null); return;
-  }
-
-  let tries = 0;
-  const poll = () => {
-    // QRCode.js can produce either a <canvas> or an <img>
-    const qCvs = holder.querySelector('canvas');
-    const qImg = holder.querySelector('img');
-
-    if (qCvs && qCvs.width > 10) {
-      try {
-        finish(qCvs.toDataURL('image/png'));
-        return;
-      } catch(e2) { /* tainted canvas – fall through to img */ }
-    }
-    if (qImg && qImg.complete && qImg.naturalWidth > 5) {
-      finish(qImg.src); return;
-    }
-    if (qImg && !qImg.complete) {
-      qImg.onload  = () => finish(qImg.src);
-      qImg.onerror = () => finish(null);
-      return;
-    }
-    if (++tries < 60) setTimeout(poll, 50);
-    else finish(null);
-  };
-  setTimeout(poll, 80);
-}
+// drawQR — implemented by the pure-JS QR engine at bottom of file (window.drawQR)
 
 // ── SHARE: TEXT (Line/SMS) ──
 function shareBillText() {
@@ -2343,7 +2258,41 @@ Poly.prototype={get:function(i){return this.n[i];},len:function(){return this.n.
 function getMask(p,r,c){switch(p){case 0:return(r+c)%2==0;case 1:return r%2==0;case 2:return c%3==0;case 3:return(r+c)%3==0;case 4:return(Math.floor(r/2)+Math.floor(c/3))%2==0;case 5:return(r*c)%2+(r*c)%3==0;case 6:return((r*c)%2+(r*c)%3)%2==0;case 7:return((r*c)%3+(r+c)%2)%2==0;}}
 function errPoly(ec){var a=new Poly([1],0);for(var i=0;i<ec;i++)a=a.mul(new Poly([1,gexp(i)],0));return a;}
 function lenBits(mode,type){if(type<10){if(mode==4)return 8;}else if(type<27){if(mode==4)return 16;}else{if(mode==4)return 16;}return 8;}
-var RSBT=[[1,26,19],[1,26,16],[1,26,13],[1,26,9],[1,44,34],[1,44,28],[1,44,22],[1,44,16],[1,70,55],[1,70,44],[2,35,17],[2,35,13],[1,100,80],[2,50,32],[2,50,24],[4,25,9],[1,134,108],[2,67,43],[2,33,15,2,34,16],[2,33,11,2,34,12],[2,86,68],[4,43,27],[4,43,19],[4,43,15],[2,98,78],[4,49,31],[2,32,14,4,33,14],[4,39,13,1,40,13],[2,121,97],[2,60,38,2,61,39],[4,40,18,2,41,18],[4,40,14,2,41,14]];
+var RSBT=[
+  // v1-v8 (original)
+  [1,26,19],[1,26,16],[1,26,13],[1,26,9],
+  [1,44,34],[1,44,28],[1,44,22],[1,44,16],
+  [1,70,55],[1,70,44],[2,35,17],[2,35,13],
+  [1,100,80],[2,50,32],[2,50,24],[4,25,9],
+  [1,134,108],[2,67,43],[2,33,15,2,34,16],[2,33,11,2,34,12],
+  [2,86,68],[4,43,27],[4,43,19],[4,43,15],
+  [2,98,78],[4,49,31],[2,32,14,4,33,14],[4,39,13,1,40,13],
+  [2,121,97],[2,60,38,2,61,39],[4,40,18,2,41,18],[4,40,14,2,41,14],
+  // v9
+  [2,146,116],[3,58,36,2,59,37],[4,36,16,4,37,17],[4,36,12,4,37,13],
+  // v10
+  [2,86,68,2,87,69],[4,69,43,1,70,44],[6,43,19,2,44,20],[6,43,15,2,44,16],
+  // v11
+  [4,101,81],[1,80,50,4,81,51],[4,50,22,4,51,23],[3,36,12,8,37,13],
+  // v12
+  [2,116,92,2,117,93],[6,58,36,2,59,37],[4,46,20,6,47,21],[7,42,14,4,43,15],
+  // v13
+  [4,133,107],[8,59,37,1,60,38],[8,44,20,4,45,21],[12,33,11,4,34,12],
+  // v14
+  [3,145,115,1,146,116],[4,64,40,5,65,41],[11,36,16,5,37,17],[11,36,12,5,37,13],
+  // v15
+  [5,109,87,1,110,88],[5,65,41,5,66,42],[5,54,24,7,55,25],[11,36,12,7,37,13],
+  // v16
+  [5,122,98,1,123,99],[7,73,45,3,74,46],[15,43,19,2,44,20],[3,45,15,13,46,16],
+  // v17
+  [1,135,107,5,136,108],[10,74,46,1,75,47],[1,50,22,15,51,23],[2,42,14,17,43,15],
+  // v18
+  [5,150,120,1,151,121],[9,69,43,4,70,44],[17,50,22,1,51,23],[2,42,14,19,43,15],
+  // v19
+  [3,141,113,4,142,114],[3,70,44,11,71,45],[17,47,21,4,48,22],[9,39,13,16,40,14],
+  // v20
+  [3,135,107,5,136,108],[3,67,41,13,68,42],[15,54,24,5,55,25],[15,43,15,10,44,16]
+];
 function rsBlocks(tn,ecl){var b=[],d=RSBT[(tn-1)*4+(ecl)];for(var i=0;i<d.length;i+=3)for(var j=0;j<d[i];j++)b.push({total:d[i+1],data:d[i+2],ec:d[i+1]-d[i+2]});return b;}
 function BitBuf(){this.buf=[];this.len=0;}
 BitBuf.prototype={put:function(n,l){for(var i=0;i<l;i++)this.putBit(((n>>>(l-i-1))&1)==1);},putBit:function(b){var i=Math.floor(this.len/8);if(this.buf.length<=i)this.buf.push(0);if(b)this.buf[i]|=0x80>>>(this.len%8);this.len++;}};
@@ -2426,7 +2375,7 @@ function buildData(text,tn,ecl){
   return out;
 }
 function autoVersion(text,ecl){
-  for(var tn=1;tn<=40;tn++){
+  for(var tn=1;tn<=20;tn++){
     try{buildData(text,tn,ecl);return tn;}catch(e){}
   }throw new Error('text too long');
 }
