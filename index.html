@@ -528,8 +528,8 @@ html,body{height:100%;height:100dvh;overflow:hidden;background:var(--bg);color:v
 
   <!-- Share action bar -->
   <div class="share-bar">
-    <button class="share-action-btn share-action-main" onclick="shareBillHTML()">
-      <span class="sa-icon">📨</span>
+    <button class="share-action-btn share-action-main" onclick="sendBillPNG()">
+      <span class="sa-icon">📲</span>
       <span class="sa-label">ส่งบิลให้ลูกค้า</span>
     </button>
     <button class="share-action-btn" onclick="saveAsPNG()">
@@ -2289,27 +2289,154 @@ function closeQRModal() {
 }
 
 // ── EXPORT: PNG ──
+// ── BUILD BILL CANVAS (shared by saveAsPNG & sendBillPNG) ──
+async function buildBillCanvas(isCopy) {
+  const el = document.querySelector('.bill-paper');
+  if (!el) return null;
+
+  // Temporarily lift pointer-events so html2canvas can read all child elements
+  const prev = el.style.pointerEvents;
+  el.style.pointerEvents = 'auto';
+
+  const billCanvas = await html2canvas(el, {
+    scale: 2.5,
+    useCORS: true,
+    backgroundColor: '#ffffff',
+    logging: false,
+    letterRendering: true
+  });
+  el.style.pointerEvents = prev;
+
+  if (!isCopy) return billCanvas;
+
+  // ── Burn "สำเนา / COPY" stamp + hash onto the canvas ──
+  const W = billCanvas.width;
+  const H = billCanvas.height;
+  const out = document.createElement('canvas');
+  out.width  = W;
+  out.height = H;
+  const ctx = out.getContext('2d');
+
+  // Draw base bill
+  ctx.drawImage(billCanvas, 0, 0);
+
+  // 1. Diagonal watermark text
+  ctx.save();
+  ctx.translate(W / 2, H / 2);
+  ctx.rotate(-0.45);
+  ctx.font = `bold ${Math.round(W * 0.18)}px 'Noto Serif Thai', serif`;
+  ctx.fillStyle = 'rgba(26, 95, 168, 0.07)';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('สำเนา', 0, 0);
+  ctx.restore();
+
+  // 2. "สำเนา / COPY" badge stamp — top right corner
+  const bW = Math.round(W * 0.28), bH = Math.round(W * 0.075);
+  const bX = W - bW - Math.round(W * 0.04);
+  const bY = Math.round(W * 0.04);
+  const r  = bH / 2;
+  ctx.save();
+  // badge background
+  ctx.beginPath();
+  ctx.moveTo(bX + r, bY);
+  ctx.lineTo(bX + bW - r, bY);
+  ctx.quadraticCurveTo(bX + bW, bY, bX + bW, bY + r);
+  ctx.lineTo(bX + bW, bY + bH - r);
+  ctx.quadraticCurveTo(bX + bW, bY + bH, bX + bW - r, bY + bH);
+  ctx.lineTo(bX + r, bY + bH);
+  ctx.quadraticCurveTo(bX, bY + bH, bX, bY + bH - r);
+  ctx.lineTo(bX, bY + r);
+  ctx.quadraticCurveTo(bX, bY, bX + r, bY);
+  ctx.closePath();
+  ctx.fillStyle = 'rgba(200, 60, 30, 0.88)';
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(255,255,255,0.6)';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+  // badge text
+  ctx.fillStyle = '#ffffff';
+  ctx.font      = `bold ${Math.round(bH * 0.52)}px 'Sarabun', sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('สำเนา / COPY', bX + bW / 2, bY + bH / 2);
+  ctx.restore();
+
+  // 3. Hash footer strip at bottom
+  const hash   = window._lastBillHash || '';
+  const stripH = Math.round(W * 0.065);
+  ctx.save();
+  ctx.fillStyle = 'rgba(26, 20, 16, 0.82)';
+  ctx.fillRect(0, H - stripH, W, stripH);
+  ctx.fillStyle = 'rgba(255,255,255,0.55)';
+  ctx.font      = `${Math.round(stripH * 0.36)}px 'IBM Plex Mono', monospace`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('🔒 Sig: ' + hash, W / 2, H - stripH / 2);
+  ctx.restore();
+
+  return out;
+}
+
+// ── SEND BILL PNG TO CUSTOMER (ปุ่มหลัก) ──
+// สร้างภาพบิลสำเนา มีตราประทับ + hash เบิร์นในภาพ แล้วแชร์ผ่าน Line
+async function sendBillPNG() {
+  if (!window._lastBillHash) { toast('กรุณาออกบิลก่อน'); return; }
+  showExportOverlay('📲 กำลังสร้างบิลสำเนา...');
+  try {
+    const canvas  = await buildBillCanvas(true); // isCopy = true
+    if (!canvas) { hideExportOverlay(); toast('ไม่สามารถสร้างภาพได้'); return; }
+
+    const no      = document.getElementById('b-no').textContent;
+    const shop    = document.getElementById('b-shop').textContent;
+    const totalTx = document.getElementById('b-total').textContent;
+    const dataUrl = canvas.toDataURL('image/png');
+
+    // Try Web Share with file — opens Line/WhatsApp directly on mobile
+    if (navigator.canShare) {
+      try {
+        const res  = await fetch(dataUrl);
+        const blob = await res.blob();
+        const file = new File([blob], `bill-copy-${no}.png`, { type: 'image/png' });
+        if (navigator.canShare({ files: [file] })) {
+          hideExportOverlay();
+          await navigator.share({
+            files: [file],
+            title: `บิลสำเนา ${no}`,
+            text:  `🧾 บิลสำเนา · ${shop} · ยอด ${totalTx}\n🔒 ตรวจสอบได้จาก Digital Sig ในภาพ`
+          });
+          toast('📲 ส่งบิลสำเนาแล้ว ✅');
+          return;
+        }
+      } catch(e) {
+        if (e.name === 'AbortError') { hideExportOverlay(); return; }
+      }
+    }
+
+    // Fallback: download
+    const a    = document.createElement('a');
+    a.href     = dataUrl;
+    a.download = `bill-copy-${no}.png`;
+    a.click();
+    hideExportOverlay();
+    toast('⬇️ บันทึกบิลสำเนาแล้ว · ส่งให้ลูกค้าผ่าน Line ✅');
+  } catch(err) {
+    hideExportOverlay();
+    toast('เกิดข้อผิดพลาด: ' + err.message.slice(0, 50));
+  }
+}
+
+// ── SAVE PNG (ปุ่มเก็บต้นฉบับ ไม่มีตราสำเนา) ──
 async function saveAsPNG() {
   const el = document.querySelector('.bill-paper');
   if (!el) return;
   showExportOverlay('🖼️ กำลังสร้างภาพบิล...');
   try {
-    // Temporarily make paper non-interactive for capture
-    const prev = el.style.pointerEvents;
-    el.style.pointerEvents = 'auto';
-    const canvas = await html2canvas(el, {
-      scale: 2.5,
-      useCORS: true,
-      backgroundColor: '#ffffff',
-      logging: false,
-      letterRendering: true
-    });
-    el.style.pointerEvents = prev;
-
+    const canvas = await buildBillCanvas(false); // original, no stamp
+    if (!canvas) { hideExportOverlay(); return; }
     const dataUrl = canvas.toDataURL('image/png');
     const no = document.getElementById('b-no').textContent;
 
-    // Try native share with file (mobile)
     if (navigator.canShare) {
       try {
         const res  = await fetch(dataUrl);
@@ -2320,19 +2447,20 @@ async function saveAsPNG() {
           await navigator.share({ files: [file], title: 'บิล ' + no });
           return;
         }
-      } catch(e) {}
+      } catch(e) {
+        if (e.name === 'AbortError') { hideExportOverlay(); return; }
+      }
     }
 
-    // Fallback: download
-    const a = document.createElement('a');
-    a.href = dataUrl;
+    const a    = document.createElement('a');
+    a.href     = dataUrl;
     a.download = `bill-${no}.png`;
     a.click();
     hideExportOverlay();
     toast('🖼️ บันทึกภาพบิลแล้ว ✅');
   } catch (err) {
     hideExportOverlay();
-    toast('ไม่สามารถสร้างภาพได้: ' + err.message.slice(0,40));
+    toast('ไม่สามารถสร้างภาพได้: ' + err.message.slice(0, 40));
   }
 }
 
