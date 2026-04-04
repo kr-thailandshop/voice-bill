@@ -130,29 +130,30 @@ html,body{height:100%;height:100dvh;overflow:hidden;background:var(--bg);color:v
 .item-card{flex-wrap:wrap;}
 .item-edit-row{
   width:100%;
-  display:grid;
-  grid-template-columns:3em 1fr 1em 3em 1fr;
-  gap:4px 6px;
+  display:flex;
+  flex-direction:row;
   align-items:center;
+  gap:6px;
   margin-top:8px;
   padding-top:8px;
   border-top:1.5px dashed var(--border);
   box-sizing:border-box;
+  flex-wrap:nowrap;
 }
 .ie-sub-row{
-  grid-column:1/-1;
   display:flex;
   align-items:center;
-  gap:6px;
-  margin-top:2px;
+  gap:4px;
+  margin-left:auto;
+  flex-shrink:0;
 }
-.ie-lbl{font-size:calc(0.72rem * var(--sz));color:var(--muted);font-weight:700;white-space:nowrap;}
-.ie-input{background:var(--bg2);border:2px solid var(--border);border-radius:8px;padding:6px 2px;font-family:'Sarabun',sans-serif;font-weight:700;color:var(--text);outline:none;font-size:calc(0.9rem * var(--sz));min-height:38px;text-align:center;transition:border-color 0.15s;width:100%;min-width:0;box-sizing:border-box;}
+.ie-lbl{font-size:calc(0.72rem * var(--sz));color:var(--muted);font-weight:700;white-space:nowrap;flex-shrink:0;}
+.ie-input{background:var(--bg2);border:2px solid var(--border);border-radius:8px;padding:6px 8px;font-family:'Sarabun',sans-serif;font-weight:700;color:var(--text);outline:none;font-size:calc(0.9rem * var(--sz));min-height:38px;text-align:right;transition:border-color 0.15s;box-sizing:border-box;}
 .ie-input:focus{border-color:var(--accent);}
-.ie-qty{width:100%;min-width:0;}
-.ie-price{width:100%;min-width:0;}
-.ie-eq{font-size:calc(0.8rem * var(--sz));color:var(--muted);font-weight:700;padding:0 1px;}
-.ie-sub{font-family:'IBM Plex Mono',monospace;font-weight:800;color:var(--accent);font-size:calc(1rem * var(--sz));white-space:nowrap;min-width:64px;text-align:right;}
+.ie-qty{width:68px;flex-shrink:0;}
+.ie-price{width:80px;flex-shrink:0;}
+.ie-eq{font-size:calc(0.85rem * var(--sz));color:var(--muted);font-weight:700;padding:0 1px;flex-shrink:0;}
+.ie-sub{font-family:'IBM Plex Mono',monospace;font-weight:800;color:var(--accent);font-size:calc(0.95rem * var(--sz));white-space:nowrap;flex-shrink:0;}
 
 /* Voice more bar */
 .more-bar{margin:0 11px 7px;background:var(--surface);border:2px solid var(--border);border-radius:13px;padding:11px 13px;box-shadow:var(--shadow);flex-shrink:0;}
@@ -1731,14 +1732,14 @@ function renderItems() {
       <div class="del-btn" onclick="delItem(${i})">✕</div>
       <div class="item-edit-row">
         <span class="ie-lbl">จำนวน</span>
-        <input class="ie-input ie-qty" type="number" min="1" value="${item.qty}"
-          oninput="editItem(${i},'qty',this.value)"
-          onchange="editItem(${i},'qty',this.value)">
+        <input class="ie-input ie-qty" type="number" inputmode="numeric" min="1" max="9999" value="${item.qty}"
+          oninput="this.value=this.value.slice(0,4);editItem(${i},'qty',this.value)"
+          onchange="this.value=Math.min(9999,Math.max(1,+this.value||1));editItem(${i},'qty',this.value)">
         <span class="ie-eq">×</span>
-        <span class="ie-lbl">ราคา</span>
-        <input class="ie-input ie-price" type="number" min="0" value="${item.up}"
-          oninput="editItem(${i},'up',this.value)"
-          onchange="editItem(${i},'up',this.value)">
+        <span class="ie-lbl">ราคา/ชิ้น</span>
+        <input class="ie-input ie-price" type="number" inputmode="decimal" min="0" max="999999" value="${item.up}"
+          oninput="this.value=this.value.slice(0,7);editItem(${i},'up',this.value)"
+          onchange="this.value=Math.min(999999,Math.max(0,+this.value||0));editItem(${i},'up',this.value)">
         <div class="ie-sub-row">
           <span class="ie-eq">=</span>
           <span class="ie-sub" id="sub-${i}">${fmt(item.sub)} ฿</span>
@@ -1867,60 +1868,78 @@ function createBill() {
   showScreen('bill');
 }
 
-// ── drawQR ──
-// วาด QR ลง canvas นอก bill-paper แล้ว position:absolute ทับ anchor
+// ── drawQR ── robust version: renders into ANY container, works inside pointer-events:none
 function drawQR(text, anchorId, size) {
-  // ลบ canvas เก่าถ้ามี
-  const old = document.getElementById('__qr_canvas__');
-  if (old) old.remove();
-
   const anchor = document.getElementById(anchorId);
   if (!anchor) return;
 
-  // สร้าง canvas จริง แล้ว position absolute ทับ anchor
-  const cvs = document.createElement('canvas');
-  cvs.id = '__qr_canvas__';
-  cvs.width  = size;
-  cvs.height = size;
-  cvs.style.cssText = 'position:absolute;top:0;left:0;width:'+size+'px;height:'+size+'px;z-index:5;border-radius:4px;pointer-events:auto;';
-
-  // anchor ต้องเป็น relative
-  anchor.style.position = 'relative';
+  // Clear previous content
+  anchor.innerHTML = '';
   anchor.style.width  = size + 'px';
   anchor.style.height = size + 'px';
-  anchor.appendChild(cvs);
+  anchor.style.display = 'flex';
+  anchor.style.alignItems = 'center';
+  anchor.style.justifyContent = 'center';
 
-  // render QR ใน offscreen div — canvas นี้อยู่นอก bill-paper จึง drawImage ได้
+  // Create a fresh canvas OUTSIDE bill-paper (appended to body),
+  // draw QR there, then copy as <img> into anchor — avoids all pointer-events/taint issues
   const holder = document.createElement('div');
-  holder.style.cssText = 'position:fixed;left:-9999px;top:0;width:'+size+'px;height:'+size+'px;';
+  holder.style.cssText = 'position:fixed;left:-9999px;top:-9999px;width:'+size+'px;height:'+size+'px;pointer-events:none;z-index:-1;';
   document.body.appendChild(holder);
+
+  let done = false;
+
+  const finish = (src) => {
+    if (done) return;
+    done = true;
+    try { document.body.removeChild(holder); } catch(e) {}
+    if (!src) { anchor.innerHTML = '<div style="font-size:10px;color:#999;text-align:center;padding:8px;">QR ไม่พร้อมใช้งาน</div>'; return; }
+    const img = document.createElement('img');
+    img.src = src;
+    img.width  = size;
+    img.height = size;
+    img.style.cssText = 'display:block;border-radius:4px;';
+    img.draggable = false;
+    anchor.appendChild(img);
+  };
+
   try {
-    new QRCode(holder, { text, width:size, height:size, colorDark:'#1a3a6b', colorLight:'#ffffff', correctLevel:QRCode.CorrectLevel.M });
-  } catch(e) { document.body.removeChild(holder); return; }
+    new QRCode(holder, {
+      text,
+      width:  size,
+      height: size,
+      colorDark:  '#1a3a6b',
+      colorLight: '#ffffff',
+      correctLevel: QRCode.CorrectLevel.M
+    });
+  } catch(e) {
+    finish(null); return;
+  }
 
   let tries = 0;
-  const ctx = cvs.getContext('2d');
   const poll = () => {
-    const qImg = holder.querySelector('img');
+    // QRCode.js can produce either a <canvas> or an <img>
     const qCvs = holder.querySelector('canvas');
-    // canvas path — ทำงานได้ทุก browser เพราะ holder อยู่นอก bill-paper
-    if (qCvs && qCvs.width > 0) {
+    const qImg = holder.querySelector('img');
+
+    if (qCvs && qCvs.width > 10) {
       try {
-        ctx.drawImage(qCvs, 0, 0, size, size);
-        document.body.removeChild(holder);
+        finish(qCvs.toDataURL('image/png'));
         return;
-      } catch(e2) {}
+      } catch(e2) { /* tainted canvas – fall through to img */ }
     }
-    // img path fallback
     if (qImg && qImg.complete && qImg.naturalWidth > 5) {
-      ctx.drawImage(qImg, 0, 0, size, size);
-      document.body.removeChild(holder);
+      finish(qImg.src); return;
+    }
+    if (qImg && !qImg.complete) {
+      qImg.onload  = () => finish(qImg.src);
+      qImg.onerror = () => finish(null);
       return;
     }
-    if (++tries < 40) setTimeout(poll, 50);
-    else { try { document.body.removeChild(holder); } catch(e3){} }
+    if (++tries < 60) setTimeout(poll, 50);
+    else finish(null);
   };
-  setTimeout(poll, 60);
+  setTimeout(poll, 80);
 }
 
 // ── SHARE: TEXT (Line/SMS) ──
