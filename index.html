@@ -1528,6 +1528,14 @@ function buildPrompt(text) {
 - ถ้ามีแค่ตัวเลขท้ายสุดหลัง qty = ราคาต่อหน่วย
 - ถ้าบอกเป็นยอดรวม (เช่น "รวม 500") ให้คำนวณ unitPrice = ยอดรวม ÷ qty
 
+รูปแบบ "คูณ" (สำคัญมาก):
+- เมื่อเห็นตัวเลข * ตัวเลข หรือ ตัวเลข x ตัวเลข หรือ ตัวเลข × ตัวเลข ให้แปลงเป็น qty × unitPrice เสมอ
+- "หมวกไหมพรม 5 * 10" → qty:5, unitPrice:10 (5 ชิ้น × 10 บาท)
+- "หมวก 10 * 5" → qty:10, unitPrice:5 (10 ชิ้น × 5 บาท)
+- "เสื้อ 12x50" → qty:12, unitPrice:50
+- ไม่ว่าจำนวนหรือราคาจะอยู่หน้า/หลัง * ก็แปลงเป็น qty คูณ unitPrice เสมอ
+- ตัวเลขที่เล็กกว่าอาจเป็นราคา ตัวที่ใหญ่กว่าอาจเป็นจำนวน — แต่ถ้าบริบทไม่ชัดให้ใช้ตัวแรก=qty ตัวหลัง=unitPrice
+
 ตัวอย่างสำนวนพูด:
 - "เสื้อ 5 ตัว 100 บาท" → qty:5, unitPrice:100
 - "กางเกง 8 ตัว ตัวละ 120" → qty:8, unitPrice:120
@@ -1535,6 +1543,9 @@ function buildPrompt(text) {
 - "เสื้อยืดสามโหล ตัวละ 50" → qty:36, unitPrice:50
 - "ถุงเท้า 3 แพ็ค แพ็คละ 60" → qty:3, unitPrice:60
 - "กางเกงยีนส์ 8 ตัว 120" → qty:8, unitPrice:120
+- "หมวกไหมพรม 5 * 10" → qty:5, unitPrice:10
+- "ผ้าพันคอ 20 x 35" → qty:20, unitPrice:35
+- "ถุงมือ 6*80" → qty:6, unitPrice:80
 
 ถ้าชื่อสินค้าใกล้เคียงกับรายการที่เคยขาย ให้ใช้ชื่อมาตรฐานนั้น`;
 }
@@ -1659,7 +1670,15 @@ function simpleParse(text) {
   let t = text;
   unitMap.forEach(([w,v]) => { t = t.replace(new RegExp(w,'g'), v); });
 
-  const re = /([ก-์a-zA-Z][ก-์a-zA-Z\s]*?)\s+(\d+)\s*(?:ตัว|ชิ้น|อัน|กิโล|ถุง|กล่อง|แพ็ค|แพค|คู่|ผืน|ชุด|ใบ)?\s*(?:ตัวละ|ชิ้นละ|อันละ|ตัวๆละ|คู่ละ|ละ|ราคา|x|×|@)?\s*(\d+)/g;
+  // กรณี "ชื่อสินค้า จำนวน * ราคา" หรือ "ชื่อสินค้า จำนวน x ราคา"
+  const reMul = /([ก-์a-zA-Z][ก-์a-zA-Z\s]*?)\s+(\d+)\s*[*×xX]\s*(\d+)/g;
+  let mm;
+  while ((mm = reMul.exec(t)) !== null) {
+    const name = mm[1].trim().replace(/\s+/g,' ');
+    const qty  = +mm[2], up = +mm[3];
+    if (name && qty > 0) out.push({ name, qty, up, sub: qty * up });
+  }
+  const re = /([ก-์a-zA-Z][ก-์a-zA-Z\s]*?)\s+(\d+)\s*(?:ตัว|ชิ้น|อัน|กิโล|ถุง|กล่อง|แพ็ค|แพค|คู่|ผืน|ชุด|ใบ)?\s*(?:ตัวละ|ชิ้นละ|อันละ|ตัวๆละ|คู่ละ|ละ|ราคา|@)?\s*(\d+)/g;
   let m;
   while ((m = re.exec(t)) !== null) {
     const name = m[1].trim().replace(/\s+/g,' ');
@@ -1799,16 +1818,54 @@ function createBill() {
 
 function drawQR(text, canvasId, size) {
   const canvas = document.getElementById(canvasId);
+  if (!canvas) return;
   const ctx = canvas.getContext('2d');
   ctx.clearRect(0, 0, size, size);
+
+  // Use a hidden offscreen div (not inside bill-paper) to avoid pointer-events:none
+  const holder = document.createElement('div');
+  holder.style.cssText = 'position:fixed;left:-9999px;top:-9999px;width:'+size+'px;height:'+size+'px;z-index:-1;pointer-events:auto;';
+  document.body.appendChild(holder);
+
   try {
-    const h = document.createElement('div');
-    new QRCode(h, { text, width: size, height: size, colorDark: '#1a3a6b', colorLight: '#fff', correctLevel: QRCode.CorrectLevel.M });
-    setTimeout(() => {
-      const src = h.querySelector('img')?.src || h.querySelector('canvas')?.toDataURL();
-      if (src) { const img = new Image(); img.onload = () => ctx.drawImage(img, 0, 0, size, size); img.src = src; }
-    }, 180);
-  } catch (e) {}
+    new QRCode(holder, {
+      text: text,
+      width: size,
+      height: size,
+      colorDark: '#1a3a6b',
+      colorLight: '#ffffff',
+      correctLevel: QRCode.CorrectLevel.M
+    });
+  } catch(e) {
+    document.body.removeChild(holder);
+    return;
+  }
+
+  // Poll until img/canvas is ready
+  let attempts = 0;
+  const tryDraw = () => {
+    attempts++;
+    const qrImg = holder.querySelector('img');
+    const qrCvs = holder.querySelector('canvas');
+    let src = null;
+    if (qrImg && qrImg.complete && qrImg.naturalWidth > 0) src = qrImg.src;
+    else if (qrCvs) src = qrCvs.toDataURL();
+
+    if (src) {
+      const img = new Image();
+      img.onload = () => {
+        ctx.clearRect(0, 0, size, size);
+        ctx.drawImage(img, 0, 0, size, size);
+        document.body.removeChild(holder);
+      };
+      img.src = src;
+    } else if (attempts < 20) {
+      setTimeout(tryDraw, 80);
+    } else {
+      document.body.removeChild(holder);
+    }
+  };
+  setTimeout(tryDraw, 60);
 }
 
 // ── SHARE: TEXT (Line/SMS) ──
