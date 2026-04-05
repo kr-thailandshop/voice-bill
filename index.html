@@ -524,6 +524,20 @@ html,body{height:100%;height:100dvh;overflow:hidden;background:var(--bg);color:v
 .bab-qr:active{background:rgba(80,200,120,0.45);}
 
 .bab-icon{font-size:19px;line-height:1;}
+
+/* ── QR BILL MODAL ── */
+.qr-bill-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:800;align-items:flex-end;justify-content:center;backdrop-filter:blur(5px);}
+.qr-bill-overlay.open{display:flex;}
+.qr-bill-sheet{background:var(--surface);border-radius:24px 24px 0 0;width:100%;max-width:420px;padding:0 0 32px;display:flex;flex-direction:column;align-items:center;box-shadow:0 -8px 40px rgba(0,0,0,0.35);}
+.qr-bill-handle{width:44px;height:4px;background:var(--border);border-radius:99px;margin:14px auto 0;}
+.qr-bill-title{font-family:'Noto Serif Thai',serif;font-weight:900;color:var(--text);font-size:18px;margin-top:14px;}
+.qr-bill-sub{font-size:11px;color:var(--muted);font-weight:600;margin-top:3px;margin-bottom:14px;text-align:center;padding:0 20px;}
+.qr-bill-box{background:#fff;border-radius:16px;padding:16px;border:2px solid var(--border);box-shadow:0 2px 12px rgba(0,0,0,0.10);min-width:180px;min-height:180px;display:flex;align-items:center;justify-content:center;}
+.qr-bill-hash{font-family:'IBM Plex Mono',monospace;font-size:8px;color:var(--muted);text-align:center;margin-top:10px;word-break:break-all;max-width:240px;line-height:1.6;padding:0 20px;}
+.qr-bill-note{margin:12px 20px 0;background:var(--grn-bg);border:1.5px solid var(--green);border-radius:10px;padding:9px 14px;font-size:11px;color:var(--green);font-weight:700;text-align:center;line-height:1.5;width:calc(100% - 40px);}
+.qr-bill-close{margin:14px 20px 0;width:calc(100% - 40px);padding:14px;border-radius:14px;background:var(--accent);border:none;color:#fff;font-family:'Sarabun',sans-serif;font-weight:800;font-size:16px;cursor:pointer;}
+.qr-bill-close:active{opacity:0.88;}
+.qr-loading{font-size:12px;color:#9a8e78;font-weight:600;}
 .bab-lbl{font-size:9.5px;font-weight:700;text-align:center;line-height:1.25;white-space:nowrap;}
 
 /* ── QR MODAL ── */
@@ -747,6 +761,11 @@ html,body{height:100%;height:100dvh;overflow:hidden;background:var(--bg);color:v
       <span class="bab-lbl">ส่งบิล<br>ให้ลูกค้า</span>
     </button>
 
+    <button class="bab-btn bab-qr" onclick="billAction('qr')">
+      <span class="bab-icon">📷</span>
+      <span class="bab-lbl">QR<br>สแกน</span>
+    </button>
+
     <button class="bab-btn" onclick="billAction('png')">
       <span class="bab-icon">🖼️</span>
       <span class="bab-lbl">บันทึก<br>ภาพ</span>
@@ -938,6 +957,21 @@ html,body{height:100%;height:100dvh;overflow:hidden;background:var(--bg);color:v
   </div>
 </div>
 
+<!-- ═══════════ QR BILL MODAL ═══════════ -->
+<div class="qr-bill-overlay" id="qr-bill-overlay" onclick="closeQRModal(event)">
+  <div class="qr-bill-sheet" onclick="event.stopPropagation()">
+    <div class="qr-bill-handle"></div>
+    <div class="qr-bill-title">📱 QR บิลสำเนา</div>
+    <div class="qr-bill-sub" id="qr-bill-sub">สแกนเพื่อดูบิลสำเนาในมือถือ</div>
+    <div class="qr-bill-box">
+      <div id="qr-bill-anchor"></div>
+    </div>
+    <div class="qr-bill-hash" id="qr-bill-hash"></div>
+    <div class="qr-bill-note">🔒 ข้อมูลบิลฝังใน QR · ลูกค้าสแกนแล้วดูบิลสำเนาได้ทันที</div>
+    <button class="qr-bill-close" onclick="closeQRModal()">✕ ปิด</button>
+  </div>
+</div>
+
 <!-- Toast -->
 <div class="toast" id="toast"></div>
 
@@ -1123,6 +1157,7 @@ html,body{height:100%;height:100dvh;overflow:hidden;background:var(--bg);color:v
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script>
 // ══════════════════════════════
 // FONT SIZE
@@ -2317,10 +2352,71 @@ body{background:#e8e0d0;font-family:'Sarabun',Arial,sans-serif;padding:0 0 40px;
 function billAction(type) {
   switch(type) {
     case 'send': shareBillHTML(); break;
+    case 'qr':   showQRModal();   break;
     case 'png':  saveAsPNG();     break;
     case 'pdf':  saveAsPDF();     break;
     case 'text': shareBillText(); break;
   }
+}
+
+// ══════════════════════════════
+// QR MODAL — สร้าง QR จาก JSON payload ที่บิลออกแล้ว
+// ใช้ qrcodejs จาก CDN — เรียก setTimeout ให้ modal เปิดก่อนค่อยสร้าง
+// ══════════════════════════════
+function showQRModal() {
+  if (!window._bill) { toast('กรุณาออกบิลก่อน'); return; }
+  const b = window._bill;
+  const overlay = document.getElementById('qr-bill-overlay');
+  if (!overlay) return;
+
+  // อัปเดต subtitle + hash
+  const subEl = document.getElementById('qr-bill-sub');
+  if (subEl) subEl.textContent = b.no + ' · ' + b.shop + ' · ' + Number(b.total).toLocaleString('th-TH') + ' ฿';
+  const hashEl = document.getElementById('qr-bill-hash');
+  if (hashEl) hashEl.textContent = 'Digital Sig: ' + b.hash;
+
+  // เคลียร์ QR เก่า
+  const anchor = document.getElementById('qr-bill-anchor');
+  if (anchor) anchor.innerHTML = '<div class="qr-loading">กำลังสร้าง QR...</div>';
+
+  overlay.classList.add('open');
+
+  // สร้าง QR หลังจาก modal เปิดแล้ว (ไม่บล็อก render)
+  setTimeout(() => {
+    try {
+      if (!window.QRCode) { toast('QR library ยังโหลดไม่เสร็จ กรุณารอสักครู่'); return; }
+      if (!anchor) return;
+      anchor.innerHTML = '';
+
+      // payload = JSON ข้อมูลบิล (compact, ครบสำหรับตรวจสอบ)
+      const payload = b.QR_PAYLOAD || JSON.stringify({
+        v:4, no:b.no, iso:b.iso16, nc:b.nonce, h:b.hash, tot:b.total,
+        sh:b.shop, ow:b.owner||'', ad:b.addr||'', ph:b.phone||'', tx:b.tax||'',
+        dt:b.dateTH, tm:b.timeTH,
+        it: b.items.map(i=>({n:i.name,q:i.qty,p:i.up,s:i.sub}))
+      });
+
+      new QRCode(anchor, {
+        text: payload,
+        width: 200,
+        height: 200,
+        colorDark: '#1a3a6b',
+        colorLight: '#ffffff',
+        correctLevel: QRCode.CorrectLevel.M
+      });
+    } catch(e) {
+      console.warn('QR error:', e);
+      if (anchor) anchor.innerHTML = '<div class="qr-loading">⚠️ ไม่สามารถสร้าง QR<br>ข้อมูลบิลอาจยาวเกินไป</div>';
+    }
+  }, 120);
+}
+
+function closeQRModal(e) {
+  const overlay = document.getElementById('qr-bill-overlay');
+  if (overlay) overlay.classList.remove('open');
+  // ล้าง QR เพื่อไม่ให้ค้างรอบหน้า
+  const anchor = document.getElementById('qr-bill-anchor');
+  if (anchor) anchor.innerHTML = '';
 }
 
 
