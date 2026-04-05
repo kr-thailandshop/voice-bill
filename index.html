@@ -421,14 +421,39 @@ html,body{height:100%;height:100dvh;overflow:hidden;background:var(--bg);color:v
 .mcard-del{min-width:36px;height:36px;border-radius:8px;background:var(--red-bg);border:2px solid rgba(176,42,31,0.18);color:var(--red);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:13px;font-weight:700;flex-shrink:0;}
 .mem-actions{padding:9px 11px 20px;display:flex;gap:7px;border-top:2px solid var(--border);background:var(--surface);flex-shrink:0;}
 .mem-cat-badge{display:inline-flex;align-items:center;gap:5px;background:var(--grn-bg);border:1.5px solid var(--green);border-radius:100px;padding:4px 12px;color:var(--green);font-weight:700;font-size:calc(0.78rem * var(--sz));margin-bottom:8px;}
-/* ── SHARE BAR ── */
-.share-bar{background:#1a3a6b;padding:8px 12px 10px;display:flex;gap:6px;flex-shrink:0;border-bottom:2px solid rgba(255,255,255,0.1);}
-.share-action-btn{flex:1;background:rgba(255,255,255,0.12);border:1.5px solid rgba(255,255,255,0.2);border-radius:10px;color:#fff;padding:8px 4px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;transition:all 0.12s;font-family:'Sarabun',sans-serif;}
-.share-action-btn:active{background:rgba(255,255,255,0.28);transform:scale(0.95);}
-.share-action-main{background:rgba(255,200,0,0.22);border-color:rgba(255,200,0,0.55);flex:1.6;}
-.share-action-main:active{background:rgba(255,200,0,0.38);}
-.sa-icon{font-size:20px;line-height:1;}
-.sa-label{font-size:10px;font-weight:700;letter-spacing:0.2px;white-space:nowrap;}
+/* ── BILL ACTION BAR — เขียนใหม่ z-index ชัด ── */
+.bill-action-bar{
+  background:#1a3a6b;
+  padding:8px 10px 10px;
+  display:flex;gap:5px;
+  flex-shrink:0;
+  border-bottom:2px solid rgba(255,255,255,0.1);
+  position:relative;
+  z-index:20;          /* สูงกว่า bill-paper ที่มี pointer-events:none */
+}
+.bab-btn{
+  flex:1;
+  background:rgba(255,255,255,0.12);
+  border:1.5px solid rgba(255,255,255,0.22);
+  border-radius:10px;
+  color:#fff;
+  padding:7px 3px;
+  cursor:pointer;
+  display:flex;flex-direction:column;align-items:center;gap:2px;
+  font-family:'Sarabun',sans-serif;
+  transition:background 0.1s,transform 0.1s;
+  -webkit-tap-highlight-color:transparent;
+  touch-action:manipulation;
+}
+.bab-btn:active{background:rgba(255,255,255,0.32);transform:scale(0.93);}
+.bab-main{
+  background:rgba(255,200,0,0.25);
+  border-color:rgba(255,200,0,0.6);
+  flex:1.5;
+}
+.bab-main:active{background:rgba(255,200,0,0.45);}
+.bab-icon{font-size:19px;line-height:1;}
+.bab-lbl{font-size:9.5px;font-weight:700;text-align:center;line-height:1.25;white-space:nowrap;}
 
 /* ── QR MODAL ── */
 .qr-modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.72);z-index:600;align-items:center;justify-content:center;backdrop-filter:blur(4px);}
@@ -578,58 +603,52 @@ html,body{height:100%;height:100dvh;overflow:hidden;background:var(--bg);color:v
 
 <!-- ═══════════ BILL ═══════════ -->
 <div id="screen-bill" class="screen">
+
+  <!-- ── TOPBAR ── -->
   <div class="bill-topbar">
-    <button class="back-btn" onclick="showScreen('confirm')">←</button>
+    <button class="back-btn" onclick="goConfirm()" style="background:rgba(255,255,255,0.12);border-color:rgba(255,255,255,0.25);color:#fff;">←</button>
     <div class="bill-tb-title">บิลเงินสดดิจิทัล</div>
     <div class="locked-badge">🔒 ล็อค</div>
   </div>
 
-  <!-- Share action bar -->
-  <div class="share-bar">
-    <button class="share-action-btn share-action-main" onclick="sendBillPNG()">
-      <span class="sa-icon">📲</span>
-      <span class="sa-label">ส่งบิลให้ลูกค้า</span>
+  <!-- ── ACTION BAR (แยก z-index ชัด ไม่โดน pointer-events:none ของ bill-paper) ── -->
+  <div class="bill-action-bar">
+    <button class="bab-btn bab-main" onclick="billAction('send')">
+      <span class="bab-icon">📲</span>
+      <span class="bab-lbl">ส่งบิล<br>ให้ลูกค้า</span>
     </button>
-    <button class="share-action-btn" onclick="saveAsPNG()">
-      <span class="sa-icon">🖼️</span>
-      <span class="sa-label">บันทึกภาพ</span>
+    <button class="bab-btn" onclick="billAction('png')">
+      <span class="bab-icon">🖼️</span>
+      <span class="bab-lbl">บันทึก<br>ภาพ</span>
     </button>
-    <button class="share-action-btn" onclick="saveAsPDF()">
-      <span class="sa-icon">📄</span>
-      <span class="sa-label">PDF</span>
+    <button class="bab-btn" onclick="billAction('pdf')">
+      <span class="bab-icon">📄</span>
+      <span class="bab-lbl">PDF</span>
     </button>
-    <button class="share-action-btn" onclick="shareBillText()">
-      <span class="sa-icon">💬</span>
-      <span class="sa-label">ข้อความ</span>
+    <button class="bab-btn" onclick="billAction('qr')">
+      <span class="bab-icon">📲</span>
+      <span class="bab-lbl">QR<br>ลูกค้า</span>
+    </button>
+    <button class="bab-btn" onclick="billAction('text')">
+      <span class="bab-icon">💬</span>
+      <span class="bab-lbl">ข้อความ</span>
     </button>
   </div>
 
-  <!-- QR Bill Modal (customer view) -->
-  <div id="qr-modal" class="qr-modal-overlay" onclick="closeQRModal()">
-    <div class="qr-modal-box" onclick="event.stopPropagation()">
-      <div class="qr-modal-title">📲 ให้ลูกค้าสแกน</div>
-      <div class="qr-modal-sub">สแกนเพื่อดูบิลบนมือถือ</div>
-      <div class="qr-modal-canvas-wrap">
-        <div id="qr-big-anchor" style="width:220px;height:220px;display:flex;align-items:center;justify-content:center;"></div>
-      </div>
-      <div class="qr-modal-hash" id="qr-modal-hash">—</div>
-      <div class="qr-modal-note">🔒 ข้อมูลบิลฝังอยู่ใน QR · ไม่ต้องพึ่งอินเทอร์เน็ต</div>
-      <button class="qr-modal-close" onclick="closeQRModal()">ปิด</button>
-    </div>
-  </div>
-
+  <!-- ── BILL SCROLL AREA ── -->
   <div class="bill-scroll" id="bill-scroll-area">
-    <div class="bill-paper">
+    <div class="bill-paper" id="bill-paper-el">
+
       <!-- Header -->
       <div class="bhead">
         <div class="bhead-top">
           <div>
             <div class="bhead-book-lbl">DIGITAL BILL</div>
-            <div class="bhead-book-val" id="b-billtype">บิลเงินสด · CASH SALE</div>
+            <div class="bhead-book-val">บิลเงินสด · CASH SALE</div>
           </div>
           <div class="bhead-book">
             <div class="bhead-book-lbl">เลขที่ · BILL NO.</div>
-            <div class="bhead-book-val" id="b-no">BL-XXXXXX</div>
+            <div class="bhead-book-val" id="b-no">—</div>
           </div>
         </div>
         <div class="bhead-title-wrap">
@@ -641,12 +660,12 @@ html,body{height:100%;height:100dvh;overflow:hidden;background:var(--bg);color:v
 
       <!-- Shop info -->
       <div class="bshop-row">
-        <div class="bshop-name" id="b-shop">ร้านค้า</div>
+        <div class="bshop-name" id="b-shop">—</div>
         <div class="bshop-detail" id="b-detail"></div>
         <div class="bshop-tax" id="b-tax"></div>
       </div>
 
-      <!-- Meta: date/time/count -->
+      <!-- Meta -->
       <div class="bmeta">
         <div class="bmc"><div class="bml">วันที่</div><div class="bmv" id="b-date">—</div></div>
         <div class="bmc"><div class="bml">เวลา</div><div class="bmv" id="b-time">—</div></div>
@@ -672,14 +691,16 @@ html,body{height:100%;height:100dvh;overflow:hidden;background:var(--bg);color:v
         <div class="btv" id="b-total">0 ฿</div>
       </div>
 
-      <!-- QR -->
+      <!-- QR — ใช้ canvas จริง ไม่ใช่ div anchor ── -->
       <div class="bqr">
         <div class="bqrl">สแกนตรวจสอบความถูกต้อง</div>
-        <div class="bqrw" id="qr-anchor" style="width:140px;height:140px;"></div>
+        <div class="bqrw">
+          <canvas id="qr-canvas-bill" width="140" height="140"></canvas>
+        </div>
         <div class="bhash" id="b-hash">—</div>
       </div>
 
-      <!-- Collector / signature -->
+      <!-- Signature -->
       <div class="bcollect">
         <div class="bcollect-lbl">ผู้รับเงิน / COLLECTOR</div>
         <canvas class="bcollect-canvas" id="bill-sig-canvas" width="360" height="120"></canvas>
@@ -691,9 +712,24 @@ html,body{height:100%;height:100dvh;overflow:hidden;background:var(--bg);color:v
         <div class="bfv">✅ บิลลงลายมือชื่อดิจิทัลแล้ว · ไม่สามารถแก้ไขได้</div>
         <div class="bft">ออกโดยระบบบิลเสียง AI · ใช้เป็นหลักฐานค่าใช้จ่ายตามจริงได้</div>
       </div>
+    </div><!-- /bill-paper -->
+  </div><!-- /bill-scroll -->
+
+  <!-- ── QR MODAL ── -->
+  <div id="qr-modal" class="qr-modal-overlay" onclick="closeQRModal()">
+    <div class="qr-modal-box" onclick="event.stopPropagation()">
+      <div class="qr-modal-title">📲 ให้ลูกค้าสแกน</div>
+      <div class="qr-modal-sub">สแกนดูบิลสำเนาบนมือถือ</div>
+      <div class="qr-modal-canvas-wrap">
+        <canvas id="qr-canvas-modal" width="220" height="220"></canvas>
+      </div>
+      <div class="qr-modal-hash" id="qr-modal-hash">—</div>
+      <div class="qr-modal-note">🔒 ข้อมูลบิลฝังใน QR · ไม่ต้องพึ่งอินเทอร์เน็ต</div>
+      <button class="qr-modal-close" onclick="closeQRModal()">ปิด</button>
     </div>
   </div>
-</div>
+
+</div><!-- /screen-bill -->
 
 <!-- ═══════════ MEMORY SCREEN ═══════════ -->
 <div id="screen-memory" class="screen">
@@ -1845,144 +1881,164 @@ function updateTotal() {
 // CREATE BILL
 // ══════════════════════════════
 // ══════════════════════════════
-// CREATE BILL — เขียนใหม่ทั้งหมด
-// โจทย์:
-//   1. บิลร้านค้า = บิลลูกค้า ทุกตัวอักษร
-//   2. QR บนบิลร้าน = QR ที่ลูกค้าสแกน = payload เดียวกัน
-//   3. ล็อคแก้ไขไม่ได้หลังออกบิล
-//   4. Nonce (ใช้ครั้งเดียว) ป้องกันสวมรอย
+// CREATE BILL
 // ══════════════════════════════
 function createBill() {
   if (!items.length) { toast('กรุณาเพิ่มสินค้าอย่างน้อย 1 รายการ'); return; }
 
-  // ── 1. ข้อมูลหลักของบิล ──
-  const now   = new Date();
-  const no    = 'BL' + now.getFullYear().toString().slice(-2)
-              + pad(now.getMonth() + 1) + pad(now.getDate())
-              + '-' + (Math.floor(Math.random() * 9000) + 1000);
-  const nonce = makeNonce();          // รหัสลับครั้งเดียว 32 hex
-  const total = items.reduce((s, i) => s + i.sub, 0);
-  const isoDate = now.toISOString(); // เก็บ full ISO เพื่อ verify ได้แม่นยำ
+  const now     = new Date();
+  const no      = 'BL' + now.getFullYear().toString().slice(-2)
+                + pad(now.getMonth()+1) + pad(now.getDate())
+                + '-' + (Math.floor(Math.random()*9000)+1000);
+  const nonce   = makeNonce();
+  const total   = items.reduce((s,i) => s+i.sub, 0);
+  const isoDate = now.toISOString();
+  const iso16   = isoDate.slice(0,16);
 
-  // ── 2. สร้าง hash จากข้อมูลครบทุกตัว (รวม nonce) ──
-  //    สูตรนี้ต้องตรงกันทุกที่: ร้านค้า / สำเนาลูกค้า / verify
-  const HASH_INPUT = no + '|' + isoDate.slice(0,16) + '|'
-    + items.map(i => i.name + '|' + i.qty + '|' + i.up).join('||')
-    + '|' + total + '|' + nonce;
+  // สูตร hash — ต้องเหมือนกันทุกที่
+  const billItems = items.map(i => ({ name:i.name, qty:i.qty, up:i.up, sub:i.sub }));
+  const HASH_INPUT = no+'|'+iso16+'|'
+    + billItems.map(i => i.name+'|'+i.qty+'|'+i.up).join('||')
+    + '|'+total+'|'+nonce;
   const hash = simpleHash(HASH_INPUT);
 
-  // ── 3. เก็บประวัติ (ฝั่งร้านค้า) ──
-  const billRecord = {
-    no, date: isoDate, nonce, hash, total,
-    shop: cfgShop || 'ร้านค้า',
-    items: items.map(i => ({ name:i.name, qty:i.qty, up:i.up, sub:i.sub })),
-    scans: []
-  };
-  saveHist(billRecord);
-
-  // ── 4. เรียนรู้สินค้า ──
-  learnFromBill(items);
-  renderMemoryChips();
-
-  // ── 5. สร้าง QR payload — ใช้ JSON เต็มให้ลูกค้าตรวจได้ทุกตัว ──
-  //    ไม่ตัดสั้นเพราะ QR engine รองรับ binary mode / Byte mode ได้ถึง ~2000 ตัวอักษร
+  // QR payload — compact แต่ครบสำหรับ verify
+  // ใช้ short keys เพื่อลดขนาด < 800 ตัว ให้ QR engine สร้างได้ง่าย
   const QR_PAYLOAD = JSON.stringify({
-    v: 4,
-    no,
-    iso: isoDate.slice(0,16),
-    nonce,
-    hash,
-    total,
-    shop:  cfgShop  || '',
-    owner: cfgOwner || '',
-    addr:  [cfgAddr, cfgAddr2].filter(Boolean).join(' '),
-    phone: cfgPhone || '',
-    tax:   cfgTax   || '',
-    date:  now.toLocaleDateString('th-TH', { year:'numeric', month:'long', day:'numeric' }),
-    time:  now.toLocaleTimeString('th-TH', { hour:'2-digit', minute:'2-digit' }),
-    items: items.map(i => ({ n:i.name, q:i.qty, p:i.up, s:i.sub }))
+    v:4, no, iso:iso16, nc:nonce, h:hash, tot:total,
+    sh: cfgShop||'', ow: cfgOwner||'',
+    ad: [cfgAddr,cfgAddr2].filter(Boolean).join(' '),
+    ph: cfgPhone||'', tx: cfgTax||'',
+    dt: now.toLocaleDateString('th-TH',{year:'numeric',month:'long',day:'numeric'}),
+    tm: now.toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit'}),
+    it: billItems.map(i=>({n:i.name,q:i.qty,p:i.up,s:i.sub}))
   });
 
-  // ── 6. แคชข้อมูลทั้งหมดไว้ใน window._ เพื่อให้ share functions ใช้ต่อ ──
-  //    (ไม่อ่านจาก DOM อีก เพราะ DOM อาจถูก user เปลี่ยนใน devtools)
+  // Cache ไว้ใช้ใน share functions
   window._bill = {
-    no, isoDate, nonce, hash, total, QR_PAYLOAD,
-    shop:    cfgShop  || 'ร้านค้า',
-    owner:   cfgOwner || '',
-    addr:    [cfgAddr, cfgAddr2].filter(Boolean).join(' '),
-    phone:   cfgPhone || '',
-    tax:     cfgTax   || '',
-    dateTH:  now.toLocaleDateString('th-TH', { year:'numeric', month:'long', day:'numeric' }),
-    dateShort: now.toLocaleDateString('th-TH', { year:'numeric', month:'short', day:'numeric' }),
-    timeTH:  now.toLocaleTimeString('th-TH', { hour:'2-digit', minute:'2-digit' }),
-    datetimeTH: now.toLocaleDateString('th-TH', { weekday:'short', year:'numeric', month:'long', day:'numeric' }),
-    items:   items.map(i => ({ name:i.name, qty:i.qty, up:i.up, sub:i.sub })),
-    cnt:     items.length,
-    HASH_INPUT   // เก็บไว้ debug ถ้าจำเป็น
+    no, isoDate, iso16, nonce, hash, total, QR_PAYLOAD,
+    HASH_INPUT,
+    shop:      cfgShop||'ร้านค้า',
+    owner:     cfgOwner||'',
+    addr:      [cfgAddr,cfgAddr2].filter(Boolean).join(' '),
+    phone:     cfgPhone||'',
+    tax:       cfgTax||'',
+    dateTH:    now.toLocaleDateString('th-TH',{year:'numeric',month:'long',day:'numeric'}),
+    dateShort: now.toLocaleDateString('th-TH',{year:'numeric',month:'short',day:'numeric'}),
+    timeTH:    now.toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit'}),
+    datetimeTH:now.toLocaleDateString('th-TH',{weekday:'short',year:'numeric',month:'long',day:'numeric'}),
+    items:     billItems, cnt: billItems.length
   };
-
-  // backward-compat aliases (ฟังก์ชันเก่าบางตัวอาจยังใช้)
+  // backward compat
   window._lastBillHash  = hash;
   window._lastBillNonce = nonce;
-  window._lastBillNow   = isoDate.slice(0,16);
-  window._lastBillItems = window._bill.items;
+  window._lastBillNow   = iso16;
+  window._lastBillItems = billItems;
   window._lastBillTotal = total;
-  window._lastBillQRData = QR_PAYLOAD;
+  window._lastBillQRData= QR_PAYLOAD;
 
-  // ── 7. อัพเดต DOM บิล (ใช้ข้อมูลจาก _bill ไม่ใช่ DOM loop) ──
+  // บันทึกประวัติ
+  saveHist({ no, date:isoDate, nonce, hash, total, shop:cfgShop||'ร้านค้า', items:billItems, scans:[] });
+
+  // อัพเดต DOM บิล
   const b = window._bill;
   setText('b-shop', b.shop);
   setText('b-no',   no);
   setText('b-datetime', b.datetimeTH);
   setText('b-date',     b.dateShort);
   setText('b-time',     b.timeTH);
-  setText('b-cnt',  b.cnt + ' รายการ');
-  setText('b-total', fmt(total) + ' ฿');
-  setText('b-hash', 'Digital Sig: ' + hash);
-
-  const details = [b.owner, b.addr, b.phone ? '📞 ' + b.phone : ''].filter(Boolean).join(' · ');
+  setText('b-cnt',  b.cnt+' รายการ');
+  setText('b-total', fmt(total)+' ฿');
+  setText('b-hash', 'Digital Sig: '+hash);
+  const details = [b.owner,b.addr,b.phone?'📞 '+b.phone:''].filter(Boolean).join(' · ');
   setText('b-detail', details);
-  setText('b-tax', b.tax ? 'เลขผู้เสียภาษี: ' + b.tax : '');
+  setText('b-tax', b.tax?'เลขผู้เสียภาษี: '+b.tax:'');
 
-  document.getElementById('b-items').innerHTML = b.items.map(it => `
+  document.getElementById('b-items').innerHTML = billItems.map(it=>`
     <div class="bitem">
       <div><div class="biname">${it.name}</div><div class="biqty">${it.qty} ชิ้น</div></div>
       <div class="bicol">${it.qty} × ${fmt(it.up)}</div>
       <div class="bisub">${fmt(it.sub)} ฿</div>
     </div>`).join('');
 
-  // ── 8. แสดงหน้าบิล ──
+  // แสดงหน้าบิลก่อน
   showScreen('bill');
 
-  // ── 9. วาด QR + ลายเซ็น หลัง browser paint ──
-  requestAnimationFrame(() => setTimeout(() => {
-
-    // QR เดียวกันทั้งร้านค้าและลูกค้า
-    drawQR(QR_PAYLOAD, 'qr-anchor', 140);
+  // วาด QR + ลายเซ็น หลัง browser paint (ไม่บล็อก UI)
+  requestAnimationFrame(() => {
+    // วาด QR บน canvas จริง (ไม่ใช่ div anchor)
+    _drawQROnCanvas(QR_PAYLOAD, 'qr-canvas-bill', 140);
 
     // ลายเซ็น
-    const sigCanvas = document.getElementById('bill-sig-canvas');
-    if (sigCanvas) {
-      const ctx = sigCanvas.getContext('2d');
-      ctx.clearRect(0, 0, sigCanvas.width, sigCanvas.height);
-      setText('bill-collector-name', cfgCollector || cfgOwner || '');
+    const sc = document.getElementById('bill-sig-canvas');
+    if (sc) {
+      const ctx = sc.getContext('2d');
+      ctx.clearRect(0,0,sc.width,sc.height);
+      setText('bill-collector-name', cfgCollector||cfgOwner||'');
       if (cfgSig) {
         const img = new Image();
-        img.onload = () => ctx.drawImage(img, 0, 0, sigCanvas.width, sigCanvas.height);
+        img.onload = () => ctx.drawImage(img,0,0,sc.width,sc.height);
         img.src = cfgSig;
       } else {
-        ctx.strokeStyle = '#c0b89a';
-        ctx.setLineDash([6, 4]);
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        ctx.moveTo(20, sigCanvas.height - 10);
-        ctx.lineTo(sigCanvas.width - 20, sigCanvas.height - 10);
-        ctx.stroke();
+        ctx.strokeStyle='#c0b89a'; ctx.setLineDash([6,4]); ctx.lineWidth=1;
+        ctx.beginPath(); ctx.moveTo(20,sc.height-10); ctx.lineTo(sc.width-20,sc.height-10); ctx.stroke();
       }
     }
 
-  }, 80));
+    // เรียน memory หลัง render (ไม่บล็อก)
+    setTimeout(() => { learnFromBill(billItems); renderMemoryChips(); }, 200);
+  });
 }
+
+// วาด QR บน canvas element โดยตรง (ไม่ใช้ anchor div)
+function _drawQROnCanvas(text, canvasId, size) {
+  const canvas = document.getElementById(canvasId);
+  if (!canvas) return;
+  canvas.width = size; canvas.height = size;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#fff'; ctx.fillRect(0,0,size,size);
+  try {
+    // ใช้ window.drawQR ที่มีอยู่ (QR engine ที่ inject ท้ายไฟล์)
+    if (typeof window.drawQR === 'function') {
+      // สร้าง wrapper div ชั่วคราว แล้ว copy img/canvas มา
+      const wrap = document.createElement('div');
+      wrap.style.cssText = 'position:absolute;left:-9999px;top:-9999px;';
+      document.body.appendChild(wrap);
+      window.drawQR(text, wrap.id = '_qr_tmp_'+Date.now(), size);
+      setTimeout(() => {
+        const img  = wrap.querySelector('img');
+        const cvs2 = wrap.querySelector('canvas');
+        const src  = img?.src || cvs2?.toDataURL();
+        if (src) { const i=new Image(); i.onload=()=>{ctx.drawImage(i,0,0,size,size);}; i.src=src; }
+        document.body.removeChild(wrap);
+      }, 300);
+    }
+  } catch(e) { console.warn('QR draw error',e); }
+}
+
+// กลับหน้า confirm จากหน้าบิล
+function goConfirm() { showScreen('confirm'); }
+
+// Dispatcher สำหรับปุ่มใน action bar — แยกออกมาเพื่อความชัดเจน
+function billAction(type) {
+  switch(type) {
+    case 'send': sendBillPNG(); break;
+    case 'png':  saveAsPNG();  break;
+    case 'pdf':  saveAsPDF();  break;
+    case 'qr':   _showBillQRModal(); break;
+    case 'text': shareBillText(); break;
+  }
+}
+
+// แสดง QR modal
+function _showBillQRModal() {
+  if (!window._bill) { toast('กรุณาออกบิลก่อน'); return; }
+  const b = window._bill;
+  setText('qr-modal-hash', 'Sig: '+b.hash);
+  _drawQROnCanvas(b.QR_PAYLOAD, 'qr-canvas-modal', 220);
+  document.getElementById('qr-modal').classList.add('open');
+}
+function closeQRModal() { document.getElementById('qr-modal').classList.remove('open'); }
 
 // drawQR — implemented by the pure-JS QR engine at bottom of file (window.drawQR)
 
@@ -2232,34 +2288,33 @@ function shareBillText() {
 }
 
 // ── SHARE: QR MODAL — ใช้ QR_PAYLOAD เดียวกับบิลร้านค้า ──
-function shareBillQR() {
-  if (!window._bill) { toast('กรุณาออกบิลก่อน'); return; }
-  const b = window._bill;
-  document.getElementById('qr-modal-hash').textContent = 'Sig: ' + b.hash;
-  drawQR(b.QR_PAYLOAD, 'qr-big-anchor', 220);
-  document.getElementById('qr-modal').classList.add('open');
-}
-function closeQRModal() {
-  document.getElementById('qr-modal').classList.remove('open');
-}
+// shareBillQR → ถูกแทนที่โดย _showBillQRModal
+
 
 // ── BUILD BILL CANVAS (shared by saveAsPNG & sendBillPNG) ──
 async function buildBillCanvas(isCopy) {
-  const el = document.querySelector('.bill-paper');
+  const el = document.getElementById('bill-paper-el') || document.querySelector('.bill-paper');
   if (!el) return null;
 
-  // Temporarily lift pointer-events so html2canvas can read all child elements
-  const prev = el.style.pointerEvents;
+  // ชั่วคราวเปิด pointer-events ให้ html2canvas อ่านได้
+  const prevPE  = el.style.pointerEvents;
+  const prevUS  = el.style.userSelect;
   el.style.pointerEvents = 'auto';
+  el.style.userSelect    = 'text';
+  // รอ 1 frame ให้ browser apply style ก่อน capture
+  await new Promise(r => requestAnimationFrame(r));
 
   const billCanvas = await html2canvas(el, {
     scale: 2.5,
     useCORS: true,
+    allowTaint: true,
     backgroundColor: '#ffffff',
     logging: false,
-    letterRendering: true
+    letterRendering: true,
+    ignoreElements: el2 => el2.tagName === 'CANVAS' && el2.id === 'bill-sig-canvas' ? false : false
   });
-  el.style.pointerEvents = prev;
+  el.style.pointerEvents = prevPE;
+  el.style.userSelect    = prevUS;
 
   if (!isCopy) return billCanvas;
 
@@ -2335,7 +2390,7 @@ async function buildBillCanvas(isCopy) {
 // ── SEND BILL PNG TO CUSTOMER (ปุ่มหลัก) ──
 // สร้างภาพบิลสำเนา มีตราประทับ + hash เบิร์นในภาพ แล้วแชร์ผ่าน Line
 async function sendBillPNG() {
-  if (!window._lastBillHash) { toast('กรุณาออกบิลก่อน'); return; }
+  if (!window._bill) { toast('กรุณาออกบิลก่อน'); return; }
   showExportOverlay('📲 กำลังสร้างบิลสำเนา...');
   try {
     const canvas  = await buildBillCanvas(true); // isCopy = true
@@ -2592,11 +2647,11 @@ function verifyBillFromQR(rawData) {
     if (!b || !b.no) { toast('QR ไม่ใช่ข้อมูลบิล'); return; }
 
     // ── 1. คำนวณ hash ด้วยสูตรเดียวกับ createBill ──
-    const nonce = b.nonce || '';
+    const nonce = b.nc || b.nonce || '';
     const iso   = b.iso   || b.isoDate || '';
     const hashInput = b.no + '|' + iso + '|'
-      + (b.items||[]).map(i => (i.n||i.name) + '|' + (i.q||i.qty) + '|' + (i.p||i.up)).join('||')
-      + '|' + b.total + '|' + nonce;
+      + (b.it||b.items||[]).map(i => (i.n||i.name) + '|' + (i.q||i.qty) + '|' + (i.p||i.up)).join('||')
+      + '|' + (b.tot||b.total) + '|' + nonce;
     const recomputed = simpleHash(hashInput);
     const sigValid   = (b.hash === recomputed);
 
@@ -2608,9 +2663,11 @@ function verifyBillFromQR(rawData) {
     recordScan(b.no, { time: new Date().toISOString(), fp, ua: navigator.userAgent.slice(0,80) });
 
     // ── 3. Render บิล (เหมือนร้านค้าทุกอย่าง) ──
-    const billItems = (b.items||[]).map(i => ({
-      name: i.n||i.name, qty: +(i.q||i.qty), up: +(i.p||i.up), sub: +(i.s||(i.p||i.up)*(i.q||i.qty))
+    const _src = b.it || b.items || [];
+    const billItems = _src.map(i => ({
+      name: i.n||i.name, qty: +(i.q||i.qty), up: +(i.p||i.up), sub: +(i.s||(+(i.p||i.up))*(+(i.q||i.qty)))
     }));
+    const total_v = b.tot || b.total || 0;
     setText('vf-no',   b.no);
     setText('vf-shop', b.shop || '');
     const details = [b.owner, b.addr, b.phone ? '📞 '+b.phone : ''].filter(Boolean).join(' · ');
@@ -2619,7 +2676,7 @@ function verifyBillFromQR(rawData) {
     setText('vf-date', b.date || '');
     setText('vf-time', b.time || '');
     setText('vf-cnt',  billItems.length + ' รายการ');
-    setText('vf-total', fmt(b.total) + ' ฿');
+    setText('vf-total', fmt(total_v) + ' ฿');
     setText('vf-hash', 'Digital Sig: ' + b.hash);
     setText('vf-nonce', nonce ? 'Nonce: '+nonce.slice(0,8)+'...' : '');
 
