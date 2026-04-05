@@ -1073,7 +1073,7 @@ html,body{height:100%;height:100dvh;overflow:hidden;background:var(--bg);color:v
       <div class="cfg-section sig-section">
         <div class="cfg-label">✍️ ลายเซ็นผู้รับเงิน (แสดงบนบิล)</div>
         <div class="sig-canvas-wrap">
-          <canvas class="sig-canvas" id="sig-canvas" width="600" height="180"></canvas>
+          <canvas class="sig-canvas" id="sig-canvas" width="900" height="300"></canvas>
         </div>
         <div class="sig-actions">
           <button class="sig-clear" onclick="sigClear()">🗑️ ล้าง</button>
@@ -1469,9 +1469,13 @@ document.getElementById('settings-modal').addEventListener('click', function(e) 
     canvas._sigInit = true;
     const ctx = canvas.getContext('2d');
     ctx.strokeStyle = '#1a1410';
-    ctx.lineWidth = 2.5;
+    ctx.lineWidth = 3.5;
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+
+    let pts = [];  // เก็บ points ใน stroke ปัจจุบัน
 
     function getPos(e) {
       const rect = canvas.getBoundingClientRect();
@@ -1480,14 +1484,47 @@ document.getElementById('settings-modal').addEventListener('click', function(e) 
       const src = e.touches ? e.touches[0] : e;
       return { x: (src.clientX - rect.left) * scaleX, y: (src.clientY - rect.top) * scaleY };
     }
-    function down(e) { e.preventDefault(); drawing = true; const p = getPos(e); lastX = p.x; lastY = p.y; }
+
+    function drawSmooth(pts) {
+      if (pts.length < 2) return;
+      ctx.beginPath();
+      ctx.moveTo(pts[0].x, pts[0].y);
+      if (pts.length === 2) {
+        ctx.lineTo(pts[1].x, pts[1].y);
+      } else {
+        // Catmull-Rom → Bezier: เส้นโค้งนุ่มเหมือนปากกาจริง
+        for (let i = 1; i < pts.length - 1; i++) {
+          const mx = (pts[i].x + pts[i+1 < pts.length ? i+1 : i].x) / 2;
+          const my = (pts[i].y + pts[i+1 < pts.length ? i+1 : i].y) / 2;
+          ctx.quadraticCurveTo(pts[i].x, pts[i].y, mx, my);
+        }
+        ctx.lineTo(pts[pts.length-1].x, pts[pts.length-1].y);
+      }
+      ctx.stroke();
+    }
+
+    function down(e) {
+      e.preventDefault(); drawing = true;
+      const p = getPos(e); lastX = p.x; lastY = p.y;
+      pts = [p];
+      ctx.beginPath(); ctx.moveTo(p.x, p.y);
+    }
     function move(e) {
       e.preventDefault(); if (!drawing) return;
       const p = getPos(e);
-      ctx.beginPath(); ctx.moveTo(lastX, lastY); ctx.lineTo(p.x, p.y); ctx.stroke();
+      pts.push(p);
+      // วาด segment แบบ smooth ทุก 3 จุด
+      if (pts.length >= 3) {
+        const l = pts.length;
+        const p0 = pts[l-3], p1 = pts[l-2], p2 = pts[l-1];
+        const mx = (p1.x + p2.x) / 2, my = (p1.y + p2.y) / 2;
+        ctx.beginPath(); ctx.moveTo((p0.x+p1.x)/2, (p0.y+p1.y)/2);
+        ctx.quadraticCurveTo(p1.x, p1.y, mx, my);
+        ctx.stroke();
+      }
       lastX = p.x; lastY = p.y;
     }
-    function up(e) { e.preventDefault(); drawing = false; }
+    function up(e) { e.preventDefault(); drawing = false; pts = []; }
     canvas.addEventListener('mousedown', down);
     canvas.addEventListener('mousemove', move);
     canvas.addEventListener('mouseup', up);
@@ -1512,19 +1549,19 @@ document.getElementById('settings-modal').addEventListener('click', function(e) 
     if (canvas.toDataURL('image/png') === blank.toDataURL('image/png')) { toast('กรุณาเซ็นชื่อก่อนบันทึก'); return; }
 
     // ── แปลง canvas → SVG path คมชัด กะทัดรัด ──
-    // viewBox 200×N → ละเอียด 2× / DP tolerance 0.7px / sample ทุก 2px
+    // viewBox 400×N → ละเอียด 2× / DP tolerance 0.4px / sample ทุก 1px
     const ctx = canvas.getContext('2d');
     const W = canvas.width, H = canvas.height;
     const imgData = ctx.getImageData(0, 0, W, H);
     const px = imgData.data;
 
-    const STEP = 2;
+    const STEP = 1;   // sample ทุก pixel (ละเอียดขึ้น)
     const points = [];
     for (let y = 0; y < H; y += STEP) {
       let seg = [];
       for (let x = 0; x < W; x++) {
         const a = px[(y * W + x) * 4 + 3];
-        if (a > 32) { seg.push([x, y]); }
+        if (a > 20) { seg.push([x, y]); }        // threshold ต่ำลง จับเส้นเบาขึ้น
         else if (seg.length > 1) { points.push(seg); seg = []; }
         else { seg = []; }
       }
@@ -1549,20 +1586,20 @@ document.getElementById('settings-modal').addEventListener('click', function(e) 
       return [pts[0], pts[pts.length-1]];
     }
 
-    const VW = 200, VH = Math.round(VW * H / W);
+    const VW = 400, VH = Math.round(VW * H / W);   // viewBox ใหญ่ขึ้น 2× → ละเอียดขึ้น
     const sx = VW / W, sy = VH / H;
     let d = '';
     for (const seg of points) {
-      const simplified = dpSimplify(seg, 0.7);
+      const simplified = dpSimplify(seg, 0.4);      // tolerance 0.4 (เดิม 0.7) → โค้งละเอียดกว่า
       if (simplified.length < 2) continue;
       const [fx,fy] = simplified[0];
-      d += `M${Math.round(fx*sx*2)/2},${Math.round(fy*sy*2)/2}`;
+      d += `M${Math.round(fx*sx*4)/4},${Math.round(fy*sy*4)/4}`;  // round ทีละ 0.25
       for (let i = 1; i < simplified.length; i++) {
-        d += `L${Math.round(simplified[i][0]*sx*2)/2},${Math.round(simplified[i][1]*sy*2)/2}`;
+        d += `L${Math.round(simplified[i][0]*sx*4)/4},${Math.round(simplified[i][1]*sy*4)/4}`;
       }
     }
 
-    const svgStr = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${VW} ${VH}"><path d="${d}" fill="none" stroke="#1a1410" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+    const svgStr = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${VW} ${VH}"><path d="${d}" fill="none" stroke="#1a1410" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
     const svgB64 = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgStr)));
 
     cfgSig = svgB64;
@@ -2621,47 +2658,49 @@ function showQRModal() {
       if (!anchor) return;
       anchor.innerHTML = '';
 
-      // ── payload — sh (ชื่อร้าน) + cn (ชื่อลูกค้า) ต้องมีเสมอ ──
-      const compact = {
-        v:5, no:b.no, iso:b.iso16, nc:b.nonce, h:b.hash, tot:b.total,
-        sh: b.shop||'', ow: b.owner||'', ad: b.addr||'',
-        ph: b.phone||'', tx: b.tax||'', cn: b.custName||'',
-        dt: b.dateTH||'', tm: b.timeTH||'',
-        it: b.items.map(i=>({n:i.name,q:i.qty,p:i.up,s:i.sub}))
-      };
-
-      // ── ฝังลายเซ็นแบบ compact "VW,VH|pathdata" ──
-      if (cfgSig && cfgSig.startsWith('data:image/svg+xml;base64,')) {
+      // ── payload pipe-separated + base64 (ย่อ 70% vs JSON+encodeURI) ──
+      // format: v|no|iso|nc|h|tot|sh|ow|ad|ph|tx|cn|dt|tm|sg|item1name:q:p;item2...
+      const sigCompact = (() => {
+        if (!cfgSig || !cfgSig.startsWith('data:image/svg+xml;base64,')) return '';
         try {
           const svgFull = decodeURIComponent(escape(atob(cfgSig.slice(26))));
           const mPath = svgFull.match(/d="([^"]+)"/);
           const mVB   = svgFull.match(/viewBox="0 0 (\d+) (\d+)"/);
-          if (mPath && mVB) compact.sg = mVB[1]+','+mVB[2]+'|'+mPath[1];
-        } catch(e2) {}
-      }
+          return (mPath && mVB) ? mVB[1]+','+mVB[2]+'|'+mPath[1] : '';
+        } catch(e) { return ''; }
+      })();
 
-      Object.keys(compact).forEach(k => {
-        if (compact[k] === '' || compact[k] === null || compact[k] === undefined) delete compact[k];
-      });
+      const itemsStr = b.items.map(i => `${i.name}:${i.qty}:${i.up}`).join(';');
+      const pipeStr  = [
+        5, b.no, b.iso16, b.nonce, b.hash, b.total,
+        b.shop||'', b.owner||'', b.addr||'', b.phone||'', b.tax||'',
+        b.custName||'', b.dateTH||'', b.timeTH||'',
+        sigCompact, itemsStr
+      ].join('\x01');   // ใช้ \x01 แทน | กันชนกับชื่อสินค้าที่มี |
 
       const baseURL = window.location.href.split('#')[0];
-      const MAX_URL = 3500;   // เพิ่มจาก 2800 → 3500 QR Level L รองรับได้
-      const tryEncode = (obj) => baseURL + '#bill=' + btoa(unescape(encodeURIComponent(JSON.stringify(obj))));
-      let qrURL = tryEncode(compact);
+      let encoded = btoa(unescape(encodeURIComponent(pipeStr)));
+      let qrURL   = baseURL + '#bill=' + encoded;
 
-      // ลำดับตัด: ลายเซ็น → วันที่ → ภาษี  (ที่อยู่/เบอร์ไม่ตัดเพราะสำคัญ)
-      if (qrURL.length > MAX_URL && compact.sg) {
-        delete compact.sg; qrURL = tryEncode(compact);
+      // fallback ตัดลายเซ็นถ้ายาวเกิน (กรณีรายการเยอะมาก)
+      const MAX_URL = 3500;
+      if (qrURL.length > MAX_URL && sigCompact) {
+        const pipeNoSig = [
+          5, b.no, b.iso16, b.nonce, b.hash, b.total,
+          b.shop||'', b.owner||'', b.addr||'', b.phone||'', b.tax||'',
+          b.custName||'', b.dateTH||'', b.timeTH||'',
+          '', itemsStr
+        ].join('\x01');
+        encoded = btoa(unescape(encodeURIComponent(pipeNoSig)));
+        qrURL   = baseURL + '#bill=' + encoded;
         toast('⚠️ ลายเซ็นถูกตัดออก เพราะรายการสินค้ายาวเกิน QR');
       }
-      if (qrURL.length > MAX_URL && compact.dt) { delete compact.dt; delete compact.tm; qrURL = tryEncode(compact); }
-      if (qrURL.length > MAX_URL && compact.tx) { delete compact.tx; qrURL = tryEncode(compact); }
 
       new QRCode(anchor, { text:qrURL, width:240, height:240, colorDark:'#1a3a6b', colorLight:'#ffffff', correctLevel:QRCode.CorrectLevel.L });
 
       const sizeEl = document.getElementById('qr-bill-size');
       if (sizeEl) sizeEl.textContent = 'URL: ' + qrURL.length + ' ตัวอักษร'
-        + (compact.sg ? ' · ลายเซ็น ✅' : '') + (compact.cn ? ' · ชื่อลูกค้า ✅' : '');
+        + (sigCompact ? ' · ลายเซ็น ✅' : '') + (b.custName ? ' · ชื่อลูกค้า ✅' : '');
 
     } catch(e) {
       console.warn('QR error:', e);
@@ -3239,7 +3278,31 @@ function resizeImgB64(src, maxW, quality) {
 // ══════════════════════════════
 function verifyBillFromQR(rawData) {
   try {
-    const b = JSON.parse(rawData);
+    let b;
+
+    // ── ตรวจ format: pipe-separated (ใหม่) หรือ JSON (เดิม) ──
+    if (rawData.includes('\x01')) {
+      // ── format ใหม่: pipe-separated ด้วย \x01 ──
+      const f = rawData.split('\x01');
+      // [0]=v [1]=no [2]=iso [3]=nc [4]=h [5]=tot [6]=sh [7]=ow [8]=ad
+      // [9]=ph [10]=tx [11]=cn [12]=dt [13]=tm [14]=sg [15]=items
+      const itemsRaw = (f[15]||'').split(';').filter(Boolean);
+      b = {
+        v: +f[0], no: f[1], iso: f[2], nc: f[3], h: f[4], tot: +f[5],
+        sh: f[6]||'', ow: f[7]||'', ad: f[8]||'', ph: f[9]||'',
+        tx: f[10]||'', cn: f[11]||'', dt: f[12]||'', tm: f[13]||'',
+        sg: f[14]||'',
+        it: itemsRaw.map(s => {
+          const p = s.split(':');
+          const q = +(p[1]||1), pr = +(p[2]||0);
+          return { n: p[0], q, p: pr, s: q * pr };
+        })
+      };
+    } else {
+      // ── format เดิม: JSON ──
+      b = JSON.parse(rawData);
+    }
+
     if (!b || !b.no) { toast('QR ไม่ใช่ข้อมูลบิล'); return; }
 
     // ── 1. คำนวณ hash ด้วยสูตรเดียวกับ createBill ──
@@ -3515,6 +3578,7 @@ async function downloadVerifyPNG() {
   });
   try {
     const encoded = hash.slice(6);
+    // decode base64 → UTF-8 string (รองรับทั้ง pipe ใหม่ และ JSON เดิม)
     let raw;
     try {
       raw = decodeURIComponent(escape(atob(encoded)));
