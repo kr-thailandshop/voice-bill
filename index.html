@@ -2022,6 +2022,31 @@ function updateTotal() {
 }
 
 // ══════════════════════════════
+// SHOW REVIEW SCREEN
+// ══════════════════════════════
+function showReview() {
+  if (!items.length) { toast('กรุณาเพิ่มสินค้าอย่างน้อย 1 รายการ'); return; }
+  const total = items.reduce((s, i) => s + i.sub, 0);
+  const cnt   = items.length;
+
+  // Render รายการ
+  document.getElementById('review-items').innerHTML = items.map((it, idx) => `
+    <div class="review-item-row">
+      <div class="review-item-num">${idx + 1}</div>
+      <div class="review-item-body">
+        <div class="review-item-name">${it.name}</div>
+        <div class="review-item-detail">${it.qty} ชิ้น × ${fmt(it.up)} ฿</div>
+      </div>
+      <div class="review-item-sub">${fmt(it.sub)} ฿</div>
+    </div>`).join('');
+
+  document.getElementById('review-total').textContent = fmt(total);
+  document.getElementById('review-cnt').textContent   = cnt + ' รายการ';
+  document.getElementById('review-sub').textContent   = 'ตรวจสอบ ' + cnt + ' รายการ';
+  showScreen('review');
+}
+
+// ══════════════════════════════
 // CREATE BILL
 // ══════════════════════════════
 function createBill() {
