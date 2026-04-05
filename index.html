@@ -305,6 +305,17 @@ html,body{height:100%;height:100dvh;overflow:hidden;background:var(--bg);color:v
 .bml{font-size:8.5px;color:#9a8e78;text-transform:uppercase;letter-spacing:0.5px;font-family:'IBM Plex Mono',monospace;}
 .bmv{font-size:11.5px;font-weight:800;color:#1a1410;margin-top:2px;}
 
+/* Customer name bar (above bill) */
+.cust-bar{margin:0 11px 7px;background:var(--surface);border:2px solid var(--border);border-radius:13px;padding:11px 13px;box-shadow:var(--shadow);flex-shrink:0;}
+.cust-label{color:var(--muted);margin-bottom:7px;font-weight:700;font-family:'IBM Plex Mono',monospace;font-size:calc(0.75rem * var(--sz));}
+.cust-row{display:flex;gap:6px;align-items:center;}
+.cust-input{flex:1;background:var(--bg2);border:2px solid var(--border);border-radius:9px;padding:10px 12px;font-family:'Sarabun',sans-serif;font-weight:600;color:var(--text);outline:none;min-height:46px;font-size:calc(0.9rem * var(--sz));transition:border-color 0.15s;}
+.cust-input:focus{border-color:var(--accent);}
+.cust-mic-btn{min-width:46px;height:46px;border-radius:10px;background:var(--bg2);border:2px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:20px;cursor:pointer;flex-shrink:0;transition:all 0.12s;}
+.cust-mic-btn.rec{background:var(--acc-light);border-color:var(--accent);box-shadow:0 0 0 4px rgba(26,95,168,0.14);}
+.cust-ai-btn{min-width:46px;height:46px;border-radius:10px;background:var(--accent);border:none;color:#fff;display:flex;align-items:center;justify-content:center;font-size:18px;cursor:pointer;flex-shrink:0;font-weight:700;font-family:'Sarabun',sans-serif;transition:all 0.12s;}
+.cust-ai-btn:active{opacity:0.85;transform:scale(0.93);}
+
 /* Column headers */
 .bitems-head{display:grid;grid-template-columns:1fr 80px 70px;background:#1a5fa8;padding:7px 16px;gap:4px;}
 .bih{font-size:9px;font-weight:700;color:rgba(255,255,255,0.8);letter-spacing:0.5px;text-transform:uppercase;}
@@ -781,6 +792,18 @@ html,body{height:100%;height:100dvh;overflow:hidden;background:var(--bg);color:v
     </button>
   </div>
 
+  <!-- ── ชื่อลูกค้า ── -->
+  <div class="cust-bar" id="cust-bar">
+    <div class="cust-label">👤 ชื่อลูกค้า (ไม่บังคับ)</div>
+    <div class="cust-row">
+      <input class="cust-input" id="cust-name-input" placeholder="ชื่อลูกค้า หรือกดค้างปุ่มพูด..." type="text" oninput="updateCustName()">
+      <button class="cust-mic-btn" id="cust-mic-btn"
+        ontouchstart="startCustMic(event)" ontouchend="stopCustMic(event)"
+        onmousedown="startCustMic(event)" onmouseup="stopCustMic(event)"
+        title="กดค้างแล้วพูด">🎙️</button>
+    </div>
+  </div>
+
   <!-- ── BILL SCROLL AREA ── -->
   <div class="bill-scroll" id="bill-scroll-area">
     <div class="bill-paper" id="bill-paper-el">
@@ -819,6 +842,12 @@ html,body{height:100%;height:100dvh;overflow:hidden;background:var(--bg);color:v
         <div class="bmc"><div class="bml">วันที่</div><div class="bmv" id="b-date">—</div></div>
         <div class="bmc"><div class="bml">เวลา</div><div class="bmv" id="b-time">—</div></div>
         <div class="bmc"><div class="bml">รายการ</div><div class="bmv" id="b-cnt">—</div></div>
+      </div>
+
+      <!-- Customer name row (show when filled) -->
+      <div id="b-cust-row" style="display:none;background:#faf8f2;padding:8px 16px;border-bottom:1.5px dashed #d0c8b0;">
+        <div style="font-size:8.5px;color:#9a8e78;text-transform:uppercase;letter-spacing:0.5px;font-family:'IBM Plex Mono',monospace;">ลูกค้า / CUSTOMER</div>
+        <div style="font-size:12px;font-weight:800;color:#1a1410;margin-top:2px;" id="b-cust-name-display">—</div>
       </div>
 
       <!-- Column headers -->
@@ -917,7 +946,11 @@ html,body{height:100%;height:100dvh;overflow:hidden;background:var(--bg);color:v
   </div>
 
   <div style="flex:1;overflow-y:auto;padding:10px 12px 24px;">
-    <div class="bill-paper" id="verify-paper">
+    <div class="bill-paper" id="verify-paper" style="position:relative;">
+
+      <!-- ── COPY badge มุมบนขวา ── -->
+      <div style="position:absolute;top:10px;right:10px;z-index:10;background:rgba(176,42,31,0.88);color:#fff;font-size:10px;font-weight:800;padding:3px 10px;border-radius:100px;letter-spacing:1.5px;border:1.5px solid rgba(255,255,255,0.4);pointer-events:none;">📋 COPY</div>
+
       <div class="bhead">
         <div class="bhead-top">
           <div><div class="bhead-book-lbl">DIGITAL BILL · COPY</div><div class="bhead-book-val">บิลเงินสด · สำเนา</div></div>
@@ -938,6 +971,13 @@ html,body{height:100%;height:100dvh;overflow:hidden;background:var(--bg);color:v
         <div class="bmc"><div class="bml">เวลา</div><div class="bmv" id="vf-time">—</div></div>
         <div class="bmc"><div class="bml">รายการ</div><div class="bmv" id="vf-cnt">—</div></div>
       </div>
+
+      <!-- ชื่อลูกค้า (ถ้ามี) -->
+      <div id="vf-cust-row" style="display:none;background:#faf8f2;padding:8px 16px;border-bottom:1.5px dashed #d0c8b0;">
+        <div style="font-size:8.5px;color:#9a8e78;text-transform:uppercase;letter-spacing:0.5px;font-family:'IBM Plex Mono',monospace;">ลูกค้า / CUSTOMER</div>
+        <div style="font-size:12px;font-weight:800;color:#1a1410;margin-top:2px;" id="vf-cust-name">—</div>
+      </div>
+
       <div class="bitems-head">
         <div class="bih">รายการสินค้า</div>
         <div class="bih right">จำนวน × ราคา</div>
@@ -1346,9 +1386,9 @@ function stopMore(e) {
   processAI(text, true);
 }
 
-document.addEventListener('mouseup',     e => { if (isMain) stopMain(e);  if (isMore) stopMore(e); });
-document.addEventListener('touchend',    e => { if (isMain) stopMain(e);  if (isMore) stopMore(e); }, {passive:false});
-document.addEventListener('touchcancel', e => { if (isMain) stopMain(e);  if (isMore) stopMore(e); }, {passive:false});
+document.addEventListener('mouseup',     e => { if (isMain) stopMain(e);  if (isMore) stopMore(e); if (isCustMic) stopCustMic(e); });
+document.addEventListener('touchend',    e => { if (isMain) stopMain(e);  if (isMore) stopMore(e); if (isCustMic) stopCustMic(e); }, {passive:false});
+document.addEventListener('touchcancel', e => { if (isMain) stopMain(e);  if (isMore) stopMore(e); if (isCustMic) stopCustMic(e); }, {passive:false});
 // ป้องกัน context menu เฉพาะบนบิล ไม่บล็อก input fields
 document.addEventListener('contextmenu', e => {
   const tag = e.target.tagName;
@@ -1458,18 +1498,42 @@ document.getElementById('settings-modal').addEventListener('click', function(e) 
   window.sigSave = function() {
     const canvas = document.getElementById('sig-canvas');
     if (!canvas) return;
-    const data = canvas.toDataURL('image/png');
     // ตรวจว่า canvas ว่างเปล่าไหม
     const blank = document.createElement('canvas');
     blank.width = canvas.width; blank.height = canvas.height;
-    if (data === blank.toDataURL('image/png')) { toast('กรุณาเซ็นชื่อก่อนบันทึก'); return; }
-    cfgSig = data;
-    localStorage.setItem('vb_sig', data);
+    if (canvas.toDataURL('image/png') === blank.toDataURL('image/png')) { toast('กรุณาเซ็นชื่อก่อนบันทึก'); return; }
+
+    // ── แปลงเป็น SVG เพื่อลดขนาดไฟล์ (สำหรับ QR) ──
+    // ใช้ ImageData → สร้าง SVG path โดยเก็บเฉพาะ pixel ที่มีสี
+    const ctx = canvas.getContext('2d');
+    const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const px = imgData.data;
+    // สร้าง polyline จาก pixel ที่มีสี (alpha > 50)
+    let paths = '';
+    // สแกนเป็น row เก็บ horizontal segments
+    for (let y = 0; y < canvas.height; y += 2) {
+      let start = -1;
+      for (let x = 0; x < canvas.width; x++) {
+        const idx = (y * canvas.width + x) * 4;
+        const a = px[idx + 3];
+        if (a > 50 && start < 0) start = x;
+        else if (a <= 50 && start >= 0) {
+          paths += `<line x1="${start}" y1="${y}" x2="${x}" y2="${y}" stroke="#1a1410" stroke-width="2.5" stroke-linecap="round"/>`;
+          start = -1;
+        }
+      }
+      if (start >= 0) paths += `<line x1="${start}" y1="${y}" x2="${canvas.width}" y2="${y}" stroke="#1a1410" stroke-width="2.5" stroke-linecap="round"/>`;
+    }
+    const svgStr = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${canvas.width} ${canvas.height}" width="${canvas.width}" height="${canvas.height}">${paths}</svg>`;
+    const svgB64 = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgStr)));
+
+    cfgSig = svgB64;
+    localStorage.setItem('vb_sig', svgB64);
     // แสดง preview
-    document.getElementById('sig-preview-img').src = data;
+    document.getElementById('sig-preview-img').src = svgB64;
     document.getElementById('sig-preview-img').style.display = 'block';
     document.getElementById('sig-preview-empty').style.display = 'none';
-    toast('✍️ บันทึกลายเซ็นแล้ว ✅');
+    toast('✍️ บันทึกลายเซ็น SVG แล้ว ✅ (ขนาดเล็ก · ใส่ QR ได้)');
   };
 
   window.sigLoad = function() {
@@ -2148,6 +2212,7 @@ function createBill() {
   });
 
   // Cache ไว้ใช้ใน share functions
+  const custName = (document.getElementById('cust-name-input') || {}).value?.trim() || '';
   window._bill = {
     no, isoDate, iso16, nonce, hash, total, QR_PAYLOAD,
     HASH_INPUT,
@@ -2156,6 +2221,7 @@ function createBill() {
     addr:      [cfgAddr,cfgAddr2].filter(Boolean).join(' '),
     phone:     cfgPhone||'',
     tax:       cfgTax||'',
+    custName:  custName,
     dateTH:    now.toLocaleDateString('th-TH',{year:'numeric',month:'long',day:'numeric'}),
     dateShort: now.toLocaleDateString('th-TH',{year:'numeric',month:'short',day:'numeric'}),
     timeTH:    now.toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit'}),
@@ -2183,6 +2249,18 @@ function createBill() {
   const details = [b.owner,b.addr,b.phone?'📞 '+b.phone:''].filter(Boolean).join(' · ');
   setText('b-detail', details);
   setText('b-tax', b.tax?'เลขผู้เสียภาษี: '+b.tax:'');
+
+  // ── แสดงชื่อลูกค้าบนบิล (ถ้ามี) ──
+  const custRow = document.getElementById('b-cust-row');
+  const custDisp = document.getElementById('b-cust-name-display');
+  if (custRow && custDisp) {
+    if (b.custName) {
+      custDisp.textContent = b.custName;
+      custRow.style.display = 'block';
+    } else {
+      custRow.style.display = 'none';
+    }
+  }
 
   document.getElementById('b-items').innerHTML = billItems.map(it=>`
     <div class="bitem">
@@ -2245,6 +2323,81 @@ function createBill() {
 
 // กลับหน้า confirm จากหน้าบิล
 function goConfirm() { showScreen('confirm'); }
+
+// ══════════════════════════════
+// CUSTOMER NAME — ช่องชื่อลูกค้าบนหน้าบิล
+// ══════════════════════════════
+let isCustMic = false, recCust = null, trCust = '';
+
+function updateCustName() {
+  const val = (document.getElementById('cust-name-input') || {}).value || '';
+  const custRow = document.getElementById('b-cust-row');
+  const custDisp = document.getElementById('b-cust-name-display');
+  if (custRow && custDisp) {
+    if (val.trim()) { custDisp.textContent = val.trim(); custRow.style.display = 'block'; }
+    else { custRow.style.display = 'none'; }
+  }
+  // sync ไปที่ _bill ถ้ามีอยู่แล้ว
+  if (window._bill) window._bill.custName = val.trim();
+}
+
+function startCustMic(e) {
+  e.preventDefault(); if (isCustMic) return;
+  isCustMic = true; trCust = '';
+  if (recCust) { recCust.stop(); recCust = null; }
+  const btn = document.getElementById('cust-mic-btn');
+  if (btn) btn.classList.add('rec');
+  recCust = makeRec((display) => {
+    trCust = display;
+    const inp = document.getElementById('cust-name-input');
+    if (inp) { inp.value = display; updateCustName(); }
+  });
+  recCust.start();
+}
+
+function stopCustMic(e) {
+  if (e) e.preventDefault(); if (!isCustMic) return;
+  isCustMic = false;
+  const btn = document.getElementById('cust-mic-btn');
+  if (btn) btn.classList.remove('rec');
+  const final = (recCust ? recCust.getFinal() : '') || trCust.trim();
+  trCust = '';
+  if (recCust) { recCust.stop(); recCust = null; }
+  if (final) {
+    const inp = document.getElementById('cust-name-input');
+    if (inp) { inp.value = final; updateCustName(); }
+    toast('🎙️ บันทึกชื่อลูกค้าแล้ว: ' + final);
+  }
+}
+
+// ปุ่ม 🎙️ แตะครั้งเดียวเพื่อเปิด/ปิดฟังชื่อลูกค้า (toggle mode)
+let recAICust = null, isAICust = false;
+function aiWriteCustName() {
+  if (isAICust) {
+    // กดอีกครั้ง = หยุดฟัง
+    isAICust = false;
+    const text = (recAICust ? recAICust.getFinal() : '').trim();
+    if (recAICust) { recAICust.stop(); recAICust = null; }
+    const btn = document.getElementById('cust-ai-btn');
+    if (btn) { btn.textContent = '🎙️'; btn.style.background = 'var(--accent)'; }
+    if (text) {
+      const inp = document.getElementById('cust-name-input');
+      if (inp) { inp.value = text; updateCustName(); }
+      toast('✅ บันทึกชื่อ: ' + text);
+    }
+    return;
+  }
+  // เริ่มฟัง
+  isAICust = true;
+  const btn = document.getElementById('cust-ai-btn');
+  if (btn) { btn.textContent = '⏹️'; btn.style.background = '#b02a1f'; }
+  toast('🎙️ กำลังฟัง... แตะอีกครั้งเพื่อหยุด');
+  recAICust = makeRec((display) => {
+    const inp = document.getElementById('cust-name-input');
+    if (inp) { inp.value = display; updateCustName(); }
+  });
+  recAICust.start();
+}
 
 // ══════════════════════════════
 // BUILD BILL COPY HTML — สร้างบิลสำเนาพร้อมลายเซ็น เก็บไว้ใน window._billCopyHTML
@@ -2433,19 +2586,19 @@ function showQRModal() {
         ad: b.addr||'',
         ph: b.phone||'',
         tx: b.tax||'',
+        cn: b.custName||'',
         dt: b.dateTH||'',
         tm: b.timeTH||'',
         it: b.items.map(i=>({n:i.name,q:i.qty,p:i.up,s:i.sub}))
       };
 
-      // ── ฝังลายเซ็น (resize เป็น 200px แล้ว JPEG 40%) ──
+      // ── ฝังลายเซ็น SVG (ขนาดเล็ก ใส่ QR ได้) ──
       if (cfgSig) {
-        try { compact.sg = await resizeImgB64(cfgSig, 200, 0.4); } catch(e) {}
+        // cfgSig ตอนนี้เป็น SVG base64 แล้ว ขนาดเล็กมาก ไม่ต้อง resize
+        compact.sg = cfgSig;
       }
-      // ── ฝังตราประทับ (resize เป็น 120px แล้ว JPEG 40%) ──
-      if (cfgStamp) {
-        try { compact.st = await resizeImgB64(cfgStamp, 120, 0.4); } catch(e) {}
-      }
+      // ── ไม่ฝังตราประทับ (รูปใหญ่เกิน QR รองรับไม่ได้) ──
+      // compact.st ถูกตัดออก → ไม่อัพโหลดเข้า QR
 
       // ลบ field ว่างออก ลดความยาว
       Object.keys(compact).forEach(k => {
@@ -2485,6 +2638,10 @@ function closeQRModal(e) {
   // ล้าง QR เพื่อไม่ให้ค้างรอบหน้า
   const anchor = document.getElementById('qr-bill-anchor');
   if (anchor) anchor.innerHTML = '';
+  // ── บันทึก delivery status = QR ──
+  if (window._bill) markBillDelivered(window._bill.no, 'qr');
+  // กลับไปหน้า Home
+  goHome();
 }
 
 
@@ -2505,7 +2662,7 @@ function shareBillHTML() {
     const file = new File([blob], filename, { type: 'text/html' });
     if (navigator.canShare({ files: [file] })) {
       navigator.share({ files: [file], title: `บิล ${b.no}`, text: `บิลสำเนา ${b.shop} ยอด ${Number(b.total).toLocaleString('th-TH')} ฿` })
-        .then(() => toast('📨 แชร์บิลแล้ว ✅'))
+        .then(() => { toast('📨 แชร์บิลแล้ว ✅'); markBillDelivered(b.no, 'file'); })
         .catch(e => { if (e.name !== 'AbortError') downloadBillHTML(blob, filename); });
       return;
     }
@@ -2526,6 +2683,7 @@ function downloadBillHTML(blob, filename) {
   a.download = filename;
   a.click();
   setTimeout(() => URL.revokeObjectURL(url), 3000);
+  if (window._bill) markBillDelivered(window._bill.no, 'file');
   toast('⬇️ ดาวน์โหลดไฟล์บิลแล้ว · ส่งไฟล์ให้ลูกค้าผ่าน Line ได้เลย ✅');
 }
 function shareBillText() {
@@ -2543,8 +2701,15 @@ function shareBillText() {
     `🔒 ล็อคแก้ไขไม่ได้ · ใช้เป็นหลักฐานค่าใช้จ่ายได้`
   ].filter(Boolean);
   const text = lines.join('\n');
-  if (navigator.share) navigator.share({ title: 'บิลสินค้า', text });
-  else navigator.clipboard?.writeText(text).then(() => toast('คัดลอกบิลแล้ว ✅'));
+  if (navigator.share) {
+    navigator.share({ title: 'บิลสินค้า', text })
+      .then(() => { if (window._bill) markBillDelivered(window._bill.no, 'text'); });
+  } else {
+    navigator.clipboard?.writeText(text).then(() => {
+      if (window._bill) markBillDelivered(window._bill.no, 'text');
+      toast('คัดลอกบิลแล้ว ✅');
+    });
+  }
 }
 
 // ── SHARE: QR MODAL — ใช้ QR_PAYLOAD เดียวกับบิลร้านค้า ──
@@ -2673,6 +2838,7 @@ async function sendBillPNG() {
             title: `บิลสำเนา ${no}`,
             text:  `🧾 บิลสำเนา · ${shop} · ยอด ${totalTx}\n🔒 ตรวจสอบได้จาก Digital Sig ในภาพ`
           });
+          markBillDelivered(no, 'png');
           toast('📲 ส่งบิลสำเนาแล้ว ✅');
           return;
         }
@@ -2687,6 +2853,7 @@ async function sendBillPNG() {
     a.download = `bill-copy-${no}.png`;
     a.click();
     hideExportOverlay();
+    markBillDelivered(no, 'png');
     toast('⬇️ บันทึกบิลสำเนาแล้ว · ส่งให้ลูกค้าผ่าน Line ✅');
   } catch(err) {
     hideExportOverlay();
@@ -2713,6 +2880,7 @@ async function saveAsPNG() {
         if (navigator.canShare({ files: [file] })) {
           hideExportOverlay();
           await navigator.share({ files: [file], title: 'บิล ' + no });
+          markBillDelivered(no, 'png');
           return;
         }
       } catch(e) {
@@ -2725,6 +2893,7 @@ async function saveAsPNG() {
     a.download = `bill-${no}.png`;
     a.click();
     hideExportOverlay();
+    markBillDelivered(no, 'png');
     toast('🖼️ บันทึกภาพบิลแล้ว ✅');
   } catch (err) {
     hideExportOverlay();
@@ -2757,6 +2926,7 @@ async function saveAsPDF() {
     const no = document.getElementById('b-no').textContent;
     doc.save(`bill-${no}.pdf`);
     hideExportOverlay();
+    markBillDelivered(no, 'pdf');
     toast('📄 ดาวน์โหลด PDF แล้ว ✅');
   } catch (err) {
     hideExportOverlay();
@@ -2783,6 +2953,22 @@ function saveHist(b) {
 function getHist() {
   try { return JSON.parse(localStorage.getItem('vb_hist') || '[]'); } catch (e) { return []; }
 }
+
+// ── บันทึกสถานะส่งบิลสำเร็จ ──
+function markBillDelivered(billNo, method) {
+  const hist = getHist();
+  const found = hist.find(b => b.no === billNo);
+  if (found) {
+    if (!found.delivered) found.delivered = [];
+    const methodLabels = { qr:'QR Code', png:'รูปภาพ', pdf:'PDF', file:'ไฟล์ HTML', text:'ข้อความ' };
+    const label = methodLabels[method] || method;
+    if (!found.delivered.find(d => d.method === method)) {
+      found.delivered.push({ method, label, time: new Date().toISOString() });
+    }
+    try { localStorage.setItem('vb_hist', JSON.stringify(hist)); } catch(e) {}
+  }
+}
+
 function showHistory() {
   const hist = getHist();
   const list = document.getElementById('hist-list');
@@ -2796,6 +2982,19 @@ function showHistory() {
     const d  = new Date(b.date);
     const el = document.createElement('div');
     el.className = 'hcard';
+
+    // สร้าง delivery badges
+    let deliveryHTML = '';
+    if (b.delivered && b.delivered.length) {
+      const icons = { qr:'📷', png:'🖼️', pdf:'📄', file:'📨', text:'💬' };
+      const badges = b.delivered.map(dv =>
+        `<span style="display:inline-flex;align-items:center;gap:3px;background:#e6f4ec;border:1.5px solid #1a6b3a;border-radius:100px;padding:2px 8px;font-size:10px;font-weight:700;color:#1a6b3a;white-space:nowrap;">${icons[dv.method]||'✅'} ${dv.label}</span>`
+      ).join('');
+      deliveryHTML = `<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:7px;">${badges}</div>`;
+    } else {
+      deliveryHTML = `<div style="margin-top:7px;"><span style="display:inline-flex;align-items:center;gap:3px;background:#f5f0e8;border:1.5px solid #c8bfaa;border-radius:100px;padding:2px 8px;font-size:10px;font-weight:600;color:#8a7d6b;">⏳ ยังไม่ได้ส่ง</span></div>`;
+    }
+
     el.innerHTML = `
       <div class="hc-top">
         <div>
@@ -2804,7 +3003,8 @@ function showHistory() {
         </div>
         <div class="hc-total">${fmt(b.total)} ฿</div>
       </div>
-      <div class="hc-items">${(b.items || []).slice(0, 3).map(i => `${i.name} ×${i.qty}`).join(' · ')}${b.items.length > 3 ? ' · ...' : ''}</div>`;
+      <div class="hc-items">${(b.items || []).slice(0, 3).map(i => `${i.name} ×${i.qty}`).join(' · ')}${b.items.length > 3 ? ' · ...' : ''}</div>
+      ${deliveryHTML}`;
     list.appendChild(el);
   });
   showScreen('history');
@@ -3045,6 +3245,15 @@ function verifyBillFromQR(rawData) {
     setText('vf-total', fmt(total_v) + ' ฿');
     setText('vf-hash', 'Digital Sig: ' + storedHash);
     setText('vf-nonce', nonce ? 'Nonce: '+nonce.slice(0,8)+'...' : '');
+
+    // ── แสดงชื่อลูกค้า (ถ้ามีในข้อมูล) ──
+    const custName_v = b.cn || b.custName || '';
+    const vfCustRow = document.getElementById('vf-cust-row');
+    const vfCustName = document.getElementById('vf-cust-name');
+    if (vfCustRow && vfCustName) {
+      if (custName_v) { vfCustName.textContent = custName_v; vfCustRow.style.display = 'block'; }
+      else { vfCustRow.style.display = 'none'; }
+    }
 
     // ── render ลายเซ็น ──
     const collectEl = document.getElementById('vf-collect');
