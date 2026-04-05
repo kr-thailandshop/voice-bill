@@ -139,28 +139,28 @@ html,body{height:100%;height:100dvh;overflow:hidden;background:var(--bg);color:v
 .item-card{flex-wrap:wrap;}
 .item-edit-row{
   width:100%;
-  display:flex;
-  flex-direction:row;
+  display:grid;
+  grid-template-columns:auto 1fr auto auto 1fr;
+  gap:4px 6px;
   align-items:center;
-  gap:6px;
   margin-top:8px;
   padding-top:8px;
   border-top:1.5px dashed var(--border);
   box-sizing:border-box;
-  flex-wrap:nowrap;
+  overflow:hidden;
 }
 .ie-sub-row{
+  grid-column:1/-1;
   display:flex;
   align-items:center;
-  gap:4px;
-  margin-left:auto;
-  flex-shrink:0;
+  gap:6px;
+  padding-top:2px;
 }
 .ie-lbl{font-size:calc(0.72rem * var(--sz));color:var(--muted);font-weight:700;white-space:nowrap;flex-shrink:0;}
-.ie-input{background:var(--bg2);border:2px solid var(--border);border-radius:8px;padding:6px 8px;font-family:'Sarabun',sans-serif;font-weight:700;color:var(--text);outline:none;font-size:calc(0.9rem * var(--sz));min-height:38px;text-align:right;transition:border-color 0.15s;box-sizing:border-box;}
+.ie-input{background:var(--bg2);border:2px solid var(--border);border-radius:8px;padding:6px 4px;font-family:'Sarabun',sans-serif;font-weight:700;color:var(--text);outline:none;font-size:calc(0.9rem * var(--sz));min-height:38px;text-align:center;transition:border-color 0.15s;box-sizing:border-box;width:100%;min-width:0;}
 .ie-input:focus{border-color:var(--accent);}
-.ie-qty{width:68px;flex-shrink:0;}
-.ie-price{width:80px;flex-shrink:0;}
+.ie-qty{width:100%;min-width:0;}
+.ie-price{width:100%;min-width:0;}
 .ie-eq{font-size:calc(0.85rem * var(--sz));color:var(--muted);font-weight:700;padding:0 1px;flex-shrink:0;}
 .ie-sub{font-family:'IBM Plex Mono',monospace;font-weight:800;color:var(--accent);font-size:calc(0.95rem * var(--sz));white-space:nowrap;flex-shrink:0;}
 
@@ -1990,30 +1990,40 @@ function createBill() {
   });
 }
 
-// วาด QR บน canvas element โดยตรง (ไม่ใช้ anchor div)
+// วาด QR บน canvas element โดยตรง — ใช้ pure-JS QR engine (window.drawQR / g.drawQR)
 function _drawQROnCanvas(text, canvasId, size) {
   const canvas = document.getElementById(canvasId);
-  if (!canvas) return;
-  canvas.width = size; canvas.height = size;
-  const ctx = canvas.getContext('2d');
-  ctx.fillStyle = '#fff'; ctx.fillRect(0,0,size,size);
+  if (!canvas) { console.warn('_drawQROnCanvas: canvas not found', canvasId); return; }
+
+  // เตรียม anchor div ชั่วคราวนอก DOM ปกติ
+  const anchor = document.createElement('div');
+  anchor.id = '_qr_anchor_' + canvasId;
+  anchor.style.cssText = 'position:fixed;left:-9999px;top:0;width:'+size+'px;height:'+size+'px;';
+  document.body.appendChild(anchor);
+
   try {
-    // ใช้ window.drawQR ที่มีอยู่ (QR engine ที่ inject ท้ายไฟล์)
-    if (typeof window.drawQR === 'function') {
-      // สร้าง wrapper div ชั่วคราว แล้ว copy img/canvas มา
-      const wrap = document.createElement('div');
-      wrap.style.cssText = 'position:absolute;left:-9999px;top:-9999px;';
-      document.body.appendChild(wrap);
-      window.drawQR(text, wrap.id = '_qr_tmp_'+Date.now(), size);
-      setTimeout(() => {
-        const img  = wrap.querySelector('img');
-        const cvs2 = wrap.querySelector('canvas');
-        const src  = img?.src || cvs2?.toDataURL();
-        if (src) { const i=new Image(); i.onload=()=>{ctx.drawImage(i,0,0,size,size);}; i.src=src; }
-        document.body.removeChild(wrap);
-      }, 300);
-    }
-  } catch(e) { console.warn('QR draw error',e); }
+    // เรียก pure-JS QR engine โดยตรง — วาดลง anchor
+    window.drawQR(text, anchor.id, size, '#1a3a6b', '#ffffff');
+
+    // copy canvas จาก anchor ไปวาดบน canvasId จริง
+    requestAnimationFrame(() => {
+      try {
+        const qcvs = anchor.querySelector('canvas');
+        if (qcvs) {
+          canvas.width  = qcvs.width;
+          canvas.height = qcvs.height;
+          canvas.style.width  = size + 'px';
+          canvas.style.height = size + 'px';
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(qcvs, 0, 0);
+        }
+      } catch(e2) { console.warn('QR copy error', e2); }
+      try { document.body.removeChild(anchor); } catch(e3) {}
+    });
+  } catch(e) {
+    console.warn('QR draw error', e);
+    try { document.body.removeChild(anchor); } catch(e4) {}
+  }
 }
 
 // กลับหน้า confirm จากหน้าบิล
