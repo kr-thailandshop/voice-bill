@@ -773,7 +773,7 @@ html,body{height:100%;height:100dvh;overflow:hidden;background:var(--bg);color:v
       <span class="bab-lbl">ส่งบิล<br>ให้ลูกค้า</span>
     </button>
 
-    <button class="bab-btn bab-qr" onclick="billAction('qr')">
+    <button class="bab-btn bab-qr" onclick="billAction('qr')" id="bab-qr-btn">
       <span class="bab-icon">📷</span>
       <span class="bab-lbl">QR<br>สแกน</span>
     </button>
@@ -929,7 +929,7 @@ html,body{height:100%;height:100dvh;overflow:hidden;background:var(--bg);color:v
 
 <!-- ═══════════ VERIFY SCREEN (for customer QR scan) ═══════════ -->
 <div id="screen-verify" class="screen">
-  <!-- topbar ลูกค้า — ไม่มีปุ่มกลับบ้าน -->
+  <!-- topbar ลูกค้า — ไม่มีปุ่มกลับ ไม่มี gear -->
   <div class="bill-topbar" id="verify-topbar">
     <div style="flex:1;">
       <div class="bill-tb-title">🧾 บิลเงินสดดิจิทัล</div>
@@ -938,10 +938,16 @@ html,body{height:100%;height:100dvh;overflow:hidden;background:var(--bg);color:v
     <div id="verify-badge" style="padding:5px 11px;border-radius:100px;font-weight:700;font-size:0.75rem;"></div>
   </div>
 
-  <!-- ปุ่มบันทึกภาพ -->
+  <!-- ป้าย COPY บิลสำเนา — แถบด้านบนชัดเจน -->
+  <div style="background:rgba(176,42,31,0.92);padding:7px 16px;display:flex;align-items:center;justify-content:center;gap:8px;flex-shrink:0;">
+    <span style="color:#fff;font-weight:800;font-size:13px;letter-spacing:2px;">📋 บิลสำเนา / COPY</span>
+    <span style="color:rgba(255,255,255,0.7);font-size:10px;font-weight:600;">· ใช้เป็นหลักฐานค่าใช้จ่ายได้</span>
+  </div>
+
+  <!-- ปุ่มดาวน์โหลด PDF -->
   <div style="padding:8px 12px 0;flex-shrink:0;">
-    <button onclick="downloadVerifyPNG()" style="width:100%;padding:12px;border-radius:12px;background:var(--green);border:none;color:#fff;font-family:'Sarabun',sans-serif;font-weight:700;font-size:0.95rem;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">
-      🖼️ บันทึกภาพบิลสำเนา
+    <button onclick="downloadVerifyPDF()" style="width:100%;padding:13px;border-radius:12px;background:#1a5fa8;border:none;color:#fff;font-family:'Sarabun',sans-serif;font-weight:700;font-size:0.95rem;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">
+      📄 ดาวน์โหลด PDF บิลสำเนา
     </button>
   </div>
 
@@ -1060,12 +1066,6 @@ html,body{height:100%;height:100dvh;overflow:hidden;background:var(--bg);color:v
         <input class="shop-input" id="cfg-phone" placeholder="เบอร์โทรศัพท์" type="tel">
         <input class="shop-input" id="cfg-tax"   placeholder="เลขประจำตัวผู้เสียภาษี 13 หลัก" type="text" inputmode="numeric" maxlength="13">
         <div style="font-size:11px;color:var(--muted);line-height:1.6;">💡 ข้อมูลครบ → ลูกค้านำบิลยื่นสรรพากรเป็นค่าใช้จ่ายได้</div>
-      </div>
-
-      <div class="cfg-section">
-        <div class="cfg-label">🔗 URL เว็บของคุณ (สำหรับ QR บิลสำเนา)</div>
-        <input class="shop-input" id="cfg-url" placeholder="เช่น https://kr-thailandshop.github.io" type="url" inputmode="url">
-        <div style="font-size:11px;color:var(--muted);line-height:1.6;">💡 ลูกค้าสแกน QR แล้วจะเปิดหน้าบิลที่ URL นี้ · ถ้าไม่กรอกจะใช้ URL ปัจจุบัน</div>
       </div>
 
       <div class="cfg-section sig-section">
@@ -1261,9 +1261,16 @@ function showScreen(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById('screen-' + id).classList.add('active');
   const gear = document.getElementById('gear-btn');
-  if (gear) gear.style.display = (id === 'bill' || id === 'confirm' || id === 'review' || id === 'verify') ? 'none' : 'flex';
+  // ซ่อน gear ในหน้า bill, confirm, review, verify
+  // และถ้าเป็น customer mode → ซ่อนตลอด
+  if (gear) gear.style.display = (window._customerMode || id === 'bill' || id === 'confirm' || id === 'review' || id === 'verify') ? 'none' : 'flex';
 }
-function goHome() { showScreen('home'); setStatus('idle', 'พร้อมรับคำสั่งเสียง'); }
+function goHome() {
+  // customer mode: ห้ามออกจาก verify screen
+  if (window._customerMode) return;
+  showScreen('home');
+  setStatus('idle', 'พร้อมรับคำสั่งเสียง');
+}
 
 // ══════════════════════════════
 // SPEECH
@@ -1425,7 +1432,7 @@ let cfgTax       = localStorage.getItem('vb_tax')       || '';
 let cfgSig       = localStorage.getItem('vb_sig')       || '';  // base64 ลายเซ็น
 let cfgCollector = localStorage.getItem('vb_collector') || '';  // ชื่อผู้รับเงิน
 let cfgStamp     = localStorage.getItem('vb_stamp')     || '';  // SVG ตราประทับ
-let cfgUrl       = localStorage.getItem('vb_url')       || '';  // URL สาธารณะสำหรับ QR
+let cfgUrl       = '';  // ไม่ใช้แล้ว — QR ใช้ URL ปัจจุบันอัตโนมัติ
 
 function openSettings() {
   document.getElementById('cfg-shop').value  = cfgShop;
@@ -1434,7 +1441,6 @@ function openSettings() {
   document.getElementById('cfg-addr2').value = cfgAddr2;
   document.getElementById('cfg-phone').value = cfgPhone;
   document.getElementById('cfg-tax').value   = cfgTax;
-  document.getElementById('cfg-url').value   = cfgUrl;
   // โหลด key แต่ละค่ายเข้า input
   ['claude','gemini','openai','llama'].forEach(p => {
     const el = document.getElementById('key-' + p);
@@ -1503,28 +1509,62 @@ document.getElementById('settings-modal').addEventListener('click', function(e) 
     blank.width = canvas.width; blank.height = canvas.height;
     if (canvas.toDataURL('image/png') === blank.toDataURL('image/png')) { toast('กรุณาเซ็นชื่อก่อนบันทึก'); return; }
 
-    // ── แปลงเป็น SVG เพื่อลดขนาดไฟล์ (สำหรับ QR) ──
-    // ใช้ ImageData → สร้าง SVG path โดยเก็บเฉพาะ pixel ที่มีสี
+    // ── แปลง canvas → SVG path แบบ compact ที่สุด ──
+    // ใช้ Douglas-Peucker simplification + สร้าง <path> แทน <line>
+    // ลดขนาดจาก ~1500 ตัวอักษร → ~150-300 ตัวอักษร
     const ctx = canvas.getContext('2d');
-    const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const W = canvas.width, H = canvas.height;
+    const imgData = ctx.getImageData(0, 0, W, H);
     const px = imgData.data;
-    // สร้าง polyline จาก pixel ที่มีสี (alpha > 50)
-    let paths = '';
-    // สแกนเป็น row เก็บ horizontal segments
-    for (let y = 0; y < canvas.height; y += 2) {
-      let start = -1;
-      for (let x = 0; x < canvas.width; x++) {
-        const idx = (y * canvas.width + x) * 4;
-        const a = px[idx + 3];
-        if (a > 50 && start < 0) start = x;
-        else if (a <= 50 && start >= 0) {
-          paths += `<line x1="${start}" y1="${y}" x2="${x}" y2="${y}" stroke="#1a1410" stroke-width="2.5" stroke-linecap="round"/>`;
-          start = -1;
-        }
+
+    // Step 1: เก็บ contour points ของเส้น (sample ทุก 3px แนวตั้ง, 1px แนวนอน)
+    const STEP = 3;
+    const points = [];
+    for (let y = 0; y < H; y += STEP) {
+      let seg = [];
+      for (let x = 0; x < W; x++) {
+        const a = px[(y * W + x) * 4 + 3];
+        if (a > 40) { seg.push([x, y]); }
+        else if (seg.length > 1) { points.push(seg); seg = []; }
+        else { seg = []; }
       }
-      if (start >= 0) paths += `<line x1="${start}" y1="${y}" x2="${canvas.width}" y2="${y}" stroke="#1a1410" stroke-width="2.5" stroke-linecap="round"/>`;
+      if (seg.length > 1) points.push(seg);
     }
-    const svgStr = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${canvas.width} ${canvas.height}" width="${canvas.width}" height="${canvas.height}">${paths}</svg>`;
+
+    // Step 2: Douglas-Peucker simplify แต่ละ segment
+    function dpSimplify(pts, tol) {
+      if (pts.length <= 2) return pts;
+      let maxD = 0, idx = 0;
+      const [x1,y1] = pts[0], [x2,y2] = pts[pts.length-1];
+      const len = Math.sqrt((x2-x1)**2+(y2-y1)**2) || 1;
+      for (let i = 1; i < pts.length-1; i++) {
+        const [px,py] = pts[i];
+        const d = Math.abs((y2-y1)*px-(x2-x1)*py+x2*y1-y2*x1)/len;
+        if (d > maxD) { maxD = d; idx = i; }
+      }
+      if (maxD > tol) {
+        const l = dpSimplify(pts.slice(0,idx+1), tol);
+        const r = dpSimplify(pts.slice(idx), tol);
+        return [...l.slice(0,-1), ...r];
+      }
+      return [pts[0], pts[pts.length-1]];
+    }
+
+    // Step 3: สร้าง SVG path string compact (ตัดทศนิยม, ใช้ relative commands)
+    // normalize coordinates → 0..100 range เพื่อลดจำนวนตัวเลข
+    const sx = 100/W, sy = 100/H;
+    let d = '';
+    for (const seg of points) {
+      const simplified = dpSimplify(seg, 1.2); // tolerance 1.2px
+      if (simplified.length < 2) continue;
+      const [fx,fy] = simplified[0];
+      d += `M${Math.round(fx*sx)},${Math.round(fy*sy)}`;
+      for (let i = 1; i < simplified.length; i++) {
+        d += `L${Math.round(simplified[i][0]*sx)},${Math.round(simplified[i][1]*sy)}`;
+      }
+    }
+
+    const svgStr = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 ${Math.round(100*H/W)}"><path d="${d}" fill="none" stroke="#1a1410" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
     const svgB64 = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgStr)));
 
     cfgSig = svgB64;
@@ -1533,7 +1573,8 @@ document.getElementById('settings-modal').addEventListener('click', function(e) 
     document.getElementById('sig-preview-img').src = svgB64;
     document.getElementById('sig-preview-img').style.display = 'block';
     document.getElementById('sig-preview-empty').style.display = 'none';
-    toast('✍️ บันทึกลายเซ็น SVG แล้ว ✅ (ขนาดเล็ก · ใส่ QR ได้)');
+    const kb = Math.round(svgStr.length / 10) / 100;
+    toast(`✍️ บันทึกลายเซ็น SVG แล้ว ✅ (${kb} KB · ใส่ QR ได้)`);
   };
 
   window.sigLoad = function() {
@@ -1671,7 +1712,6 @@ function saveSettings() {
   cfgAddr2 = document.getElementById('cfg-addr2').value.trim();
   cfgPhone = document.getElementById('cfg-phone').value.trim();
   cfgTax   = document.getElementById('cfg-tax').value.trim();
-  cfgUrl   = (document.getElementById('cfg-url').value.trim()).replace(/\/$/, ''); // ตัด / ท้าย
   cfgKey       = cfgKeys[cfgProv] || '';
   cfgCollector = document.getElementById('cfg-owner').value.trim();
   localStorage.setItem('vb_prov', cfgProv);
@@ -1682,7 +1722,6 @@ function saveSettings() {
   localStorage.setItem('vb_addr2', cfgAddr2);
   localStorage.setItem('vb_phone', cfgPhone);
   localStorage.setItem('vb_tax',       cfgTax);
-  localStorage.setItem('vb_url',       cfgUrl);
   localStorage.setItem('vb_collector', cfgCollector);
   // vb_sig บันทึกแยกโดย sigSave() เพราะ base64 ใหญ่
   closeSettings();
@@ -2565,7 +2604,6 @@ function showQRModal() {
 
   overlay.classList.add('open');
 
-  // สร้าง QR หลังจาก modal เปิดแล้ว (ไม่บล็อก render)
   setTimeout(async () => {
     try {
       if (!window.QRCode) { toast('QR library ยังโหลดไม่เสร็จ กรุณารอสักครู่'); return; }
@@ -2573,7 +2611,6 @@ function showQRModal() {
       anchor.innerHTML = '';
 
       // ── สร้าง payload แบบ compact สุด ──
-      // ตัด field ที่ไม่จำเป็น + ย่อชื่อ key ให้สั้นที่สุด
       const compact = {
         v:5,
         no: b.no,
@@ -2592,38 +2629,60 @@ function showQRModal() {
         it: b.items.map(i=>({n:i.name,q:i.qty,p:i.up,s:i.sub}))
       };
 
-      // ── ฝังลายเซ็น SVG (ขนาดเล็ก ใส่ QR ได้) ──
-      if (cfgSig) {
-        // cfgSig ตอนนี้เป็น SVG base64 แล้ว ขนาดเล็กมาก ไม่ต้อง resize
-        compact.sg = cfgSig;
-      }
-      // ── ไม่ฝังตราประทับ (รูปใหญ่เกิน QR รองรับไม่ได้) ──
-      // compact.st ถูกตัดออก → ไม่อัพโหลดเข้า QR
+      // ── ฝังลายเซ็น SVG compact (path-based จาก sigSave ใหม่) ──
+      if (cfgSig) compact.sg = cfgSig;
 
       // ลบ field ว่างออก ลดความยาว
       Object.keys(compact).forEach(k => {
         if (compact[k] === '' || compact[k] === null || compact[k] === undefined) delete compact[k];
       });
-      const jsonStr = JSON.stringify(compact);
 
-      // ── encode เป็น base64 แล้วใส่ใน URL hash ──
-      const encoded = btoa(unescape(encodeURIComponent(jsonStr)));
-      // ใช้ cfgUrl (URL สาธารณะที่ตั้งค่าไว้) ถ้าไม่มีค่อยใช้ URL ปัจจุบัน
-      const baseURL = cfgUrl || window.location.href.split('#')[0];
-      const qrURL   = baseURL + '#bill=' + encoded;
+      // ── ใช้ URL ปัจจุบันเสมอ (ไม่ต้องตั้งค่า) ──
+      const baseURL = window.location.href.split('#')[0];
+
+      // ── URL length guard: ถ้าเกิน limit ให้ตัด field ออกตามลำดับ ──
+      const MAX_URL = 2700;
+      const tryEncode = (obj) => {
+        const j = JSON.stringify(obj);
+        return baseURL + '#bill=' + btoa(unescape(encodeURIComponent(j)));
+      };
+
+      let qrURL = tryEncode(compact);
+
+      // ลำดับการตัด: ชื่อลูกค้า → เวลา/วันที่ → ข้อมูลร้านรอง → ลายเซ็น
+      if (qrURL.length > MAX_URL && compact.cn) {
+        delete compact.cn;
+        qrURL = tryEncode(compact);
+      }
+      if (qrURL.length > MAX_URL && compact.dt) {
+        delete compact.dt; delete compact.tm;
+        qrURL = tryEncode(compact);
+      }
+      if (qrURL.length > MAX_URL && compact.ow) {
+        delete compact.ow; delete compact.ad; delete compact.ph; delete compact.tx;
+        qrURL = tryEncode(compact);
+      }
+      if (qrURL.length > MAX_URL && compact.sg) {
+        delete compact.sg;
+        qrURL = tryEncode(compact);
+        toast('⚠️ ลายเซ็นถูกตัดออก เพราะข้อมูลเกิน QR');
+      }
 
       new QRCode(anchor, {
         text: qrURL,
-        width: 220,
-        height: 220,
+        width: 240,
+        height: 240,
         colorDark: '#1a3a6b',
         colorLight: '#ffffff',
-        correctLevel: QRCode.CorrectLevel.L   // L = ข้อมูลยาวได้สุด
+        correctLevel: QRCode.CorrectLevel.L
       });
 
       // แสดงขนาดข้อมูลใต้ QR
       const sizeEl = document.getElementById('qr-bill-size');
-      if (sizeEl) sizeEl.textContent = 'ขนาด URL: ' + qrURL.length + ' ตัวอักษร';
+      if (sizeEl) {
+        const hasSig = !!compact.sg;
+        sizeEl.textContent = 'URL: ' + qrURL.length + ' ตัวอักษร' + (hasSig ? ' · มีลายเซ็น ✅' : '');
+      }
 
     } catch(e) {
       console.warn('QR error:', e);
@@ -3343,7 +3402,53 @@ function verifyBillFromQR(rawData) {
   }
 }
 
-// ── ลูกค้าบันทึกภาพบิลสำเนา ──
+// ── ลูกค้าดาวน์โหลด PDF บิลสำเนา ──
+async function downloadVerifyPDF() {
+  const el = document.getElementById('verify-paper');
+  if (!el) return;
+  const btn = event.currentTarget;
+  const origTxt = btn.innerHTML;
+  btn.innerHTML = '⏳ กำลังสร้าง PDF...';
+  btn.disabled = true;
+  try {
+    const prev = el.style.pointerEvents;
+    el.style.pointerEvents = 'auto';
+    await new Promise(r => requestAnimationFrame(r));
+    const canvas = await html2canvas(el, {
+      scale: 2.5, useCORS: true, backgroundColor: '#ffffff', logging: false
+    });
+    el.style.pointerEvents = prev;
+
+    // เพิ่ม watermark ทแยง "สำเนา"
+    const W = canvas.width, H = canvas.height;
+    const out = document.createElement('canvas');
+    out.width = W; out.height = H;
+    const ctx = out.getContext('2d');
+    ctx.drawImage(canvas, 0, 0);
+    ctx.save();
+    ctx.translate(W/2, H/2); ctx.rotate(-0.4);
+    ctx.font = `bold ${Math.round(W*0.16)}px serif`;
+    ctx.fillStyle = 'rgba(26,95,168,0.06)';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText('สำเนา', 0, 0);
+    ctx.restore();
+
+    const { jsPDF } = window.jspdf;
+    const imgData = out.toDataURL('image/png');
+    const pdfW = 210, pdfH = (H / W) * pdfW;
+    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: [pdfW, pdfH] });
+    doc.addImage(imgData, 'PNG', 0, 0, pdfW, pdfH);
+    const no = document.getElementById('vf-no').textContent || 'bill';
+    doc.save(`bill-copy-${no}.pdf`);
+    btn.innerHTML = '✅ ดาวน์โหลดแล้ว!';
+    setTimeout(() => { btn.innerHTML = origTxt; btn.disabled = false; }, 2500);
+  } catch(e) {
+    btn.innerHTML = origTxt; btn.disabled = false;
+    alert('ไม่สามารถสร้าง PDF ได้: ' + e.message);
+  }
+}
+
+// ── ลูกค้าบันทึกภาพบิลสำเนา (ยังคงไว้เผื่อใช้) ──
 async function downloadVerifyPNG() {
   const el = document.getElementById('verify-paper');
   if (!el) return;
@@ -3393,9 +3498,20 @@ async function downloadVerifyPNG() {
 (function() {
   const hash = window.location.hash;
   if (!hash || !hash.startsWith('#bill=')) return;
+  // ── โหมดลูกค้า: ล็อคไม่ให้เข้าหน้าอื่น ──
+  window._customerMode = true;
+  // ซ่อน gear button ถาวร
+  document.addEventListener('DOMContentLoaded', () => {
+    const g = document.getElementById('gear-btn');
+    if (g) g.style.display = 'none';
+  });
+  // ป้องกัน browser back button พากลับไปหน้า home
+  history.pushState(null, '', window.location.href);
+  window.addEventListener('popstate', () => {
+    if (window._customerMode) history.pushState(null, '', window.location.href);
+  });
   try {
     const encoded = hash.slice(6);
-    // ลอง decode base64 ก่อน (format ใหม่) ถ้าไม่ได้ค่อย decode URI (format เก่า)
     let raw;
     try {
       raw = decodeURIComponent(escape(atob(encoded)));
