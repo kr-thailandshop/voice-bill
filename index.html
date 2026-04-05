@@ -125,8 +125,79 @@ html,body{height:100%;height:100dvh;overflow:hidden;background:var(--bg);color:v
 .gear-btn:active{transform:scale(0.93);}
 
 /* ── CONFIRM SCREEN ── */
-#screen-confirm{background:var(--bg);}
-.confirm-scroll{flex:1;overflow-y:auto;padding:8px 11px 4px;display:flex;flex-direction:column;gap:7px;}
+#screen-confirm{background:var(--bg);overflow-y:auto;}
+/* ── REVIEW SCREEN ── */
+#screen-review{background:var(--bg);}
+.review-scroll{flex:1;overflow-y:auto;padding:12px 14px 8px;}
+.review-total-card{
+  background:var(--text);
+  border-radius:16px;
+  margin:0 14px 10px;
+  padding:20px 20px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  box-shadow:var(--shadow-lg);
+  flex-shrink:0;
+}
+.review-total-label{color:rgba(255,255,255,0.6);font-weight:700;font-size:calc(0.9rem * var(--sz));}
+.review-total-cnt{color:rgba(255,255,255,0.45);font-size:calc(0.8rem * var(--sz));margin-top:3px;}
+.review-total-num{font-family:'IBM Plex Mono',monospace;font-weight:800;color:#fff;font-size:calc(2rem * var(--sz));}
+.review-total-unit{color:rgba(255,255,255,0.6);font-size:calc(0.9rem * var(--sz));}
+.review-item-row{
+  background:var(--surface);
+  border:2px solid var(--border);
+  border-radius:12px;
+  padding:13px 15px;
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin-bottom:8px;
+  box-shadow:var(--shadow);
+}
+.review-item-num{
+  min-width:28px;height:28px;
+  background:var(--bg2);
+  border:2px solid var(--border);
+  border-radius:8px;
+  display:flex;align-items:center;justify-content:center;
+  font-family:'IBM Plex Mono',monospace;font-weight:700;
+  color:var(--muted);font-size:calc(0.78rem * var(--sz));
+  flex-shrink:0;
+}
+.review-item-body{flex:1;min-width:0;}
+.review-item-name{font-weight:800;color:var(--text);font-size:calc(1rem * var(--sz));word-break:break-word;}
+.review-item-detail{color:var(--muted);font-size:calc(0.8rem * var(--sz));margin-top:3px;font-weight:600;}
+.review-item-sub{font-family:'IBM Plex Mono',monospace;font-weight:800;color:var(--accent);font-size:calc(1rem * var(--sz));white-space:nowrap;}
+.review-warn{
+  margin:0 14px 10px;
+  background:var(--acc-light);
+  border:2px solid var(--accent);
+  border-radius:12px;
+  padding:12px 15px;
+  font-size:calc(0.82rem * var(--sz));
+  color:var(--accent);
+  font-weight:700;
+  text-align:center;
+  flex-shrink:0;
+}
+.review-actions{
+  padding:0 14px max(24px,env(safe-area-inset-bottom));
+  display:flex;gap:8px;flex-shrink:0;
+}
+.review-actions .btn-sec{flex:1;}
+.review-actions .btn-pri-lg{
+  flex:2;padding:18px;border-radius:14px;
+  background:var(--accent);border:none;color:#fff;
+  font-family:'Sarabun',sans-serif;font-weight:800;
+  font-size:calc(1.1rem * var(--sz));cursor:pointer;
+  transition:opacity 0.12s,transform 0.1s;
+}
+.review-actions .btn-pri-lg:active{opacity:0.88;transform:scale(0.97);}
+#screen-confirm .topbar{position:sticky;top:0;z-index:10;}
+#screen-confirm .actions{position:sticky;bottom:0;background:var(--bg);z-index:9;padding-bottom:max(24px,env(safe-area-inset-bottom));}
+#screen-confirm .total-sec{position:sticky;bottom:72px;z-index:8;}
+.confirm-scroll{padding:8px 11px 4px;display:flex;flex-direction:column;gap:7px;}
 .confirm-scroll:empty::after{content:'';display:none;}
 .item-card{background:var(--surface);border:2px solid var(--border);border-radius:13px;padding:13px;display:flex;align-items:center;gap:9px;box-shadow:var(--shadow);flex-shrink:0;}
 .item-idx{min-width:32px;height:32px;background:var(--bg2);border:2px solid var(--border);border-radius:9px;display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Mono',monospace;font-weight:700;color:var(--muted);flex-shrink:0;font-size:calc(0.78rem * var(--sz));}
@@ -184,13 +255,13 @@ html,body{height:100%;height:100dvh;overflow:hidden;background:var(--bg);color:v
 .add-btn{min-width:46px;height:46px;background:var(--accent);border:none;border-radius:9px;color:#fff;font-size:22px;font-weight:800;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;}
 
 /* Total section */
-.total-sec{margin:0 11px 7px;background:var(--text);border-radius:14px;padding:16px 18px;display:flex;justify-content:space-between;align-items:center;box-shadow:var(--shadow-lg);flex-shrink:0;}
+.total-sec{margin:0 11px 7px;background:var(--text);border-radius:14px;padding:16px 18px;display:flex;justify-content:space-between;align-items:center;box-shadow:var(--shadow-lg);}
 .total-lbl{color:rgba(255,255,255,0.55);font-weight:600;font-size:calc(0.9rem * var(--sz));}
 .total-cnt{color:rgba(255,255,255,0.4);font-weight:600;margin-top:2px;font-size:calc(0.8rem * var(--sz));}
 .total-num{font-family:'IBM Plex Mono',monospace;font-weight:700;color:#fff;font-size:calc(1.8rem * var(--sz));}
 
 /* Actions */
-.actions{padding:0 11px 24px;display:flex;gap:7px;flex-shrink:0;}
+.actions{padding:0 11px 16px;display:flex;gap:7px;}
 .btn-sec{flex:1;padding:15px;border-radius:13px;background:var(--surface);border:2px solid var(--border);color:var(--text2);font-family:'Sarabun',sans-serif;font-weight:700;cursor:pointer;font-size:calc(1rem * var(--sz));}
 .btn-pri{flex:2;padding:15px;border-radius:13px;background:var(--accent);border:none;color:#fff;font-family:'Sarabun',sans-serif;font-weight:800;cursor:pointer;transition:opacity 0.12s,transform 0.1s;font-size:calc(1rem * var(--sz));}
 .btn-pri:active{opacity:0.88;transform:scale(0.98);}
@@ -596,8 +667,43 @@ html,body{height:100%;height:100dvh;overflow:hidden;background:var(--bg);color:v
 
   <div class="actions">
     <button class="btn-sec" onclick="goHome()">← กลับ</button>
-    <button class="btn-pri" onclick="createBill()">✅ ออกบิล</button>
+    <button class="btn-pri" onclick="showReview()">✅ ยืนยันรายการ</button>
     <button class="btn-gear-sm" onclick="openSettings()" title="ตั้งค่า">⚙️</button>
+  </div>
+</div>
+
+<!-- ═══════════ REVIEW (ยืนยันก่อนออกบิล) ═══════════ -->
+<div id="screen-review" class="screen">
+  <div class="topbar">
+    <button class="back-btn" onclick="showScreen('confirm')">←</button>
+    <div class="bar-info">
+      <div class="bar-title">ยืนยันก่อนออกบิล</div>
+      <div class="bar-sub" id="review-sub">กรุณาตรวจสอบอีกครั้ง</div>
+    </div>
+  </div>
+
+  <div class="review-scroll">
+    <div id="review-items"></div>
+  </div>
+
+  <div class="review-total-card">
+    <div>
+      <div class="review-total-label">ยอดรวมทั้งหมด</div>
+      <div class="review-total-cnt" id="review-cnt">0 รายการ</div>
+    </div>
+    <div style="text-align:right;">
+      <div class="review-total-num" id="review-total">0</div>
+      <div class="review-total-unit">บาท</div>
+    </div>
+  </div>
+
+  <div class="review-warn">
+    ⚠️ หลังออกบิลแล้วจะล็อคทันที · แก้ไขไม่ได้
+  </div>
+
+  <div class="review-actions">
+    <button class="btn-sec" onclick="showScreen('confirm')">← แก้ไข</button>
+    <button class="btn-pri-lg" onclick="createBill()">🧾 ออกบิลเลย</button>
   </div>
 </div>
 
@@ -1017,7 +1123,7 @@ function showScreen(id) {
   document.getElementById('screen-' + id).classList.add('active');
   // Hide floating gear on bill screen (has its own topbar) and confirm screen (gear overlaps actions)
   const gear = document.getElementById('gear-btn');
-  if (gear) gear.style.display = (id === 'bill' || id === 'confirm') ? 'none' : 'flex';
+  if (gear) gear.style.display = (id === 'bill' || id === 'confirm' || id === 'review') ? 'none' : 'flex';
 }
 function goHome() { showScreen('home'); setStatus('idle', 'พร้อมรับคำสั่งเสียง'); }
 
@@ -2028,6 +2134,28 @@ function _drawQROnCanvas(text, canvasId, size) {
 
 // กลับหน้า confirm จากหน้าบิล
 function goConfirm() { showScreen('confirm'); }
+
+function showReview() {
+  if (!items.length) { toast('กรุณาเพิ่มสินค้าอย่างน้อย 1 รายการ'); return; }
+  const total = items.reduce((s,i) => s + i.sub, 0);
+
+  // render items
+  document.getElementById('review-items').innerHTML = items.map((it, i) => `
+    <div class="review-item-row">
+      <div class="review-item-num">${i+1}</div>
+      <div class="review-item-body">
+        <div class="review-item-name">${it.name}</div>
+        <div class="review-item-detail">${it.qty} × ${fmt(it.up)} บาท</div>
+      </div>
+      <div class="review-item-sub">${fmt(it.sub)} ฿</div>
+    </div>`).join('');
+
+  document.getElementById('review-total').textContent = fmt(total);
+  document.getElementById('review-cnt').textContent   = items.length + ' รายการ';
+  document.getElementById('review-sub').textContent   = items.length + ' รายการ · ' + fmt(total) + ' ฿';
+
+  showScreen('review');
+}
 
 // Dispatcher สำหรับปุ่มใน action bar — แยกออกมาเพื่อความชัดเจน
 function billAction(type) {
