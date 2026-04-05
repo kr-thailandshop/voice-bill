@@ -1985,6 +1985,7 @@ function updateTotal() {
 // ══════════════════════════════
 function createBill() {
   if (!items.length) { toast('กรุณาเพิ่มสินค้าอย่างน้อย 1 รายการ'); return; }
+  try {
 
   const now     = new Date();
   const no      = 'BL' + now.getFullYear().toString().slice(-2)
@@ -2064,14 +2065,16 @@ function createBill() {
   // ── แสดงหน้าบิลเสมอ ไม่ว่า QR จะสำเร็จหรือไม่ ──
   showScreen('bill');
 
-  // วาด QR + ลายเซ็น หลัง browser paint (requestAnimationFrame แทน setTimeout)
+  // วาด QR + ลายเซ็น — ครอบ try/catch ทั้งหมด ไม่ให้ UI ค้าง
   requestAnimationFrame(() => {
-    // QR — ใช้ payload แบบ compact ถ้า full payload ใหญ่เกิน
-    const qrText = QR_PAYLOAD.length <= 800 ? QR_PAYLOAD : JSON.stringify({
-      v:4, no, h:hash, nc:nonce, tot:total,
-      it: billItems.map(i=>({n:i.name,q:i.qty,p:i.up,s:i.sub}))
-    });
-    _drawQROnCanvas(qrText, 'qr-canvas-bill', 140);
+    // QR
+    try {
+      const qrText = QR_PAYLOAD.length <= 800 ? QR_PAYLOAD : JSON.stringify({
+        v:4, no, h:hash, nc:nonce, tot:total,
+        it: billItems.map(i=>({n:i.name,q:i.qty,p:i.up,s:i.sub}))
+      });
+      _drawQROnCanvas(qrText, 'qr-canvas-bill', 140);
+    } catch(e) { console.warn('QR draw err:', e); }
 
     // ลายเซ็น
     try {
@@ -2089,11 +2092,16 @@ function createBill() {
           ctx.beginPath(); ctx.moveTo(20,sc.height-10); ctx.lineTo(sc.width-20,sc.height-10); ctx.stroke();
         }
       }
-    } catch(e) { console.warn('sig err',e); }
+    } catch(e) { console.warn('sig err:', e); }
 
     // เรียน memory
     try { learnFromBill(billItems); renderMemoryChips(); } catch(e) {}
   });
+  } catch(err) {
+    console.error('createBill error:', err);
+    toast('เกิดข้อผิดพลาด กรุณาลองใหม่');
+    showScreen('bill');
+  }
 }
 
 // วาด QR บน canvas — ใช้ pure-JS QR engine (expose ผ่าน window ท้ายไฟล์)
