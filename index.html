@@ -125,14 +125,10 @@ html,body{height:100%;height:100dvh;overflow:hidden;background:var(--bg);color:v
 .gear-btn:active{transform:scale(0.93);}
 
 /* ── CONFIRM SCREEN ── */
-#screen-confirm{background:var(--bg);overflow-y:auto;}
+#screen-confirm{background:var(--bg);}
 /* ── REVIEW SCREEN ── */
-#screen-review{background:var(--bg);overflow-y:auto;}
-#screen-review .topbar{position:sticky;top:0;z-index:10;}
-#screen-review .review-warn{position:sticky;bottom:64px;z-index:8;margin:0 14px 0;}
-#screen-review .review-actions{position:sticky;bottom:0;background:var(--bg);z-index:9;padding:8px 14px max(20px,env(safe-area-inset-bottom));}
-#screen-review .review-total-card{margin:0 14px 10px;}
-.review-scroll{padding:12px 14px 8px;}
+#screen-review{background:var(--bg);}
+.review-scroll{flex:1;overflow-y:auto;padding:12px 14px 8px;-webkit-overflow-scrolling:touch;}
 .review-total-card{
   background:var(--text);
   border-radius:16px;
@@ -186,7 +182,7 @@ html,body{height:100%;height:100dvh;overflow:hidden;background:var(--bg);color:v
   flex-shrink:0;
 }
 .review-actions{
-  padding:0 14px max(24px,env(safe-area-inset-bottom));
+  padding:0 14px 20px;
   display:flex;gap:8px;flex-shrink:0;
 }
 .review-actions .btn-sec{flex:1;}
@@ -198,10 +194,7 @@ html,body{height:100%;height:100dvh;overflow:hidden;background:var(--bg);color:v
   transition:opacity 0.12s,transform 0.1s;
 }
 .review-actions .btn-pri-lg:active{opacity:0.88;transform:scale(0.97);}
-#screen-confirm .topbar{position:sticky;top:0;z-index:10;}
-#screen-confirm .actions{position:sticky;bottom:0;background:var(--bg);z-index:9;padding-bottom:max(24px,env(safe-area-inset-bottom));}
-#screen-confirm .total-sec{position:sticky;bottom:72px;z-index:8;}
-.confirm-scroll{padding:8px 11px 4px;display:flex;flex-direction:column;gap:7px;}
+.confirm-scroll{flex:1;overflow-y:auto;padding:8px 11px 4px;display:flex;flex-direction:column;gap:7px;-webkit-overflow-scrolling:touch;}
 .confirm-scroll:empty::after{content:'';display:none;}
 .item-card{background:var(--surface);border:2px solid var(--border);border-radius:13px;padding:13px;display:flex;align-items:center;gap:9px;box-shadow:var(--shadow);flex-shrink:0;}
 .item-idx{min-width:32px;height:32px;background:var(--bg2);border:2px solid var(--border);border-radius:9px;display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Mono',monospace;font-weight:700;color:var(--muted);flex-shrink:0;font-size:calc(0.78rem * var(--sz));}
@@ -259,13 +252,13 @@ html,body{height:100%;height:100dvh;overflow:hidden;background:var(--bg);color:v
 .add-btn{min-width:46px;height:46px;background:var(--accent);border:none;border-radius:9px;color:#fff;font-size:22px;font-weight:800;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;}
 
 /* Total section */
-.total-sec{margin:0 11px 7px;background:var(--text);border-radius:14px;padding:16px 18px;display:flex;justify-content:space-between;align-items:center;box-shadow:var(--shadow-lg);}
+.total-sec{margin:0 11px 7px;background:var(--text);border-radius:14px;padding:16px 18px;display:flex;justify-content:space-between;align-items:center;box-shadow:var(--shadow-lg);flex-shrink:0;}
 .total-lbl{color:rgba(255,255,255,0.55);font-weight:600;font-size:calc(0.9rem * var(--sz));}
 .total-cnt{color:rgba(255,255,255,0.4);font-weight:600;margin-top:2px;font-size:calc(0.8rem * var(--sz));}
 .total-num{font-family:'IBM Plex Mono',monospace;font-weight:700;color:#fff;font-size:calc(1.8rem * var(--sz));}
 
 /* Actions */
-.actions{padding:0 11px 16px;display:flex;gap:7px;}
+.actions{padding:0 11px 20px;display:flex;gap:7px;flex-shrink:0;}
 .btn-sec{flex:1;padding:15px;border-radius:13px;background:var(--surface);border:2px solid var(--border);color:var(--text2);font-family:'Sarabun',sans-serif;font-weight:700;cursor:pointer;font-size:calc(1rem * var(--sz));}
 .btn-pri{flex:2;padding:15px;border-radius:13px;background:var(--accent);border:none;color:#fff;font-family:'Sarabun',sans-serif;font-weight:800;cursor:pointer;transition:opacity 0.12s,transform 0.1s;font-size:calc(1rem * var(--sz));}
 .btn-pri:active{opacity:0.88;transform:scale(0.98);}
@@ -365,14 +358,14 @@ html,body{height:100%;height:100dvh;overflow:hidden;background:var(--bg);color:v
 
 /* ── HISTORY ── */
 #screen-history{background:var(--bg);}
-.hist-list{flex:1;overflow-y:auto;padding:10px;display:flex;flex-direction:column;gap:7px;}
+.hist-list{flex:1;overflow-y:auto;padding:10px;display:flex;flex-direction:column;gap:7px;-webkit-overflow-scrolling:touch;}
 .hcard{background:var(--surface);border:2px solid var(--border);border-radius:13px;padding:13px;box-shadow:var(--shadow);}
 .hc-top{display:flex;justify-content:space-between;align-items:flex-start;}
 .hc-no{color:var(--muted);font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:calc(0.78rem * var(--sz));}
 .hc-total{font-family:'IBM Plex Mono',monospace;font-weight:800;color:var(--accent);font-size:calc(1.1rem * var(--sz));}
 .hc-date{color:var(--muted);margin-top:3px;font-weight:600;font-size:calc(0.78rem * var(--sz));}
 .hc-items{color:var(--text2);margin-top:7px;font-weight:600;line-height:1.6;font-size:calc(0.88rem * var(--sz));}
-.exp-bar{padding:9px 11px 20px;border-top:2px solid var(--border);background:var(--surface);flex-shrink:0;}
+.exp-bar{padding:9px 11px 24px;border-top:2px solid var(--border);background:var(--surface);flex-shrink:0;}
 .exp-btn{width:100%;padding:13px;border-radius:11px;background:var(--green);border:none;color:#fff;font-family:'Sarabun',sans-serif;font-weight:700;cursor:pointer;font-size:calc(0.95rem * var(--sz));}
 
 /* ── SETTINGS MODAL ── */
@@ -2113,37 +2106,34 @@ function createBill() {
 }
 
 // วาด QR บน canvas element โดยตรง — ใช้ pure-JS QR engine (window.drawQR / g.drawQR)
+// ── QR วาดตรงลง canvas — เรียกหลัง page load ผ่าน window.drawQR ──
 function _drawQROnCanvas(text, canvasId, size) {
-  try {
-    const canvas = document.getElementById(canvasId);
-    if (!canvas) return;
+  // ใช้ setTimeout เพื่อให้ QR engine (ท้ายไฟล์) โหลดเสร็จก่อน
+  setTimeout(function() {
+    try {
+      var canvas = document.getElementById(canvasId);
+      if (!canvas) return;
+      var ctx = canvas.getContext('2d');
 
-    // สร้าง anchor นอก bill-paper (ไม่โดน pointer-events:none)
-    const anchorId = '_qra_' + canvasId;
-    let anchor = document.getElementById(anchorId);
-    if (anchor) anchor.remove();
-    anchor = document.createElement('div');
-    anchor.id = anchorId;
-    anchor.style.cssText = 'position:fixed;left:-9999px;top:0;width:'+size+'px;height:'+size+'px;pointer-events:auto;';
-    document.body.appendChild(anchor);
+      var ecl  = window.QRErrorCorrectLevel.M;
+      var tn   = window.autoVersion(text, ecl);
+      var data = window.buildData(text, tn, ecl);
+      var qr   = window.makeMatrix(tn, ecl, data);
+      var mc   = qr.mc, M = qr.M;
+      var cell = Math.max(1, Math.floor(size / (mc + 8)));
+      var qz   = cell * 4;
+      var tot  = mc * cell + qz * 2;
 
-    // วาด QR ลง anchor
-    window.drawQR(text, anchorId, size, '#1a3a6b', '#ffffff');
+      canvas.width = tot; canvas.height = tot;
+      canvas.style.cssText = 'display:block;width:'+size+'px;height:'+size+'px;image-rendering:pixelated;border-radius:4px;';
+      ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, tot, tot);
+      ctx.fillStyle = '#1a3a6b';
+      for (var r = 0; r < mc; r++)
+        for (var co = 0; co < mc; co++)
+          if (M[r][co]) ctx.fillRect(co*cell+qz, r*cell+qz, cell, cell);
 
-    // copy canvas → target canvas
-    setTimeout(() => {
-      try {
-        const qcvs = anchor.querySelector('canvas');
-        if (qcvs) {
-          canvas.width  = qcvs.width;
-          canvas.height = qcvs.height;
-          canvas.style.cssText = 'display:block;width:'+size+'px;height:'+size+'px;image-rendering:pixelated;';
-          canvas.getContext('2d').drawImage(qcvs, 0, 0);
-        }
-      } catch(e2) {}
-      try { document.body.removeChild(anchor); } catch(e3) {}
-    }, 100);
-  } catch(e) { console.warn('_drawQROnCanvas err:', e); }
+    } catch(e) { console.warn('QR error:', e.message); }
+  }, 0);
 }
 
 // กลับหน้า confirm จากหน้าบิล
@@ -2192,7 +2182,6 @@ function _showBillQRModal() {
 }
 function closeQRModal() { document.getElementById('qr-modal').classList.remove('open'); }
 
-// drawQR — implemented by the pure-JS QR engine at bottom of file (window.drawQR)
 
 // ── SHARE: HTML BILL FILE (หลัก) ──
 // สร้างไฟล์ bill-XXXX.html ที่เปิดได้ทุกเครื่อง offline แล้วแชร์ผ่าน Line/WhatsApp
@@ -3071,6 +3060,10 @@ g.drawQR=function(text,anchorId,size,dark,light){
     anchor.appendChild(cvs);
   }catch(e){console.warn('QR error:',e);}
 };
+  window.QRErrorCorrectLevel = QRErrorCorrectLevel;
+  window.autoVersion = autoVersion;
+  window.buildData   = buildData;
+  window.makeMatrix  = makeMatrix;
 })(window);
 </script>
 </body>
