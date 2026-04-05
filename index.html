@@ -2101,6 +2101,35 @@ function createBill() {
   showScreen('bill');
   // ประทับตราบนบิล (ถ้ามี)
   try { applyStampToBill(); } catch(e) {}
+  // ── วาดลายเซ็นผู้รับเงินลงบน bill-sig-canvas ──
+  try {
+    const sigCanvas = document.getElementById('bill-sig-canvas');
+    if (sigCanvas) {
+      const sigCtx = sigCanvas.getContext('2d');
+      sigCtx.clearRect(0, 0, sigCanvas.width, sigCanvas.height);
+      if (cfgSig) {
+        const sigImg = new Image();
+        sigImg.onload = () => {
+          // วาดให้เต็ม canvas แต่คงสัดส่วน
+          const cW = sigCanvas.width, cH = sigCanvas.height;
+          const iW = sigImg.naturalWidth || cW, iH = sigImg.naturalHeight || cH;
+          const scale = Math.min(cW / iW, cH / iH);
+          const dW = iW * scale, dH = iH * scale;
+          const dx = (cW - dW) / 2, dy = (cH - dH) / 2;
+          sigCtx.drawImage(sigImg, dx, dy, dW, dH);
+        };
+        sigImg.src = cfgSig;
+      } else {
+        // ไม่มีลายเซ็น — วาดเส้นขีด placeholder
+        sigCtx.strokeStyle = '#c8bfaa';
+        sigCtx.lineWidth = 1;
+        sigCtx.beginPath();
+        sigCtx.moveTo(40, sigCanvas.height - 20);
+        sigCtx.lineTo(sigCanvas.width - 40, sigCanvas.height - 20);
+        sigCtx.stroke();
+      }
+    }
+  } catch(e) {}
 
   // หลัง showScreen — save + memory (ไม่มี QR แล้ว)
   setTimeout(() => {
