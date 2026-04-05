@@ -534,6 +534,33 @@ html,body{height:100%;height:100dvh;overflow:hidden;background:var(--bg);color:v
 .qr-modal-note{font-size:11px;color:#1a6b3a;font-weight:700;background:#e6f4ec;border:1.5px solid #1a6b3a;border-radius:8px;padding:6px 12px;text-align:center;}
 .qr-modal-close{width:100%;padding:13px;border-radius:12px;background:#1a5fa8;border:none;color:#fff;font-family:'Sarabun',sans-serif;font-weight:700;font-size:15px;cursor:pointer;margin-top:2px;}
 
+/* ── STAMP SECTION ── */
+.stamp-section{display:flex;flex-direction:column;gap:8px;}
+.stamp-upload-area{border:2px dashed var(--border);border-radius:12px;padding:20px;text-align:center;cursor:pointer;background:var(--bg2);transition:border-color 0.15s;}
+.stamp-upload-area:active,.stamp-upload-area.drag{border-color:var(--accent);background:var(--acc-light);}
+.stamp-upload-icon{font-size:32px;margin-bottom:6px;}
+.stamp-upload-lbl{font-weight:700;color:var(--text2);font-size:calc(0.9rem * var(--sz));}
+.stamp-upload-sub{font-size:calc(0.75rem * var(--sz));color:var(--muted);margin-top:3px;}
+.stamp-preview-wrap{display:none;flex-direction:column;align-items:center;gap:8px;}
+.stamp-preview-wrap.show{display:flex;}
+.stamp-preview-box{background:#fff;border:2px solid var(--border);border-radius:12px;padding:12px;display:flex;align-items:center;justify-content:center;}
+.stamp-gen-btn{width:100%;padding:13px;border-radius:11px;background:var(--accent);border:none;color:#fff;font-family:'Sarabun',sans-serif;font-weight:800;font-size:calc(0.95rem * var(--sz));cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;}
+.stamp-gen-btn:disabled{background:var(--muted);cursor:default;}
+.stamp-result-wrap{display:none;flex-direction:column;gap:8px;}
+.stamp-result-wrap.show{display:flex;}
+.stamp-result-box{background:#fff;border:2px solid var(--border);border-radius:12px;padding:16px;display:flex;align-items:center;justify-content:center;min-height:160px;}
+.stamp-actions{display:flex;gap:7px;}
+.stamp-use-btn{flex:2;padding:11px;border-radius:10px;background:var(--green);border:none;color:#fff;font-family:'Sarabun',sans-serif;font-weight:700;cursor:pointer;font-size:calc(0.88rem * var(--sz));}
+.stamp-redo-btn{flex:1;padding:11px;border-radius:10px;background:var(--bg2);border:2px solid var(--border);color:var(--text2);font-family:'Sarabun',sans-serif;font-weight:700;cursor:pointer;font-size:calc(0.88rem * var(--sz));}
+.stamp-status{font-size:calc(0.8rem * var(--sz));color:var(--muted);font-weight:600;text-align:center;}
+.stamp-status.ok{color:var(--green);}
+.stamp-status.err{color:var(--red);}
+.stamp-spinner{display:none;flex-direction:column;align-items:center;gap:8px;padding:16px;}
+.stamp-spinner.show{display:flex;}
+
+/* ── WATERMARK บนบิล ── */
+.bill-watermark{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);opacity:0.07;pointer-events:none;z-index:1;}
+
 /* loading overlay for PNG/PDF */
 .export-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:700;align-items:center;justify-content:center;flex-direction:column;gap:14px;backdrop-filter:blur(3px);}
 .export-overlay.open{display:flex;}
@@ -738,6 +765,9 @@ html,body{height:100%;height:100dvh;overflow:hidden;background:var(--bg);color:v
   <!-- ── BILL SCROLL AREA ── -->
   <div class="bill-scroll" id="bill-scroll-area">
     <div class="bill-paper" id="bill-paper-el">
+
+      <!-- Watermark ตราประทับ -->
+      <div class="bill-watermark" id="bill-watermark" style="display:none;"></div>
 
       <!-- Header -->
       <div class="bhead">
@@ -1042,6 +1072,48 @@ html,body{height:100%;height:100dvh;overflow:hidden;background:var(--bg);color:v
         </div>
       </div>
 
+      <div class="cfg-section stamp-section">
+        <div class="cfg-label">🔖 ตราประทับร้าน (AI สร้างจากโลโก้)</div>
+
+        <!-- Upload area -->
+        <div class="stamp-upload-area" id="stamp-upload-area" onclick="document.getElementById('stamp-file-input').click()">
+          <div class="stamp-upload-icon">🖼️</div>
+          <div class="stamp-upload-lbl">แตะเพื่ออัพโหลดโลโก้ร้าน</div>
+          <div class="stamp-upload-sub">รองรับ JPG, PNG · AI จะแปลงเป็นตราประทับให้</div>
+          <input type="file" id="stamp-file-input" accept="image/*" style="display:none" onchange="onStampFileSelected(this)">
+        </div>
+
+        <!-- Preview รูปต้นฉบับ -->
+        <div class="stamp-preview-wrap" id="stamp-preview-wrap">
+          <div class="stamp-preview-box">
+            <img id="stamp-src-img" style="max-height:100px;max-width:100%;border-radius:8px;object-fit:contain;" src="" alt="โลโก้">
+          </div>
+          <div class="stamp-status" id="stamp-src-lbl">รูปพร้อมแล้ว กดสร้างตราได้เลย</div>
+          <button class="stamp-gen-btn" id="stamp-gen-btn" onclick="generateStamp()">
+            <span>🤖</span><span>ให้ AI สร้างตราประทับ</span>
+          </button>
+        </div>
+
+        <!-- Loading -->
+        <div class="stamp-spinner" id="stamp-spinner">
+          <div class="spinner"></div>
+          <div class="stamp-status">AI กำลังสร้างตราประทับ...</div>
+        </div>
+
+        <!-- ผลลัพธ์ตรา -->
+        <div class="stamp-result-wrap" id="stamp-result-wrap">
+          <div class="stamp-result-box" id="stamp-result-box"></div>
+          <div class="stamp-status ok" id="stamp-result-lbl">✅ ตราประทับพร้อมแล้ว</div>
+          <div class="stamp-actions">
+            <button class="stamp-redo-btn" onclick="redoStamp()">🔄 สร้างใหม่</button>
+            <button class="stamp-use-btn" onclick="useStamp()">✅ ใช้ตรานี้บนบิล</button>
+          </div>
+        </div>
+
+        <!-- สถานะตราที่ใช้อยู่ -->
+        <div class="stamp-status" id="stamp-active-lbl"></div>
+      </div>
+
       <div class="cfg-section">
         <div class="cfg-label">🔠 ขนาดตัวอักษร</div>
         <div class="sz-row">
@@ -1264,6 +1336,7 @@ let cfgPhone = localStorage.getItem('vb_phone') || '';
 let cfgTax       = localStorage.getItem('vb_tax')       || '';
 let cfgSig       = localStorage.getItem('vb_sig')       || '';  // base64 ลายเซ็น
 let cfgCollector = localStorage.getItem('vb_collector') || '';  // ชื่อผู้รับเงิน
+let cfgStamp     = localStorage.getItem('vb_stamp')     || '';  // SVG ตราประทับ
 
 function openSettings() {
   document.getElementById('cfg-shop').value  = cfgShop;
@@ -1279,6 +1352,7 @@ function openSettings() {
   });
   refreshAllPKStatus();
   sigLoad();
+  loadStampStatus();
   document.getElementById('settings-modal').classList.add('open');
 }
 function closeSettings() { document.getElementById('settings-modal').classList.remove('open'); }
@@ -2040,8 +2114,10 @@ function createBill() {
       <div class="bisub">${fmt(it.sub)} ฿</div>
     </div>`).join('');
 
-  // ── แสดงหน้าบิลเสมอ ไม่ว่า QR จะสำเร็จหรือไม่ ──
+  // ── แสดงหน้าบิลเสมอ ──
   showScreen('bill');
+  // ประทับตราบนบิล (ถ้ามี)
+  try { applyStampToBill(); } catch(e) {}
 
   // หลัง showScreen — save + memory (ไม่มี QR แล้ว)
   setTimeout(() => {
@@ -2665,6 +2741,201 @@ function toast(msg) {
   t.classList.add('show');
   clearTimeout(t._t);
   t._t = setTimeout(() => t.classList.remove('show'), 1800);
+}
+
+// ══════════════════════════════
+// STAMP ENGINE — AI สร้างตราประทับจากโลโก้
+// ══════════════════════════════
+let stampSrcBase64 = '';   // base64 รูปที่อัพโหลด
+let stampSVG = '';          // SVG ตราที่ได้จาก AI
+
+// โหลดสถานะตราเมื่อเปิด settings
+function loadStampStatus() {
+  const lbl = document.getElementById('stamp-active-lbl');
+  if (!lbl) return;
+  if (cfgStamp) {
+    lbl.textContent = '🔖 มีตราประทับอยู่แล้ว · แสดงบนบิล';
+    lbl.className = 'stamp-status ok';
+    // แสดงตราที่ใช้อยู่ใน result box
+    document.getElementById('stamp-result-box').innerHTML = cfgStamp;
+    document.getElementById('stamp-result-wrap').classList.add('show');
+    document.getElementById('stamp-result-lbl').textContent = '✅ ตราประทับที่ใช้อยู่';
+  } else {
+    lbl.textContent = 'ยังไม่มีตราประทับ';
+    lbl.className = 'stamp-status';
+  }
+}
+
+function onStampFileSelected(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    stampSrcBase64 = e.target.result; // data:image/...;base64,...
+    document.getElementById('stamp-src-img').src = stampSrcBase64;
+    document.getElementById('stamp-preview-wrap').classList.add('show');
+    document.getElementById('stamp-result-wrap').classList.remove('show');
+    stampSVG = '';
+  };
+  reader.readAsDataURL(file);
+}
+
+async function generateStamp() {
+  if (!stampSrcBase64) { toast('กรุณาอัพโหลดรูปโลโก้ก่อน'); return; }
+  if (!cfgKey) { toast('⚠️ กรุณาตั้งค่า API Key ก่อน'); return; }
+
+  document.getElementById('stamp-gen-btn').disabled = true;
+  document.getElementById('stamp-spinner').classList.add('show');
+  document.getElementById('stamp-result-wrap').classList.remove('show');
+
+  const shopName = cfgShop || document.getElementById('cfg-shop').value.trim() || 'ร้านค้า';
+
+  // Prompt ให้ AI วิเคราะห์โลโก้แล้วสร้าง SVG ตราประทับ
+  const prompt = `วิเคราะห์โลโก้ร้านในรูปนี้ แล้วสร้าง SVG ตราประทับวงกลมสไตล์ทางการ
+
+ชื่อร้าน: "${shopName}"
+
+กฎการสร้าง SVG:
+- viewBox="0 0 200 200" เท่านั้น ห้ามใช้ขนาดอื่น
+- วงกลมนอกสุด: cx=100 cy=100 r=95 stroke="#1a3a6b" stroke-width="4" fill="none"
+- วงกลมใน: cx=100 cy=100 r=80 stroke="#1a3a6b" stroke-width="1.5" fill="none"  
+- ชื่อร้านโค้งบนขอบ: ใช้ textPath บน path วงกลม r=87 สีน้ำเงิน font-size 16 font-weight bold
+- ตรงกลาง: วาด icon สรุปจากโลโก้ด้วย path/shape อย่างง่าย ขนาด 50x50 กลางวงกลม
+- เพิ่มดาว ★ ด้านล่างชื่อร้าน
+- สีหลัก: #1a3a6b (น้ำเงินเข้ม)
+- ห้ามใช้ image หรือ foreignObject
+- ตอบเฉพาะ SVG tag เท่านั้น ไม่มีข้อความอื่น ไม่มี markdown`;
+
+  try {
+    let svgResult = '';
+
+    // ── เรียก API ตาม provider ที่ใช้งานอยู่ ──
+    if (cfgProv === 'claude') {
+      // Claude Vision
+      const base64Data = stampSrcBase64.split(',')[1];
+      const mimeType = stampSrcBase64.split(';')[0].split(':')[1];
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': cfgKey,
+          'anthropic-version': '2023-06-01',
+          'anthropic-dangerous-direct-browser-access': 'true'
+        },
+        body: JSON.stringify({
+          model: 'claude-haiku-4-5-20251001',
+          max_tokens: 2000,
+          messages: [{
+            role: 'user',
+            content: [
+              { type: 'image', source: { type: 'base64', media_type: mimeType, data: base64Data } },
+              { type: 'text', text: prompt }
+            ]
+          }]
+        })
+      });
+      const d = await res.json();
+      if (d.error) throw new Error(d.error.message);
+      svgResult = (d.content||[]).map(c=>c.text||'').join('');
+
+    } else if (cfgProv === 'gemini') {
+      // Gemini Vision
+      const base64Data = stampSrcBase64.split(',')[1];
+      const mimeType = stampSrcBase64.split(';')[0].split(':')[1];
+      const res = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${cfgKey}`,
+        { method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ contents: [{ parts: [
+            { inline_data: { mime_type: mimeType, data: base64Data } },
+            { text: prompt }
+          ]}]}) }
+      );
+      const d = await res.json();
+      if (d.error) throw new Error(d.error.message);
+      svgResult = d.candidates?.[0]?.content?.parts?.[0]?.text || '';
+
+    } else if (cfgProv === 'openai') {
+      // OpenAI Vision
+      const res = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + cfgKey },
+        body: JSON.stringify({ model: 'gpt-4o', max_tokens: 2000,
+          messages: [{ role: 'user', content: [
+            { type: 'image_url', image_url: { url: stampSrcBase64 } },
+            { type: 'text', text: prompt }
+          ]}]})
+      });
+      const d = await res.json();
+      if (d.error) throw new Error(d.error.message);
+      svgResult = d.choices?.[0]?.message?.content || '';
+
+    } else {
+      // Llama/Groq — ไม่รองรับ vision → ใช้ text prompt สร้างตราจากชื่อร้านอย่างเดียว
+      const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + cfgKey },
+        body: JSON.stringify({ model: 'llama-3.3-70b-versatile', max_tokens: 2000,
+          messages: [
+            { role: 'system', content: 'ตอบเฉพาะ SVG tag เท่านั้น ไม่มีข้อความอื่น ไม่มี markdown' },
+            { role: 'user', content: `สร้าง SVG ตราประทับวงกลมสำหรับร้าน "${shopName}" viewBox="0 0 200 200" วงกลมนอก r=95 วงกลมใน r=80 สีน้ำเงิน #1a3a6b ชื่อร้านโค้งบนขอบด้วย textPath ตรงกลางมีดาว ★ ใหญ่ font-size=48 ตอบเฉพาะ SVG` }
+          ]})
+      });
+      const d = await res.json();
+      if (d.error) throw new Error(d.error.message);
+      svgResult = d.choices?.[0]?.message?.content || '';
+    }
+
+    // ดึงเฉพาะ SVG tag
+    const svgMatch = svgResult.match(/<svg[\s\S]*?<\/svg>/i);
+    if (!svgMatch) throw new Error('AI ไม่ได้ส่ง SVG กลับมา');
+    stampSVG = svgMatch[0];
+
+    // แสดงผล
+    document.getElementById('stamp-result-box').innerHTML = stampSVG;
+    document.getElementById('stamp-result-wrap').classList.add('show');
+    document.getElementById('stamp-result-lbl').textContent = '✅ ตราพร้อมแล้ว กด "ใช้ตรานี้" เพื่อแสดงบนบิล';
+
+  } catch(err) {
+    toast('❌ ' + err.message.slice(0, 60));
+    document.getElementById('stamp-result-lbl').textContent = '❌ ' + err.message.slice(0, 50);
+    document.getElementById('stamp-result-lbl').className = 'stamp-status err';
+    document.getElementById('stamp-result-wrap').classList.add('show');
+  }
+
+  document.getElementById('stamp-spinner').classList.remove('show');
+  document.getElementById('stamp-gen-btn').disabled = false;
+}
+
+function useStamp() {
+  if (!stampSVG) { toast('กรุณาสร้างตราก่อน'); return; }
+  cfgStamp = stampSVG;
+  localStorage.setItem('vb_stamp', cfgStamp);
+  applyStampToBill();
+  toast('🔖 บันทึกตราประทับแล้ว ✅');
+  loadStampStatus();
+}
+
+function redoStamp() {
+  document.getElementById('stamp-result-wrap').classList.remove('show');
+  stampSVG = '';
+  generateStamp();
+}
+
+function applyStampToBill() {
+  const wm = document.getElementById('bill-watermark');
+  if (!wm) return;
+  if (cfgStamp) {
+    // SVG watermark กลางบิล opacity ต่ำ
+    wm.innerHTML = cfgStamp;
+    const svg = wm.querySelector('svg');
+    if (svg) {
+      svg.style.width = '220px';
+      svg.style.height = '220px';
+    }
+    wm.style.display = 'block';
+  } else {
+    wm.style.display = 'none';
+  }
 }
 
 refreshAllPKStatus();
