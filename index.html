@@ -728,10 +728,7 @@ html,body{height:100%;height:100dvh;overflow:hidden;background:var(--bg);color:v
       <span class="bab-icon">📄</span>
       <span class="bab-lbl">PDF</span>
     </button>
-    <button class="bab-btn" onclick="billAction('qr')">
-      <span class="bab-icon">📲</span>
-      <span class="bab-lbl">QR<br>ลูกค้า</span>
-    </button>
+
     <button class="bab-btn" onclick="billAction('text')">
       <span class="bab-icon">💬</span>
       <span class="bab-lbl">ข้อความ</span>
@@ -794,12 +791,8 @@ html,body{height:100%;height:100dvh;overflow:hidden;background:var(--bg);color:v
         <div class="btv" id="b-total">0 ฿</div>
       </div>
 
-      <!-- QR — ใช้ canvas จริง ไม่ใช่ div anchor ── -->
+      <!-- Digital Sig only — no QR -->
       <div class="bqr">
-        <div class="bqrl">สแกนตรวจสอบความถูกต้อง</div>
-        <div class="bqrw">
-          <canvas id="qr-canvas-bill" width="140" height="140"></canvas>
-        </div>
         <div class="bhash" id="b-hash">—</div>
       </div>
 
@@ -818,19 +811,7 @@ html,body{height:100%;height:100dvh;overflow:hidden;background:var(--bg);color:v
     </div><!-- /bill-paper -->
   </div><!-- /bill-scroll -->
 
-  <!-- ── QR MODAL ── -->
-  <div id="qr-modal" class="qr-modal-overlay" onclick="closeQRModal()">
-    <div class="qr-modal-box" onclick="event.stopPropagation()">
-      <div class="qr-modal-title">📲 ให้ลูกค้าสแกน</div>
-      <div class="qr-modal-sub">สแกนดูบิลสำเนาบนมือถือ</div>
-      <div class="qr-modal-canvas-wrap">
-        <canvas id="qr-canvas-modal" width="220" height="220"></canvas>
-      </div>
-      <div class="qr-modal-hash" id="qr-modal-hash">—</div>
-      <div class="qr-modal-note">🔒 ข้อมูลบิลฝังใน QR · ไม่ต้องพึ่งอินเทอร์เน็ต</div>
-      <button class="qr-modal-close" onclick="closeQRModal()">ปิด</button>
-    </div>
-  </div>
+
 
 </div><!-- /screen-bill -->
 
@@ -2062,40 +2043,11 @@ function createBill() {
   // ── แสดงหน้าบิลเสมอ ไม่ว่า QR จะสำเร็จหรือไม่ ──
   showScreen('bill');
 
-  // วาด QR + ลายเซ็น — ครอบ try/catch ทั้งหมด ไม่ให้ UI ค้าง
-  requestAnimationFrame(() => {
-    // QR
-    try {
-      const qrText = QR_PAYLOAD.length <= 800 ? QR_PAYLOAD : JSON.stringify({
-        v:4, no, h:hash, nc:nonce, tot:total,
-        it: billItems.map(i=>({n:i.name,q:i.qty,p:i.up,s:i.sub}))
-      });
-      _drawQROnCanvas(qrText, 'qr-canvas-bill', 140);
-    } catch(e) { console.warn('QR draw err:', e); }
-
-    // ลายเซ็น
-    try {
-      const sc = document.getElementById('bill-sig-canvas');
-      if (sc) {
-        const ctx = sc.getContext('2d');
-        ctx.clearRect(0,0,sc.width,sc.height);
-        setText('bill-collector-name', cfgCollector||cfgOwner||'');
-        if (cfgSig) {
-          const img = new Image();
-          img.onload = () => ctx.drawImage(img,0,0,sc.width,sc.height);
-          img.src = cfgSig;
-        } else {
-          ctx.strokeStyle='#c0b89a'; ctx.setLineDash([6,4]); ctx.lineWidth=1;
-          ctx.beginPath(); ctx.moveTo(20,sc.height-10); ctx.lineTo(sc.width-20,sc.height-10); ctx.stroke();
-        }
-      }
-    } catch(e) { console.warn('sig err:', e); }
-
-    // บันทึกประวัติ (ย้ายมาหลัง showScreen เพื่อไม่ block UI)
+  // หลัง showScreen — save + memory (ไม่มี QR แล้ว)
+  setTimeout(() => {
     try { saveHist({ no, date:isoDate, nonce, hash, total, shop:cfgShop||'ร้านค้า', items:billItems, scans:[] }); } catch(e) {}
-    // เรียน memory
     try { learnFromBill(billItems); renderMemoryChips(); } catch(e) {}
-  });
+  }, 100);
   } catch(err) {
     console.error('createBill error:', err);
     toast('เกิดข้อผิดพลาด กรุณาลองใหม่');
@@ -2103,32 +2055,7 @@ function createBill() {
   }
 }
 
-// วาด QR บน canvas — ใช้ pure-JS QR engine (expose ผ่าน window ท้ายไฟล์)
-function _drawQROnCanvas(text, canvasId, size) {
-  try {
-    var canvas = document.getElementById(canvasId);
-    if (!canvas) { console.warn('QR: canvas not found:', canvasId); return; }
-    var ctx = canvas.getContext('2d');
-    if (!window.QRErrorCorrectLevel || !window.autoVersion) {
-      console.warn('QR engine not ready'); return;
-    }
-    var ecl  = window.QRErrorCorrectLevel.M;
-    var tn   = window.autoVersion(text, ecl);
-    var data = window.buildData(text, tn, ecl);
-    var qr   = window.makeMatrix(tn, ecl, data);
-    var mc   = qr.mc, M = qr.M;
-    var cell = Math.max(1, Math.floor(size / (mc + 8)));
-    var qz   = cell * 4;
-    var tot  = mc * cell + qz * 2;
-    canvas.width = tot; canvas.height = tot;
-    canvas.style.cssText = 'display:block;width:'+size+'px;height:'+size+'px;image-rendering:pixelated;border-radius:4px;';
-    ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, tot, tot);
-    ctx.fillStyle = '#1a3a6b';
-    for (var r = 0; r < mc; r++)
-      for (var co = 0; co < mc; co++)
-        if (M[r][co]) ctx.fillRect(co*cell+qz, r*cell+qz, cell, cell);
-  } catch(e) { console.warn('QR error:', e.message); }
-}
+
 
 // กลับหน้า confirm จากหน้าบิล
 function goConfirm() { showScreen('confirm'); }
@@ -2161,21 +2088,11 @@ function billAction(type) {
     case 'send': sendBillPNG(); break;
     case 'png':  saveAsPNG();  break;
     case 'pdf':  saveAsPDF();  break;
-    case 'qr':   _showBillQRModal(); break;
     case 'text': shareBillText(); break;
   }
 }
 
-// แสดง QR modal
-function _showBillQRModal() {
-  if (!window._bill) { toast('กรุณาออกบิลก่อน'); return; }
-  const b = window._bill;
-  setText('qr-modal-hash', 'Sig: '+b.hash);
-  document.getElementById('qr-modal').classList.add('open');
-  // วาด QR หลัง modal แสดง (rAF)
-  requestAnimationFrame(() => { _drawQROnCanvas(b.QR_PAYLOAD, 'qr-canvas-modal', 220); });
-}
-function closeQRModal() { document.getElementById('qr-modal').classList.remove('open'); }
+
 
 
 // ── SHARE: HTML BILL FILE (หลัก) ──
