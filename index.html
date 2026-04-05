@@ -2071,69 +2071,79 @@ function createBill() {
       <div class="bisub">${fmt(it.sub)} ฿</div>
     </div>`).join('');
 
-  // แสดงหน้าบิลก่อน
+  // ── แสดงหน้าบิลเสมอ ไม่ว่า QR จะสำเร็จหรือไม่ ──
   showScreen('bill');
 
-  // วาด QR + ลายเซ็น หลัง browser paint (ไม่บล็อก UI)
-  requestAnimationFrame(() => {
-    // วาด QR บน canvas จริง (ไม่ใช่ div anchor)
-    _drawQROnCanvas(QR_PAYLOAD, 'qr-canvas-bill', 140);
+  // วาด QR + ลายเซ็น หลัง browser paint
+  setTimeout(() => {
+    // QR — ใช้ payload แบบ compact ถ้า full payload ใหญ่เกิน
+    const qrText = (function() {
+      if (QR_PAYLOAD.length <= 800) return QR_PAYLOAD;
+      // compact fallback: เฉพาะข้อมูลสำคัญ
+      return JSON.stringify({
+        v:4, no, h:hash, nc:nonce, tot:total,
+        it: billItems.map(i=>({n:i.name,q:i.qty,p:i.up,s:i.sub}))
+      });
+    })();
+    try { _drawQROnCanvas(qrText, 'qr-canvas-bill', 140); } catch(e) { console.warn('QR err',e); }
 
     // ลายเซ็น
-    const sc = document.getElementById('bill-sig-canvas');
-    if (sc) {
-      const ctx = sc.getContext('2d');
-      ctx.clearRect(0,0,sc.width,sc.height);
-      setText('bill-collector-name', cfgCollector||cfgOwner||'');
-      if (cfgSig) {
-        const img = new Image();
-        img.onload = () => ctx.drawImage(img,0,0,sc.width,sc.height);
-        img.src = cfgSig;
-      } else {
-        ctx.strokeStyle='#c0b89a'; ctx.setLineDash([6,4]); ctx.lineWidth=1;
-        ctx.beginPath(); ctx.moveTo(20,sc.height-10); ctx.lineTo(sc.width-20,sc.height-10); ctx.stroke();
+    try {
+      const sc = document.getElementById('bill-sig-canvas');
+      if (sc) {
+        const ctx = sc.getContext('2d');
+        ctx.clearRect(0,0,sc.width,sc.height);
+        setText('bill-collector-name', cfgCollector||cfgOwner||'');
+        if (cfgSig) {
+          const img = new Image();
+          img.onload = () => ctx.drawImage(img,0,0,sc.width,sc.height);
+          img.src = cfgSig;
+        } else {
+          ctx.strokeStyle='#c0b89a'; ctx.setLineDash([6,4]); ctx.lineWidth=1;
+          ctx.beginPath(); ctx.moveTo(20,sc.height-10); ctx.lineTo(sc.width-20,sc.height-10); ctx.stroke();
+        }
       }
-    }
+    } catch(e) { console.warn('sig err',e); }
 
-    // เรียน memory หลัง render (ไม่บล็อก)
-    setTimeout(() => { learnFromBill(billItems); renderMemoryChips(); }, 200);
-  });
+    // เรียน memory
+    setTimeout(() => {
+      try { learnFromBill(billItems); renderMemoryChips(); } catch(e) {}
+    }, 300);
+  }, 80);
 }
 
 // วาด QR บน canvas element โดยตรง — ใช้ pure-JS QR engine (window.drawQR / g.drawQR)
 function _drawQROnCanvas(text, canvasId, size) {
-  const canvas = document.getElementById(canvasId);
-  if (!canvas) { console.warn('_drawQROnCanvas: canvas not found', canvasId); return; }
-
-  // เตรียม anchor div ชั่วคราวนอก DOM ปกติ
-  const anchor = document.createElement('div');
-  anchor.id = '_qr_anchor_' + canvasId;
-  anchor.style.cssText = 'position:fixed;left:-9999px;top:0;width:'+size+'px;height:'+size+'px;';
-  document.body.appendChild(anchor);
-
   try {
-    // เรียก pure-JS QR engine โดยตรง — วาดลง anchor
-    window.drawQR(text, anchor.id, size, '#1a3a6b', '#ffffff');
+    const canvas = document.getElementById(canvasId);
+    if (!canvas) return;
 
-    // copy canvas จาก anchor ไปวาดบน canvasId จริง
-    requestAnimationFrame(() => {
+    // สร้าง anchor นอก bill-paper (ไม่โดน pointer-events:none)
+    const anchorId = '_qra_' + canvasId;
+    let anchor = document.getElementById(anchorId);
+    if (anchor) anchor.remove();
+    anchor = document.createElement('div');
+    anchor.id = anchorId;
+    anchor.style.cssText = 'position:fixed;left:-9999px;top:0;width:'+size+'px;height:'+size+'px;pointer-events:auto;';
+    document.body.appendChild(anchor);
+
+    // วาด QR ลง anchor
+    window.drawQR(text, anchorId, size, '#1a3a6b', '#ffffff');
+
+    // copy canvas → target canvas
+    setTimeout(() => {
       try {
         const qcvs = anchor.querySelector('canvas');
         if (qcvs) {
           canvas.width  = qcvs.width;
           canvas.height = qcvs.height;
-          canvas.style.width  = size + 'px';
-          canvas.style.height = size + 'px';
-          const ctx = canvas.getContext('2d');
-          ctx.drawImage(qcvs, 0, 0);
+          canvas.style.cssText = 'display:block;width:'+size+'px;height:'+size+'px;image-rendering:pixelated;';
+          canvas.getContext('2d').drawImage(qcvs, 0, 0);
         }
-      } catch(e2) { console.warn('QR copy error', e2); }
+      } catch(e2) {}
       try { document.body.removeChild(anchor); } catch(e3) {}
-    });
-  } catch(e) {
-    console.warn('QR draw error', e);
-    try { document.body.removeChild(anchor); } catch(e4) {}
-  }
+    }, 100);
+  } catch(e) { console.warn('_drawQROnCanvas err:', e); }
 }
 
 // กลับหน้า confirm จากหน้าบิล
@@ -3030,7 +3040,7 @@ function buildData(text,tn,ecl){
   return out;
 }
 function autoVersion(text,ecl){
-  for(var tn=1;tn<=20;tn++){
+  for(var tn=1;tn<=40;tn++){
     try{buildData(text,tn,ecl);return tn;}catch(e){}
   }throw new Error('text too long');
 }
