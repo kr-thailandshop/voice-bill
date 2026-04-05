@@ -534,6 +534,7 @@ html,body{height:100%;height:100dvh;overflow:hidden;background:var(--bg);color:v
 .qr-bill-sub{font-size:11px;color:var(--muted);font-weight:600;margin-top:3px;margin-bottom:14px;text-align:center;padding:0 20px;}
 .qr-bill-box{background:#fff;border-radius:16px;padding:16px;border:2px solid var(--border);box-shadow:0 2px 12px rgba(0,0,0,0.10);min-width:180px;min-height:180px;display:flex;align-items:center;justify-content:center;}
 .qr-bill-hash{font-family:'IBM Plex Mono',monospace;font-size:8px;color:var(--muted);text-align:center;margin-top:10px;word-break:break-all;max-width:240px;line-height:1.6;padding:0 20px;}
+.qr-bill-size{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--border);text-align:center;margin-top:2px;}
 .qr-bill-note{margin:12px 20px 0;background:var(--grn-bg);border:1.5px solid var(--green);border-radius:10px;padding:9px 14px;font-size:11px;color:var(--green);font-weight:700;text-align:center;line-height:1.5;width:calc(100% - 40px);}
 .qr-bill-close{margin:14px 20px 0;width:calc(100% - 40px);padding:14px;border-radius:14px;background:var(--accent);border:none;color:#fff;font-family:'Sarabun',sans-serif;font-weight:800;font-size:16px;cursor:pointer;}
 .qr-bill-close:active{opacity:0.88;}
@@ -967,6 +968,7 @@ html,body{height:100%;height:100dvh;overflow:hidden;background:var(--bg);color:v
       <div id="qr-bill-anchor"></div>
     </div>
     <div class="qr-bill-hash" id="qr-bill-hash"></div>
+    <div class="qr-bill-size" id="qr-bill-size"></div>
     <div class="qr-bill-note">🔒 ข้อมูลบิลฝังใน QR · ลูกค้าสแกนแล้วดูบิลสำเนาได้ทันที</div>
     <button class="qr-bill-close" onclick="closeQRModal()">✕ ปิด</button>
   </div>
@@ -2388,25 +2390,52 @@ function showQRModal() {
       if (!anchor) return;
       anchor.innerHTML = '';
 
-      // payload = JSON ข้อมูลบิล (compact, ครบสำหรับตรวจสอบ)
-      const payload = b.QR_PAYLOAD || JSON.stringify({
-        v:4, no:b.no, iso:b.iso16, nc:b.nonce, h:b.hash, tot:b.total,
-        sh:b.shop, ow:b.owner||'', ad:b.addr||'', ph:b.phone||'', tx:b.tax||'',
-        dt:b.dateTH, tm:b.timeTH,
+      // ── สร้าง payload แบบ compact สุด ──
+      // ตัด field ที่ไม่จำเป็น + ย่อชื่อ key ให้สั้นที่สุด
+      const compact = {
+        v:5,
+        no: b.no,
+        iso: b.iso16,
+        nc: b.nonce,
+        h: b.hash,
+        tot: b.total,
+        sh: b.shop||'',
+        ow: b.owner||'',
+        ad: b.addr||'',
+        ph: b.phone||'',
+        tx: b.tax||'',
+        dt: b.dateTH||'',
+        tm: b.timeTH||'',
         it: b.items.map(i=>({n:i.name,q:i.qty,p:i.up,s:i.sub}))
+      };
+      // ลบ field ว่างออก ลดความยาว
+      Object.keys(compact).forEach(k => {
+        if (compact[k] === '' || compact[k] === null || compact[k] === undefined) delete compact[k];
       });
+      const jsonStr = JSON.stringify(compact);
+
+      // ── encode เป็น base64 แล้วใส่ใน URL hash ──
+      // URL สั้นกว่า JSON ดิบ ~30% และ QR สแกนได้แน่นอน
+      const encoded = btoa(unescape(encodeURIComponent(jsonStr)));
+      const pageURL = window.location.href.split('#')[0];
+      const qrURL   = pageURL + '#bill=' + encoded;
 
       new QRCode(anchor, {
-        text: payload,
-        width: 200,
-        height: 200,
+        text: qrURL,
+        width: 220,
+        height: 220,
         colorDark: '#1a3a6b',
         colorLight: '#ffffff',
-        correctLevel: QRCode.CorrectLevel.M
+        correctLevel: QRCode.CorrectLevel.L   // L = ข้อมูลยาวได้สุด
       });
+
+      // แสดงขนาดข้อมูลใต้ QR
+      const sizeEl = document.getElementById('qr-bill-size');
+      if (sizeEl) sizeEl.textContent = 'ขนาด URL: ' + qrURL.length + ' ตัวอักษร';
+
     } catch(e) {
       console.warn('QR error:', e);
-      if (anchor) anchor.innerHTML = '<div class="qr-loading">⚠️ ไม่สามารถสร้าง QR<br>ข้อมูลบิลอาจยาวเกินไป</div>';
+      if (anchor) anchor.innerHTML = '<div class="qr-loading">⚠️ ไม่สามารถสร้าง QR<br>' + e.message + '</div>';
     }
   }, 120);
 }
@@ -2940,14 +2969,21 @@ function verifyBillFromQR(rawData) {
     const billItems = _src.map(i => ({
       name: i.n||i.name, qty: +(i.q||i.qty), up: +(i.p||i.up), sub: +(i.s||(+(i.p||i.up))*(+(i.q||i.qty)))
     }));
-    const total_v = b.tot || b.total || 0;
+    const total_v  = b.tot  || b.total  || 0;
+    const shop_v   = b.sh   || b.shop   || '';
+    const owner_v  = b.ow   || b.owner  || '';
+    const addr_v   = b.ad   || b.addr   || '';
+    const phone_v  = b.ph   || b.phone  || '';
+    const tax_v    = b.tx   || b.tax    || '';
+    const date_v   = b.dt   || b.date   || '';
+    const time_v   = b.tm   || b.time   || '';
     setText('vf-no',   b.no);
-    setText('vf-shop', b.shop || '');
-    const details = [b.owner, b.addr, b.phone ? '📞 '+b.phone : ''].filter(Boolean).join(' · ');
+    setText('vf-shop', shop_v);
+    const details = [owner_v, addr_v, phone_v ? '📞 '+phone_v : ''].filter(Boolean).join(' · ');
     setText('vf-detail', details);
-    setText('vf-tax', b.tax ? 'เลขผู้เสียภาษี: '+b.tax : '');
-    setText('vf-date', b.date || '');
-    setText('vf-time', b.time || '');
+    setText('vf-tax', tax_v ? 'เลขผู้เสียภาษี: '+tax_v : '');
+    setText('vf-date', date_v);
+    setText('vf-time', time_v);
     setText('vf-cnt',  billItems.length + ' รายการ');
     setText('vf-total', fmt(total_v) + ' ฿');
     setText('vf-hash', 'Digital Sig: ' + storedHash);
@@ -3024,12 +3060,18 @@ function verifyBillFromQR(rawData) {
 // Auto-detect QR data from URL hash on page load (for customer link)
 (function() {
   const hash = window.location.hash;
-  if (hash && hash.startsWith('#bill=')) {
+  if (!hash || !hash.startsWith('#bill=')) return;
+  try {
+    const encoded = hash.slice(6);
+    // ลอง decode base64 ก่อน (format ใหม่) ถ้าไม่ได้ค่อย decode URI (format เก่า)
+    let raw;
     try {
-      const raw = decodeURIComponent(hash.slice(6));
-      verifyBillFromQR(raw);
-    } catch(e) {}
-  }
+      raw = decodeURIComponent(escape(atob(encoded)));
+    } catch(e) {
+      raw = decodeURIComponent(encoded);
+    }
+    verifyBillFromQR(raw);
+  } catch(e) {}
 })();
 </script>
 
