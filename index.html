@@ -1844,144 +1844,179 @@ function updateTotal() {
 // ══════════════════════════════
 // CREATE BILL
 // ══════════════════════════════
+// ══════════════════════════════
+// CREATE BILL — เขียนใหม่ทั้งหมด
+// โจทย์:
+//   1. บิลร้านค้า = บิลลูกค้า ทุกตัวอักษร
+//   2. QR บนบิลร้าน = QR ที่ลูกค้าสแกน = payload เดียวกัน
+//   3. ล็อคแก้ไขไม่ได้หลังออกบิล
+//   4. Nonce (ใช้ครั้งเดียว) ป้องกันสวมรอย
+// ══════════════════════════════
 function createBill() {
   if (!items.length) { toast('กรุณาเพิ่มสินค้าอย่างน้อย 1 รายการ'); return; }
+
+  // ── 1. ข้อมูลหลักของบิล ──
   const now   = new Date();
-  const no    = 'BL' + now.getFullYear().toString().slice(-2) + pad(now.getMonth() + 1) + pad(now.getDate()) + '-' + (Math.floor(Math.random() * 9000) + 1000);
-  const nonce = makeNonce();   // ← รหัสลับใช้ครั้งเดียว
+  const no    = 'BL' + now.getFullYear().toString().slice(-2)
+              + pad(now.getMonth() + 1) + pad(now.getDate())
+              + '-' + (Math.floor(Math.random() * 9000) + 1000);
+  const nonce = makeNonce();          // รหัสลับครั้งเดียว 32 hex
   const total = items.reduce((s, i) => s + i.sub, 0);
-  // hash ครอบคลุม nonce ด้วย → copy QR ไปสร้างใหม่ไม่ได้เพราะ nonce ต่างกัน
-  const hash  = simpleHash(no + '|' + now.toISOString().slice(0, 16) + '|' + items.map(i => i.name + i.qty + i.up).join('|') + '|' + total + '|' + nonce);
+  const isoDate = now.toISOString(); // เก็บ full ISO เพื่อ verify ได้แม่นยำ
 
-  saveHist({ no, date: now.toISOString(), shop: cfgShop || 'ร้านค้า', items: [...items], total, hash, nonce, scans: [] });
+  // ── 2. สร้าง hash จากข้อมูลครบทุกตัว (รวม nonce) ──
+  //    สูตรนี้ต้องตรงกันทุกที่: ร้านค้า / สำเนาลูกค้า / verify
+  const HASH_INPUT = no + '|' + isoDate.slice(0,16) + '|'
+    + items.map(i => i.name + '|' + i.qty + '|' + i.up).join('||')
+    + '|' + total + '|' + nonce;
+  const hash = simpleHash(HASH_INPUT);
 
-  // 🧠 Learn from this bill
+  // ── 3. เก็บประวัติ (ฝั่งร้านค้า) ──
+  const billRecord = {
+    no, date: isoDate, nonce, hash, total,
+    shop: cfgShop || 'ร้านค้า',
+    items: items.map(i => ({ name:i.name, qty:i.qty, up:i.up, sub:i.sub })),
+    scans: []
+  };
+  saveHist(billRecord);
+
+  // ── 4. เรียนรู้สินค้า ──
   learnFromBill(items);
   renderMemoryChips();
 
-  setText('b-shop', cfgShop || 'ร้านค้า');
-  setText('b-no', no);
-  setText('b-datetime', now.toLocaleDateString('th-TH', { weekday:'short', year:'numeric', month:'long', day:'numeric' }));
-  setText('b-date', now.toLocaleDateString('th-TH', { year:'numeric', month:'short', day:'numeric' }));
-  setText('b-time', now.toLocaleTimeString('th-TH', { hour:'2-digit', minute:'2-digit' }));
-  setText('b-cnt', items.length + ' รายการ');
+  // ── 5. สร้าง QR payload — ใช้ JSON เต็มให้ลูกค้าตรวจได้ทุกตัว ──
+  //    ไม่ตัดสั้นเพราะ QR engine รองรับ binary mode / Byte mode ได้ถึง ~2000 ตัวอักษร
+  const QR_PAYLOAD = JSON.stringify({
+    v: 4,
+    no,
+    iso: isoDate.slice(0,16),
+    nonce,
+    hash,
+    total,
+    shop:  cfgShop  || '',
+    owner: cfgOwner || '',
+    addr:  [cfgAddr, cfgAddr2].filter(Boolean).join(' '),
+    phone: cfgPhone || '',
+    tax:   cfgTax   || '',
+    date:  now.toLocaleDateString('th-TH', { year:'numeric', month:'long', day:'numeric' }),
+    time:  now.toLocaleTimeString('th-TH', { hour:'2-digit', minute:'2-digit' }),
+    items: items.map(i => ({ n:i.name, q:i.qty, p:i.up, s:i.sub }))
+  });
+
+  // ── 6. แคชข้อมูลทั้งหมดไว้ใน window._ เพื่อให้ share functions ใช้ต่อ ──
+  //    (ไม่อ่านจาก DOM อีก เพราะ DOM อาจถูก user เปลี่ยนใน devtools)
+  window._bill = {
+    no, isoDate, nonce, hash, total, QR_PAYLOAD,
+    shop:    cfgShop  || 'ร้านค้า',
+    owner:   cfgOwner || '',
+    addr:    [cfgAddr, cfgAddr2].filter(Boolean).join(' '),
+    phone:   cfgPhone || '',
+    tax:     cfgTax   || '',
+    dateTH:  now.toLocaleDateString('th-TH', { year:'numeric', month:'long', day:'numeric' }),
+    dateShort: now.toLocaleDateString('th-TH', { year:'numeric', month:'short', day:'numeric' }),
+    timeTH:  now.toLocaleTimeString('th-TH', { hour:'2-digit', minute:'2-digit' }),
+    datetimeTH: now.toLocaleDateString('th-TH', { weekday:'short', year:'numeric', month:'long', day:'numeric' }),
+    items:   items.map(i => ({ name:i.name, qty:i.qty, up:i.up, sub:i.sub })),
+    cnt:     items.length,
+    HASH_INPUT   // เก็บไว้ debug ถ้าจำเป็น
+  };
+
+  // backward-compat aliases (ฟังก์ชันเก่าบางตัวอาจยังใช้)
+  window._lastBillHash  = hash;
+  window._lastBillNonce = nonce;
+  window._lastBillNow   = isoDate.slice(0,16);
+  window._lastBillItems = window._bill.items;
+  window._lastBillTotal = total;
+  window._lastBillQRData = QR_PAYLOAD;
+
+  // ── 7. อัพเดต DOM บิล (ใช้ข้อมูลจาก _bill ไม่ใช่ DOM loop) ──
+  const b = window._bill;
+  setText('b-shop', b.shop);
+  setText('b-no',   no);
+  setText('b-datetime', b.datetimeTH);
+  setText('b-date',     b.dateShort);
+  setText('b-time',     b.timeTH);
+  setText('b-cnt',  b.cnt + ' รายการ');
   setText('b-total', fmt(total) + ' ฿');
   setText('b-hash', 'Digital Sig: ' + hash);
 
-  // Shop detail
-  const details = [cfgOwner, cfgAddr, cfgAddr2, cfgPhone ? '📞 ' + cfgPhone : ''].filter(Boolean).join(' · ');
+  const details = [b.owner, b.addr, b.phone ? '📞 ' + b.phone : ''].filter(Boolean).join(' · ');
   setText('b-detail', details);
-  setText('b-tax', cfgTax ? 'เลขผู้เสียภาษี: ' + cfgTax : '');
+  setText('b-tax', b.tax ? 'เลขผู้เสียภาษี: ' + b.tax : '');
 
-  document.getElementById('b-items').innerHTML = items.map(it => `
+  document.getElementById('b-items').innerHTML = b.items.map(it => `
     <div class="bitem">
       <div><div class="biname">${it.name}</div><div class="biqty">${it.qty} ชิ้น</div></div>
       <div class="bicol">${it.qty} × ${fmt(it.up)}</div>
       <div class="bisub">${fmt(it.sub)} ฿</div>
     </div>`).join('');
 
-  // Build QR payload — keep SHORT to fit in QR version ≤ 8 (RSBT table limit)
-  // Full bill is stored in history; QR just needs enough to verify + identify
-  // NOTE: Thai chars = 3 bytes UTF-8 each → slice by char count, keep payload ≤ ~100 bytes total
-  const shortItems = items.map(i => i.name.slice(0,6) + ':' + i.qty + 'x' + i.up).join('|');
-  const billQRData = 'BL3|' + no + '|' + (cfgShop||'').slice(0,8) + '|' + total + '|' + shortItems.slice(0,60) + '|' + hash.slice(0,12);
-  // Store for QR modal to reuse
-  window._lastBillQRData = billQRData;
-  window._lastBillHash   = hash;
-  window._lastBillNonce  = nonce;
-  window._lastBillNow    = now.toISOString().slice(0,16);
-  window._lastBillItems  = items.map(i=>({name:i.name,qty:i.qty,up:i.up,sub:i.sub}));
-  window._lastBillTotal  = total;
-
-  // ── แสดงหน้าบิลก่อน แล้วค่อย drawQR + วาดลายเซ็น (ไม่บล็อก UI) ──
+  // ── 8. แสดงหน้าบิล ──
   showScreen('bill');
 
-  // ใช้ double-rAF แทน setTimeout เพื่อให้แน่ใจว่า browser paint หน้าเสร็จก่อนเสมอ
-  // (setTimeout 60ms ไม่พอบน Android / GitHub Pages เพราะ network + paint ช้ากว่า)
-  requestAnimationFrame(() => {
-    requestAnimationFrame(() => {
-      // วาด QR พร้อม fallback กรณี error
-      const anchor = document.getElementById('qr-anchor');
-      try {
-        drawQR(billQRData, 'qr-anchor', 140);
-        // ตรวจสอบว่า canvas ถูกสร้างจริงๆ
-        if (anchor && !anchor.querySelector('canvas')) {
-          throw new Error('canvas not created');
-        }
-      } catch(e) {
-        console.warn('QR render failed:', e);
-        if (anchor) {
-          anchor.style.cssText = 'display:flex;align-items:center;justify-content:center;width:140px;height:140px;';
-          anchor.innerHTML = '<div style="font-size:10px;color:#b8aa90;text-align:center;line-height:1.6;padding:8px;">⬛<br>QR ไม่พร้อม<br><span style="font-size:8px;">' + (e.message||'error') + '</span></div>';
-        }
-      }
+  // ── 9. วาด QR + ลายเซ็น หลัง browser paint ──
+  requestAnimationFrame(() => setTimeout(() => {
 
-      // วาดลายเซ็นผู้รับเงินบนบิล
-      const sigCanvas = document.getElementById('bill-sig-canvas');
-      if (sigCanvas) {
-        const sigCtx = sigCanvas.getContext('2d');
-        sigCtx.clearRect(0, 0, sigCanvas.width, sigCanvas.height);
-        const collectorName = cfgCollector || cfgOwner || '';
-        document.getElementById('bill-collector-name').textContent = collectorName;
-        if (cfgSig) {
-          const img = new Image();
-          img.onload = () => { sigCtx.drawImage(img, 0, 0, sigCanvas.width, sigCanvas.height); };
-          img.src = cfgSig;
-        } else {
-          sigCtx.strokeStyle = '#c0b89a';
-          sigCtx.setLineDash([6, 4]);
-          sigCtx.lineWidth = 1;
-          sigCtx.beginPath();
-          sigCtx.moveTo(20, sigCanvas.height - 10);
-          sigCtx.lineTo(sigCanvas.width - 20, sigCanvas.height - 10);
-          sigCtx.stroke();
-        }
+    // QR เดียวกันทั้งร้านค้าและลูกค้า
+    drawQR(QR_PAYLOAD, 'qr-anchor', 140);
+
+    // ลายเซ็น
+    const sigCanvas = document.getElementById('bill-sig-canvas');
+    if (sigCanvas) {
+      const ctx = sigCanvas.getContext('2d');
+      ctx.clearRect(0, 0, sigCanvas.width, sigCanvas.height);
+      setText('bill-collector-name', cfgCollector || cfgOwner || '');
+      if (cfgSig) {
+        const img = new Image();
+        img.onload = () => ctx.drawImage(img, 0, 0, sigCanvas.width, sigCanvas.height);
+        img.src = cfgSig;
+      } else {
+        ctx.strokeStyle = '#c0b89a';
+        ctx.setLineDash([6, 4]);
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(20, sigCanvas.height - 10);
+        ctx.lineTo(sigCanvas.width - 20, sigCanvas.height - 10);
+        ctx.stroke();
       }
-    });
-  });
+    }
+
+  }, 80));
 }
 
 // drawQR — implemented by the pure-JS QR engine at bottom of file (window.drawQR)
 
 // ── SHARE: HTML BILL FILE (หลัก) ──
 // สร้างไฟล์ bill-XXXX.html ที่เปิดได้ทุกเครื่อง offline แล้วแชร์ผ่าน Line/WhatsApp
+// ── SHARE: HTML BILL (ส่งให้ลูกค้า — บิลสำเนาที่ verify ได้) ──
 function shareBillHTML() {
-  if (!window._lastBillHash) { toast('กรุณาออกบิลก่อน'); return; }
+  if (!window._bill) { toast('กรุณาออกบิลก่อน'); return; }
+  const b = window._bill;
 
-  const no         = document.getElementById('b-no').textContent;
-  const date       = document.getElementById('b-date').textContent;
-  const time       = document.getElementById('b-time').textContent;
-  const cnt        = document.getElementById('b-cnt').textContent;
-  const totalTxt   = document.getElementById('b-total').textContent;
-  const hash       = window._lastBillHash;
-  const nonce      = window._lastBillNonce || '';
-  const nowISO     = window._lastBillNow   || '';
-  const billItems  = window._lastBillItems || items.map(i=>({name:i.name,qty:i.qty,up:i.up,sub:i.sub}));
-  const billTotal  = window._lastBillTotal || 0;
-
-  const shop   = document.getElementById('b-shop').textContent;
-  const detail = document.getElementById('b-detail').textContent;
-  const tax    = document.getElementById('b-tax').textContent;
-  const itemsHTML = document.getElementById('b-items').innerHTML;
-
+  // ดึงลายเซ็นจาก canvas ร้านค้า (ถ้ามี)
   let sigDataURL = '';
   try {
     const sc = document.getElementById('bill-sig-canvas');
     if (sc) sigDataURL = sc.toDataURL('image/png');
   } catch(e) {}
-  const collectorName = document.getElementById('bill-collector-name').textContent;
+  const collectorName = document.getElementById('bill-collector-name')?.textContent || '';
 
-  // fmt helper inlined for the copy HTML
-  const fmtInline = n => Number(n).toLocaleString('th-TH');
+  // รายการสินค้าสำหรับ verify (ฝั่งลูกค้า) — ต้องตรงกับสูตร hash ที่ร้านใช้
+  const itemsForVerify = JSON.stringify(b.items);
 
-  const itemsVerifyJSON = JSON.stringify(billItems);
+  // ── สูตร hash ที่ inlined ใน HTML สำเนา (ต้องตรงกับ simpleHash ของ main app) ──
+  // simpleHash: FNV-1a 32-bit + djb2
+  // HASH_INPUT: no|iso|name|qty|up||name|qty|up|...|total|nonce
+  const hashInputForCopy = b.no + '|' + b.isoDate.slice(0,16) + '|'
+    + b.items.map(i => i.name + '|' + i.qty + '|' + i.up).join('||')
+    + '|' + b.total + '|' + b.nonce;
 
   const html = `<!DOCTYPE html>
 <html lang="th">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>บิลสำเนา · ${no}</title>
+<title>บิลสำเนา · ${b.no}</title>
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700;800&family=Noto+Serif+Thai:wght@700;900&family=IBM+Plex+Mono:wght@400;700&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
@@ -1989,7 +2024,7 @@ body{background:#e8e0d0;font-family:'Sarabun',sans-serif;padding:0 0 48px;min-he
 .topbar{background:#1a3a6b;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10;}
 .topbar-title{font-weight:800;color:#fff;font-size:15px;}
 .copy-badge-top{background:rgba(255,200,0,.25);border:1.5px solid rgba(255,200,0,.6);border-radius:100px;padding:3px 12px;color:#ffe080;font-size:10px;font-weight:700;letter-spacing:1px;}
-.verify-bar{margin:10px 12px 0;border-radius:12px;padding:12px 16px;display:flex;align-items:center;gap:12px;border:2px solid #ccc;background:#fff;}
+.verify-bar{margin:10px 12px 0;border-radius:12px;padding:12px 16px;display:flex;align-items:center;gap:12px;border:2px solid #ccc;background:#fff;transition:all 0.3s;}
 .vi{font-size:24px;flex-shrink:0;}
 .vt{font-size:12px;font-weight:800;}
 .vs{font-size:11px;font-weight:600;margin-top:2px;}
@@ -2046,7 +2081,7 @@ body{background:#e8e0d0;font-family:'Sarabun',sans-serif;padding:0 0 48px;min-he
 </div>
 
 <div class="verify-bar" id="vbar">
-  <div class="vi">🔐</div>
+  <div class="vi" id="vicon">🔐</div>
   <div><div class="vt">ตรวจสอบความถูกต้อง</div><div class="vs" id="vstatus">กำลังตรวจสอบ...</div></div>
 </div>
 
@@ -2055,7 +2090,7 @@ body{background:#e8e0d0;font-family:'Sarabun',sans-serif;padding:0 0 48px;min-he
   <div class="bhead">
     <div class="bhead-top">
       <div><div class="bl">DIGITAL BILL · COPY</div><div class="bv">บิลเงินสด · สำเนา</div></div>
-      <div style="text-align:right"><div class="bl">เลขที่ · BILL NO.</div><div class="bv">${no}</div></div>
+      <div style="text-align:right"><div class="bl">เลขที่ · BILL NO.</div><div class="bv">${b.no}</div></div>
     </div>
     <div class="bhead-c">
       <div class="bth">บิลเงินสด</div>
@@ -2064,24 +2099,31 @@ body{background:#e8e0d0;font-family:'Sarabun',sans-serif;padding:0 0 48px;min-he
     </div>
   </div>
   <div class="bshop">
-    <div class="bsn">${shop}</div>
-    ${detail ? `<div class="bsd">${detail}</div>` : ''}
-    ${tax    ? `<div class="bst">${tax}</div>`    : ''}
+    <div class="bsn">${b.shop}</div>
+    ${b.owner || b.addr || b.phone ? `<div class="bsd">${[b.owner, b.addr, b.phone ? '📞 ' + b.phone : ''].filter(Boolean).join(' · ')}</div>` : ''}
+    ${b.tax ? `<div class="bst">เลขผู้เสียภาษี: ${b.tax}</div>` : ''}
   </div>
   <div class="bmeta">
-    <div class="bmc"><div class="bml">วันที่</div><div class="bmv">${date}</div></div>
-    <div class="bmc"><div class="bml">เวลา</div><div class="bmv">${time}</div></div>
-    <div class="bmc"><div class="bml">รายการ</div><div class="bmv">${cnt}</div></div>
+    <div class="bmc"><div class="bml">วันที่</div><div class="bmv">${b.dateShort}</div></div>
+    <div class="bmc"><div class="bml">เวลา</div><div class="bmv">${b.timeTH}</div></div>
+    <div class="bmc"><div class="bml">รายการ</div><div class="bmv">${b.cnt} รายการ</div></div>
   </div>
   <div class="bih-row">
     <div class="bih">รายการสินค้า</div>
     <div class="bih r">จำนวน × ราคา</div>
     <div class="bih r">รวม</div>
   </div>
-  <div class="bitems">${itemsHTML}</div>
+  <div class="bitems">
+    ${b.items.map(it => `
+    <div class="bitem">
+      <div><div class="biname">${it.name}</div><div class="biqty">${it.qty} ชิ้น</div></div>
+      <div class="bicol">${it.qty} × ${Number(it.up).toLocaleString('th-TH')}</div>
+      <div class="bisub">${Number(it.sub).toLocaleString('th-TH')} ฿</div>
+    </div>`).join('')}
+  </div>
   <div class="btotal">
     <div><div class="btl">รวมทั้งสิ้น / TOTAL</div><div class="btvat">ราคารวมภาษีมูลค่าเพิ่ม (ถ้ามี)</div></div>
-    <div class="btv">${totalTxt}</div>
+    <div class="btv">${Number(b.total).toLocaleString('th-TH')} ฿</div>
   </div>
   <div class="bcollect">
     <div class="bc-lbl">ผู้รับเงิน / COLLECTOR</div>
@@ -2089,7 +2131,7 @@ body{background:#e8e0d0;font-family:'Sarabun',sans-serif;padding:0 0 48px;min-he
     ${collectorName ? `<div class="bc-name">${collectorName}</div>` : ''}
   </div>
   <div class="bhash">
-    <div class="bhash-txt">Digital Sig: ${hash}</div>
+    <div class="bhash-txt">Digital Sig: ${b.hash}</div>
   </div>
   <div class="bfooter">
     <div class="bfv">✅ บิลลงลายมือชื่อดิจิทัลแล้ว · ไม่สามารถแก้ไขได้</div>
@@ -2100,47 +2142,64 @@ body{background:#e8e0d0;font-family:'Sarabun',sans-serif;padding:0 0 48px;min-he
 <div class="save-hint">💡 บันทึกหน้านี้ไว้ในเครื่อง เพื่อเปิดดูได้ตลอดโดยไม่ต้องอินเทอร์เน็ต</div>
 
 <script>
+// ตรวจสอบลายเซ็น — ใช้สูตรเดียวกับร้านค้า 100%
 (function(){
-  var hash='${hash}';
-  var no='${no}';
-  var nonce='${nonce}';
-  var nowISO='${nowISO}';
-  var items=${itemsVerifyJSON};
-  var total=${billTotal};
-  function sHash(s){var h=0x811c9dc5;for(var i=0;i<s.length;i++){h^=s.charCodeAt(i);h=(h*0x01000193)>>>0;}return h.toString(16).toUpperCase().padStart(8,'0')+'-'+(s.length*31^0xdeadbeef).toString(16).toUpperCase().slice(-4);}
-  var chk=sHash(no+'|'+nowISO+'|'+items.map(function(i){return i.name+i.qty+i.up;}).join('|')+'|'+total+'|'+nonce);
-  var el=document.getElementById('vstatus');
-  var bar=document.getElementById('vbar');
-  if(chk===hash){
-    el.textContent='✅ บิลถูกต้อง ไม่ถูกแก้ไข';
-    el.style.color='#1a6b3a';
-    bar.style.borderColor='#1a6b3a';
-    bar.style.background='#e6f4ec';
+  // ── ข้อมูลจากร้านค้า (ฝังตอนสร้างบิล) ──
+  var STORED_HASH = '${b.hash}';
+  var no    = '${b.no}';
+  var iso   = '${b.isoDate.slice(0,16)}';
+  var nonce = '${b.nonce}';
+  var total = ${b.total};
+  var items = ${itemsForVerify};
+
+  // ── สูตร hash เหมือนกัน: FNV-1a 32-bit + djb2 ──
+  function sHash(s) {
+    var h1 = 0x811c9dc5;
+    for (var i=0;i<s.length;i++){h1^=s.charCodeAt(i);h1=(h1*0x01000193)>>>0;}
+    var h2 = 5381;
+    for (var i=0;i<s.length;i++){h2=((h2<<5)+h2)^s.charCodeAt(i);h2=h2>>>0;}
+    return h1.toString(16).toUpperCase().padStart(8,'0')+'-'+h2.toString(16).toUpperCase().padStart(8,'0');
+  }
+
+  // ── สร้าง hash_input ด้วยสูตรเดียวกับ createBill ──
+  var hashInput = no+'|'+iso+'|'
+    + items.map(function(i){return i.name+'|'+i.qty+'|'+i.up;}).join('||')
+    + '|'+total+'|'+nonce;
+
+  var computed = sHash(hashInput);
+  var el  = document.getElementById('vstatus');
+  var bar = document.getElementById('vbar');
+  var ico = document.getElementById('vicon');
+
+  if (computed === STORED_HASH) {
+    el.textContent  = '✅ บิลถูกต้อง · ลายเซ็นดิจิทัลตรงกัน · ใช้เป็นหลักฐานได้';
+    el.style.color  = '#1a6b3a';
+    bar.style.borderColor = '#1a6b3a';
+    bar.style.background  = '#e6f4ec';
+    ico.textContent = '✅';
   } else {
-    el.textContent='⚠️ ไม่ตรง อาจถูกแก้ไข — อย่าใช้เป็นหลักฐาน';
-    el.style.color='#b02a1f';
-    bar.style.borderColor='#b02a1f';
-    bar.style.background='#fdecea';
+    el.textContent  = '⚠️ ลายเซ็นไม่ตรง · อาจถูกแก้ไข · อย่าใช้เป็นหลักฐาน';
+    el.style.color  = '#b02a1f';
+    bar.style.borderColor = '#b02a1f';
+    bar.style.background  = '#fdecea';
+    ico.textContent = '⚠️';
   }
 })();
 <\/script>
 </body>
 </html>`;
 
-  const filename = `bill-${no}.html`;
+  const filename = `bill-${b.no}.html`;
   const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
-
-  // Try Web Share API with file (Android Chrome, iOS Safari 15+)
   if (navigator.canShare) {
     const file = new File([blob], filename, { type: 'text/html' });
     if (navigator.canShare({ files: [file] })) {
-      navigator.share({ files: [file], title: `บิล ${no}`, text: `บิลสำเนา ${shop} ยอด ${totalTxt}` })
+      navigator.share({ files: [file], title: `บิล ${b.no}`, text: `บิลสำเนา ${b.shop} ยอด ${Number(b.total).toLocaleString('th-TH')} ฿` })
         .then(() => toast('📨 แชร์บิลแล้ว ✅'))
         .catch(e => { if (e.name !== 'AbortError') downloadBillHTML(blob, filename); });
       return;
     }
   }
-  // Fallback: download file
   downloadBillHTML(blob, filename);
 }
 
@@ -2172,204 +2231,18 @@ function shareBillText() {
   else navigator.clipboard?.writeText(text).then(() => toast('คัดลอกบิลแล้ว ✅'));
 }
 
-// ── SHARE: QR MODAL — บิลสำเนา offline ทั้งใบฝังใน QR ──
+// ── SHARE: QR MODAL — ใช้ QR_PAYLOAD เดียวกับบิลร้านค้า ──
 function shareBillQR() {
-  if (!window._lastBillHash) { toast('กรุณาออกบิลก่อน'); return; }
-
-  const no    = document.getElementById('b-no').textContent;
-  const date  = document.getElementById('b-date').textContent;
-  const time  = document.getElementById('b-time').textContent;
-  const cnt   = document.getElementById('b-cnt').textContent;
-  const total = document.getElementById('b-total').textContent;
-  const hash  = window._lastBillHash;
-  const nonce = window._lastBillNonce || '';
-  const now   = window._lastBillNow   || '';
-  const billItems = window._lastBillItems || items.map(i=>({name:i.name,qty:i.qty,up:i.up,sub:i.sub}));
-  const billTotal = window._lastBillTotal || items.reduce((s,i)=>s+i.sub,0);
-
-  const shop   = document.getElementById('b-shop').textContent;
-  const detail = document.getElementById('b-detail').textContent;
-  const tax    = document.getElementById('b-tax').textContent;
-
-  // Collect items HTML from b-items (already rendered)
-  const itemsHTML = document.getElementById('b-items').innerHTML;
-
-  // Get signature image if any
-  const sigCvs = document.getElementById('bill-sig-canvas');
-  let sigDataURL = '';
-  try { sigDataURL = sigCvs ? sigCvs.toDataURL('image/png') : ''; } catch(e) {}
-  const collectorName = document.getElementById('bill-collector-name').textContent;
-
-  // Build compact self-contained copy bill HTML
-  // Uses Google Fonts CDN (loads only when customer has internet; degrades gracefully offline)
-  const copyHTML = `<!DOCTYPE html>
-<html lang="th">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
-<title>บิลสำเนา · ${no}</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700;800&family=Noto+Serif+Thai:wght@700;900&family=IBM+Plex+Mono:wght@400;700&display=swap" rel="stylesheet">
-<style>
-*{box-sizing:border-box;margin:0;padding:0;}
-body{background:#e8e0d0;font-family:'Sarabun',sans-serif;padding:16px 10px 40px;min-height:100vh;}
-.paper{background:#fff;border-radius:4px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,.2);max-width:400px;margin:0 auto;border:1px solid #d0c8b8;position:relative;}
-/* COPY watermark */
-.copy-stamp{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-30deg);font-size:72px;font-weight:900;color:rgba(26,95,168,.08);pointer-events:none;white-space:nowrap;z-index:10;letter-spacing:4px;}
-.bhead{background:#1a5fa8;}
-.bhead-top{padding:12px 16px 6px;display:flex;justify-content:space-between;align-items:flex-start;}
-.bhead-lbl{font-size:9px;color:rgba(255,255,255,.55);letter-spacing:1px;text-transform:uppercase;font-family:'IBM Plex Mono',monospace;}
-.bhead-val{font-size:11px;font-family:'IBM Plex Mono',monospace;font-weight:700;color:rgba(255,255,255,.85);margin-top:1px;}
-.bhead-center{text-align:center;padding:4px 16px 10px;border-top:1px solid rgba(255,255,255,.15);}
-.bhead-th{font-family:'Noto Serif Thai',serif;font-size:20px;font-weight:900;color:#fff;letter-spacing:1px;}
-.bhead-en{font-size:10px;color:rgba(255,255,255,.65);letter-spacing:3px;text-transform:uppercase;margin-top:1px;}
-.copy-badge{display:inline-block;background:rgba(255,200,0,.25);border:1.5px solid rgba(255,200,0,.6);border-radius:100px;padding:2px 10px;color:#ffe080;font-size:9px;font-weight:700;letter-spacing:2px;margin-top:4px;}
-.bshop{background:#f0ebe0;padding:10px 16px;border-bottom:1.5px solid #d0c8b0;}
-.bshop-name{font-family:'Noto Serif Thai',serif;font-size:16px;font-weight:700;color:#1a1410;}
-.bshop-det{font-size:10px;color:#6a5e4a;margin-top:2px;line-height:1.5;}
-.bshop-tax{font-size:9px;color:#8a7a60;font-family:'IBM Plex Mono',monospace;margin-top:3px;}
-.bmeta{display:flex;background:#faf8f2;border-bottom:1.5px dashed #d0c8b0;}
-.bmc{flex:1;padding:9px 12px;border-right:1.5px dashed #d0c8b0;}
-.bmc:last-child{border-right:none;}
-.bml{font-size:8.5px;color:#9a8e78;text-transform:uppercase;letter-spacing:.5px;font-family:'IBM Plex Mono',monospace;}
-.bmv{font-size:11.5px;font-weight:800;color:#1a1410;margin-top:2px;}
-.bitems-head{display:grid;grid-template-columns:1fr 80px 70px;background:#1a5fa8;padding:7px 16px;gap:4px;}
-.bih{font-size:9px;font-weight:700;color:rgba(255,255,255,.8);letter-spacing:.5px;text-transform:uppercase;}
-.bih.r{text-align:right;}
-.bitems{padding:0 16px;}
-.bitem{display:grid;grid-template-columns:1fr 80px 70px;padding:9px 0;border-bottom:1px dashed #e0d8c8;align-items:start;gap:4px;}
-.bitem:last-child{border-bottom:none;}
-.biname{font-size:13px;font-weight:700;color:#1a1410;}
-.biqty{font-size:10px;color:#7a6a52;margin-top:2px;}
-.bicol{font-size:12px;font-weight:600;color:#3d3228;text-align:right;}
-.bisub{font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:700;color:#1a1410;text-align:right;}
-.btotal{background:#f0ebe0;border-top:2px solid #1a5fa8;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;}
-.btl{font-size:13px;color:#6a5e4a;font-weight:700;}
-.btvat{font-size:10px;color:#9a8e78;margin-top:2px;}
-.btv{font-family:'IBM Plex Mono',monospace;font-weight:900;color:#1a5fa8;font-size:22px;}
-.bcollect{padding:10px 16px 8px;background:#faf8f2;border-top:1.5px dashed #d0c8b0;display:flex;flex-direction:column;align-items:center;gap:4px;}
-.bcollect-lbl{font-size:8.5px;color:#9a8e78;text-transform:uppercase;letter-spacing:1px;font-family:'IBM Plex Mono',monospace;}
-.sig-img{height:60px;max-width:180px;object-fit:contain;display:block;}
-.sig-line{width:180px;height:1px;background:#c0b89a;margin:4px 0 2px;}
-.collect-name{font-size:10px;color:#6a5e4a;font-weight:700;}
-.bfooter{padding:10px 16px 14px;text-align:center;background:#faf8f2;border-top:1.5px solid #e0d8c8;}
-.bfv{font-size:10px;color:#1a6b3a;font-weight:700;margin-bottom:2px;}
-.bft{font-size:9px;color:#9a8e78;}
-.hash-row{padding:10px 16px 12px;background:#faf8f2;border-top:1.5px dashed #d0c8b0;text-align:center;}
-.hash-txt{font-family:'IBM Plex Mono',monospace;font-size:7.5px;color:#b8aa90;word-break:break-all;line-height:1.6;}
-.verify-row{margin:16px 10px 0;background:#fff;border:2px solid #1a5fa8;border-radius:10px;padding:10px 14px;display:flex;align-items:center;gap:10px;}
-.verify-icon{font-size:22px;flex-shrink:0;}
-.verify-body{flex:1;}
-.verify-title{font-size:12px;font-weight:800;color:#1a5fa8;}
-.verify-status{font-size:11px;font-weight:600;margin-top:2px;}
-</style>
-</head>
-<body>
-<div class="paper">
-  <div class="copy-stamp">COPY</div>
-  <div class="bhead">
-    <div class="bhead-top">
-      <div><div class="bhead-lbl">DIGITAL BILL · COPY</div><div class="bhead-val">บิลเงินสด · สำเนา</div></div>
-      <div style="text-align:right"><div class="bhead-lbl">เลขที่ · BILL NO.</div><div class="bhead-val">${no}</div></div>
-    </div>
-    <div class="bhead-center">
-      <div class="bhead-th">บิลเงินสด</div>
-      <div class="bhead-en">CASH SALE · 现金收据</div>
-      <div class="copy-badge">📋 สำเนา / COPY</div>
-    </div>
-  </div>
-  <div class="bshop">
-    <div class="bshop-name">${shop}</div>
-    ${detail ? `<div class="bshop-det">${detail}</div>` : ''}
-    ${tax ? `<div class="bshop-tax">${tax}</div>` : ''}
-  </div>
-  <div class="bmeta">
-    <div class="bmc"><div class="bml">วันที่</div><div class="bmv">${date}</div></div>
-    <div class="bmc"><div class="bml">เวลา</div><div class="bmv">${time}</div></div>
-    <div class="bmc"><div class="bml">รายการ</div><div class="bmv">${cnt}</div></div>
-  </div>
-  <div class="bitems-head">
-    <div class="bih">รายการสินค้า</div>
-    <div class="bih r">จำนวน × ราคา</div>
-    <div class="bih r">รวม</div>
-  </div>
-  <div class="bitems">${itemsHTML}</div>
-  <div class="btotal">
-    <div><div class="btl">รวมทั้งสิ้น / TOTAL</div><div class="btvat">ราคารวมภาษีมูลค่าเพิ่ม (ถ้ามี)</div></div>
-    <div class="btv">${total}</div>
-  </div>
-  <div class="bcollect">
-    <div class="bcollect-lbl">ผู้รับเงิน / COLLECTOR</div>
-    ${sigDataURL ? `<img class="sig-img" src="${sigDataURL}" alt="signature">` : '<div class="sig-line"></div>'}
-    ${collectorName ? `<div class="collect-name">${collectorName}</div>` : ''}
-  </div>
-  <div class="hash-row">
-    <div class="hash-txt">Digital Sig: ${hash}</div>
-  </div>
-  <div class="bfooter">
-    <div class="bfv">✅ บิลลงลายมือชื่อดิจิทัลแล้ว · ไม่สามารถแก้ไขได้</div>
-    <div class="bft">ออกโดยระบบบิลเสียง AI · ใช้เป็นหลักฐานค่าใช้จ่ายตามจริงได้</div>
-  </div>
-</div>
-<div class="verify-row" id="vrow">
-  <div class="verify-icon">🔐</div>
-  <div class="verify-body">
-    <div class="verify-title">ตรวจสอบความถูกต้อง</div>
-    <div class="verify-status" id="vstatus">กำลังตรวจสอบ...</div>
-  </div>
-</div>
-<script>
-(function(){
-  var hash='${hash}';
-  var no='${no}';
-  var items=${JSON.stringify(billItems)};
-  var total=${billTotal};
-  var now='${now}';
-  function sHash(s){var h=0x811c9dc5;for(var i=0;i<s.length;i++){h^=s.charCodeAt(i);h=(h*0x01000193)>>>0;}return h.toString(16).toUpperCase().padStart(8,'0')+'-'+(s.length*31^0xdeadbeef).toString(16).toUpperCase().slice(-4);}
-  var nonce='${nonce}';
-  var chk=sHash(no+'|'+now+'|'+items.map(function(i){return i.name+i.qty+i.up;}).join('|')+'|'+total+'|'+nonce);
-  var el=document.getElementById('vstatus');
-  var row=document.getElementById('vrow');
-  if(chk===hash){
-    el.textContent='✅ บิลถูกต้อง ไม่ถูกแก้ไข';
-    el.style.color='#1a6b3a';
-    row.style.borderColor='#1a6b3a';
-    row.style.background='#e6f4ec';
-  } else {
-    el.textContent='⚠️ บิลไม่ตรง อาจถูกแก้ไข';
-    el.style.color='#b02a1f';
-    row.style.borderColor='#b02a1f';
-    row.style.background='#fdecea';
-  }
-})();
-<\/script>
-</body></html>`;
-
-  // Encode as data URL for QR
-  const encoded = 'data:text/html;charset=utf-8,' + encodeURIComponent(copyHTML);
-
-  document.getElementById('qr-modal-hash').textContent = 'Sig: ' + hash;
-
-  // Check if it fits in QR (data URL must be < ~2000 chars for QR v20)
-  if (encoded.length > 2800) {
-    // Fallback: show hash + bill number only, instruct to save PNG instead
-    document.getElementById('qr-big-anchor').innerHTML =
-      `<div style="width:220px;padding:16px;text-align:center;background:#faf8f2;border-radius:8px;border:1.5px dashed #c8bfaa;">
-        <div style="font-size:13px;font-weight:700;color:#1a1410;margin-bottom:6px;">บิลนี้มีข้อมูลมากเกินไปสำหรับ QR</div>
-        <div style="font-size:11px;color:#6a5e4a;line-height:1.6;">กรุณาใช้ปุ่ม<br><strong>🖼️ บันทึกภาพ</strong><br>แล้วส่งให้ลูกค้าแทน</div>
-        <div style="margin-top:10px;font-family:'IBM Plex Mono',monospace;font-size:8px;color:#b8aa90;word-break:break-all;">${hash}</div>
-      </div>`;
-  } else {
-    drawQR(encoded, 'qr-big-anchor', 220);
-  }
+  if (!window._bill) { toast('กรุณาออกบิลก่อน'); return; }
+  const b = window._bill;
+  document.getElementById('qr-modal-hash').textContent = 'Sig: ' + b.hash;
+  drawQR(b.QR_PAYLOAD, 'qr-big-anchor', 220);
   document.getElementById('qr-modal').classList.add('open');
 }
-
 function closeQRModal() {
   document.getElementById('qr-modal').classList.remove('open');
 }
 
-// ── EXPORT: PNG ──
 // ── BUILD BILL CANVAS (shared by saveAsPNG & sendBillPNG) ──
 async function buildBillCanvas(isCopy) {
   const el = document.querySelector('.bill-paper');
@@ -2710,51 +2583,45 @@ function getScansForBill(billNo) {
 }
 
 // ══════════════════════════════
-// VERIFY QR DATA — ตรวจสอบบิลและป้องกันสวมรอย
+// VERIFY QR DATA — ตรวจสอบบิล (ฝั่งลูกค้าสแกน QR)
+// ── สูตร hash ต้องตรงกับ createBill ทุกตัวอักษร ──
 // ══════════════════════════════
 function verifyBillFromQR(rawData) {
   try {
     const b = JSON.parse(rawData);
     if (!b || !b.no) { toast('QR ไม่ใช่ข้อมูลบิล'); return; }
 
-    // ── 1. ตรวจลายเซ็น (hash) ──
+    // ── 1. คำนวณ hash ด้วยสูตรเดียวกับ createBill ──
     const nonce = b.nonce || '';
-    const isoDate = b.iso || b.date || '';
-    const dateSlice = isoDate.length >= 16 ? isoDate.slice(0,16) : isoDate;
-    const recomputed = simpleHash(
-      b.no + '|' + dateSlice + '|' +
-      (b.items||[]).map(i => (i.n||i.name)+(i.q||i.qty)+(i.p||i.up)).join('|') + '|' +
-      b.total + (nonce ? '|' + nonce : '')
-    );
-    const sigValid = (b.hash === recomputed);
+    const iso   = b.iso   || b.isoDate || '';
+    const hashInput = b.no + '|' + iso + '|'
+      + (b.items||[]).map(i => (i.n||i.name) + '|' + (i.q||i.qty) + '|' + (i.p||i.up)).join('||')
+      + '|' + b.total + '|' + nonce;
+    const recomputed = simpleHash(hashInput);
+    const sigValid   = (b.hash === recomputed);
 
-    // ── 2. ตรวจการใช้ซ้ำ ──
-    const prevScans = getScansForBill(b.no);
-    const fp        = deviceFingerprint();
-    const now       = new Date();
+    // ── 2. ตรวจการสแกนซ้ำ ──
+    const prevScans   = getScansForBill(b.no);
+    const fp          = deviceFingerprint();
     const isDuplicate = prevScans.length > 0;
-    const isSameDevice = prevScans.some(s => s.fp === fp);
+    const isSameDevice= prevScans.some(s => s.fp === fp);
+    recordScan(b.no, { time: new Date().toISOString(), fp, ua: navigator.userAgent.slice(0,80) });
 
-    // ── 3. บันทึกการสแกนครั้งนี้ (ทำก่อน render) ──
-    recordScan(b.no, {
-      time: now.toISOString(),
-      fp,
-      ua: navigator.userAgent.slice(0,80)
-    });
-
-    // ── 4. Render ข้อมูลบิล ──
+    // ── 3. Render บิล (เหมือนร้านค้าทุกอย่าง) ──
+    const billItems = (b.items||[]).map(i => ({
+      name: i.n||i.name, qty: +(i.q||i.qty), up: +(i.p||i.up), sub: +(i.s||(i.p||i.up)*(i.q||i.qty))
+    }));
     setText('vf-no',   b.no);
     setText('vf-shop', b.shop || '');
-    const details = [b.owner, b.addr, b.phone ? '📞 ' + b.phone : ''].filter(Boolean).join(' · ');
+    const details = [b.owner, b.addr, b.phone ? '📞 '+b.phone : ''].filter(Boolean).join(' · ');
     setText('vf-detail', details);
-    setText('vf-tax',   b.tax ? 'เลขผู้เสียภาษี: ' + b.tax : '');
-    setText('vf-date',  b.date || '');
-    setText('vf-time',  b.time || '');
-    const billItems = (b.items||[]).map(i => ({ name:i.n||i.name, qty:i.q||i.qty, up:i.p||i.up, sub:i.s||(+(i.p||i.up))*(+(i.q||i.qty)) }));
-    setText('vf-cnt',   billItems.length + ' รายการ');
+    setText('vf-tax', b.tax ? 'เลขผู้เสียภาษี: '+b.tax : '');
+    setText('vf-date', b.date || '');
+    setText('vf-time', b.time || '');
+    setText('vf-cnt',  billItems.length + ' รายการ');
     setText('vf-total', fmt(b.total) + ' ฿');
-    setText('vf-hash',  'Digital Sig: ' + b.hash);
-    setText('vf-nonce', nonce ? 'Nonce: ' + nonce.slice(0,8) + '...' : '');
+    setText('vf-hash', 'Digital Sig: ' + b.hash);
+    setText('vf-nonce', nonce ? 'Nonce: '+nonce.slice(0,8)+'...' : '');
 
     document.getElementById('vf-items').innerHTML = billItems.map(it => `
       <div class="bitem">
@@ -2763,71 +2630,64 @@ function verifyBillFromQR(rawData) {
         <div class="bisub">${fmt(it.sub)} ฿</div>
       </div>`).join('');
 
-    // ── 5. แสดงผลการตรวจสอบ ──
-    const badge      = document.getElementById('verify-badge');
-    const resultLine = document.getElementById('vf-result-line');
-    const warnBox    = document.getElementById('vf-warn-box');
-    const warnMsg    = document.getElementById('vf-warn-msg');
-    const scanLog    = document.getElementById('vf-scan-log');
-
-    // Reset
+    // ── 4. แสดงผลตรวจสอบ ──
+    const badge   = document.getElementById('verify-badge');
+    const resTxt  = document.getElementById('vf-result-line');
+    const warnBox = document.getElementById('vf-warn-box');
+    const warnMsg = document.getElementById('vf-warn-msg');
+    const scanLog = document.getElementById('vf-scan-log');
     warnBox.style.display = 'none';
     scanLog.innerHTML = '';
 
     if (!sigValid) {
-      // ❌ ลายเซ็นไม่ตรง — อันตรายสูง
+      // ❌ ปลอม/ถูกแก้ไข
       badge.style.cssText = 'background:#fdecea;color:#b02a1f;border:2px solid #b02a1f;padding:6px 12px;border-radius:100px;font-weight:700;font-size:0.78rem;';
-      badge.textContent = '❌ บิลปลอม';
-      setText('vf-sig-label', '❌ ลายเซ็นดิจิทัลไม่ตรง — บิลถูกแก้ไขหรือปลอมแปลง');
-      resultLine.textContent = '❌ ห้ามใช้บิลนี้ · ลายเซ็นไม่ตรง กรุณาติดต่อร้านค้า';
-      resultLine.style.color = '#b02a1f';
+      badge.textContent   = '❌ บิลปลอม';
+      setText('vf-sig-label', '❌ ลายเซ็นไม่ตรง — บิลถูกแก้ไขหรือปลอมแปลง');
+      resTxt.textContent  = '❌ ห้ามใช้บิลนี้ · กรุณาติดต่อร้านค้า';
+      resTxt.style.color  = '#b02a1f';
       warnBox.style.display = 'block';
-      warnMsg.textContent = '⛔ บิลนี้อาจถูกแก้ไขหรือสร้างปลอม ไม่สามารถใช้เป็นหลักฐานได้';
-      setText('verify-status-lbl', '❌ บิลไม่ผ่านการตรวจสอบ');
+      warnMsg.textContent = '⛔ บิลนี้ไม่ผ่านการตรวจสอบ อาจถูกปลอมแปลง ไม่สามารถใช้เป็นหลักฐานได้';
+      setText('verify-status-lbl', '❌ บิลไม่ผ่าน');
 
     } else if (isDuplicate && !isSameDevice) {
-      // ⚠️ ลายเซ็นผ่าน แต่เคยสแกนจากเครื่องอื่นแล้ว — ความเสี่ยงสวมรอย
+      // ⚠️ ผ่าน hash แต่เคยสแกนจากเครื่องอื่น
       badge.style.cssText = 'background:#fff3e0;color:#e65100;border:2px solid #e65100;padding:6px 12px;border-radius:100px;font-weight:700;font-size:0.78rem;';
-      badge.textContent = '⚠️ สแกนซ้ำ';
+      badge.textContent   = '⚠️ สแกนซ้ำ';
       setText('vf-sig-label', '⚠️ บิลนี้เคยถูกสแกนจากอุปกรณ์อื่นแล้ว');
-      resultLine.textContent = '⚠️ ลายเซ็นผ่าน แต่บิลนี้เคยถูกนำไปสแกนแล้ว ' + prevScans.length + ' ครั้ง';
-      resultLine.style.color = '#e65100';
+      resTxt.textContent  = '⚠️ ลายเซ็นผ่าน แต่บิลนี้เคยสแกนแล้ว '+prevScans.length+' ครั้ง';
+      resTxt.style.color  = '#e65100';
       warnBox.style.display = 'block';
-      warnMsg.innerHTML = '⚠️ บิลฉบับนี้เคยถูกสแกนไปแล้ว <strong>' + prevScans.length + ' ครั้ง</strong><br>กรุณาตรวจสอบกับร้านค้าว่ายังสามารถใช้ได้หรือไม่';
-      setText('verify-status-lbl', '⚠️ เคยสแกนแล้ว ' + prevScans.length + ' ครั้ง');
-
-      // แสดง log การสแกนย้อนหลัง
-      scanLog.innerHTML = '<div style="font-size:11px;color:var(--muted);margin-top:10px;font-weight:700;">📋 ประวัติการสแกนบิลนี้</div>' +
-        prevScans.slice(-5).map((s,i) => {
+      warnMsg.innerHTML   = '⚠️ บิลฉบับนี้เคยถูกสแกน <strong>'+prevScans.length+' ครั้ง</strong> กรุณาตรวจสอบกับร้านค้า';
+      setText('verify-status-lbl', '⚠️ สแกนซ้ำ '+prevScans.length+' ครั้ง');
+      scanLog.innerHTML   = '<div style="font-size:11px;color:var(--muted);margin-top:8px;font-weight:700;">📋 ประวัติการสแกน</div>'
+        + prevScans.slice(-5).map((s,i) => {
           const d = new Date(s.time);
-          return `<div style="font-size:11px;color:var(--muted);padding:3px 0;border-bottom:1px solid var(--border);">
-            ครั้งที่ ${i+1} · ${d.toLocaleDateString('th-TH')} ${d.toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit'})}
-            · อุปกรณ์ ${s.fp}
-          </div>`;
+          return `<div style="font-size:11px;color:var(--muted);padding:3px 0;border-bottom:1px dashed var(--border);">ครั้งที่ ${i+1} · ${d.toLocaleDateString('th-TH')} ${d.toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit'})} · อุปกรณ์ ${s.fp}</div>`;
         }).join('');
 
     } else if (isDuplicate && isSameDevice) {
-      // ℹ️ สแกนซ้ำจากเครื่องเดิม — น่าจะเป็นเจ้าของบิล
-      badge.style.cssText = 'background:#e8f0fa;color:#1a5fa8;border:2px solid #1a5fa8;padding:6px 12px;border-radius:100px;font-weight:700;font-size:0.78rem;';
-      badge.textContent = '✅ บิลถูกต้อง';
-      setText('vf-sig-label', '✅ ลายเซ็นดิจิทัลตรงกัน');
-      resultLine.textContent = '✅ บิลถูกต้อง · คุณเคยสแกนบิลนี้แล้ว ' + prevScans.length + ' ครั้ง';
-      resultLine.style.color = '#1a5fa8';
-      setText('verify-status-lbl', '✅ บิลถูกต้อง (สแกนซ้ำ)');
+      // ℹ️ สแกนซ้ำจากเครื่องเดิม
+      badge.style.cssText = 'background:#e6f4ec;color:#1a6b3a;border:2px solid #1a6b3a;padding:6px 12px;border-radius:100px;font-weight:700;font-size:0.78rem;';
+      badge.textContent   = '✅ บิลถูกต้อง';
+      setText('vf-sig-label', '✅ ลายเซ็นตรงกัน (สแกนซ้ำจากเครื่องเดิม)');
+      resTxt.textContent  = '✅ บิลถูกต้อง · คุณเคยสแกนแล้ว '+prevScans.length+' ครั้ง';
+      resTxt.style.color  = '#1a6b3a';
+      setText('verify-status-lbl', '✅ บิลถูกต้อง');
 
     } else {
-      // ✅ ผ่านทุกการตรวจสอบ — ครั้งแรก
+      // ✅ ผ่านครั้งแรก
       badge.style.cssText = 'background:#e6f4ec;color:#1a6b3a;border:2px solid #1a6b3a;padding:6px 12px;border-radius:100px;font-weight:700;font-size:0.78rem;';
-      badge.textContent = '✅ บิลถูกต้อง';
+      badge.textContent   = '✅ บิลถูกต้อง';
       setText('vf-sig-label', '✅ ลายเซ็นดิจิทัลตรงกัน — บิลไม่ถูกแก้ไข');
-      resultLine.textContent = '✅ บิลนี้ถูกต้อง · ผ่านการตรวจสอบลายเซ็นดิจิทัล';
-      resultLine.style.color = '#1a6b3a';
+      resTxt.textContent  = '✅ บิลนี้ถูกต้อง · ผ่านการตรวจสอบลายเซ็น';
+      resTxt.style.color  = '#1a6b3a';
       setText('verify-status-lbl', '✅ ผ่านการตรวจสอบ');
     }
 
     showScreen('verify');
   } catch(e) {
-    toast('ไม่สามารถอ่านข้อมูล QR ได้: ' + e.message.slice(0,60));
+    toast('ไม่สามารถอ่านข้อมูล QR: ' + e.message.slice(0,60));
   }
 }
 
@@ -3000,7 +2860,7 @@ g.drawQR=function(text,anchorId,size,dark,light){
     for(var r=0;r<mc;r++)for(var c=0;c<mc;c++)if(M[r][c])ctx.fillRect(c*cell+qz,r*cell+qz,cell,cell);
     anchor.style.cssText='display:flex;align-items:center;justify-content:center;width:'+size+'px;height:'+size+'px;';
     anchor.appendChild(cvs);
-  }catch(e){console.warn('QR error:',e);anchor.innerHTML='<div style="font-size:9px;color:#b8aa90;text-align:center;padding:12px;line-height:1.8;">⬜<br>QR error<br>'+e.message+'</div>';anchor.style.cssText='display:flex;align-items:center;justify-content:center;width:'+size+'px;height:'+size+'px;';}
+  }catch(e){console.warn('QR error:',e);}
 };
 })(window);
 </script>
