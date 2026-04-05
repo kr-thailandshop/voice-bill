@@ -2645,19 +2645,17 @@ function showQRModal() {
       });
 
       const baseURL = window.location.href.split('#')[0];
-      const MAX_URL = 2800;
+      const MAX_URL = 3500;   // เพิ่มจาก 2800 → 3500 QR Level L รองรับได้
       const tryEncode = (obj) => baseURL + '#bill=' + btoa(unescape(encodeURIComponent(JSON.stringify(obj))));
       let qrURL = tryEncode(compact);
 
-      // ลำดับตัด: วันที่ → ข้อมูลรอง → ลายเซ็น (sh + cn ไม่ตัดเด็ดขาด)
-      if (qrURL.length > MAX_URL && compact.dt) { delete compact.dt; delete compact.tm; qrURL = tryEncode(compact); }
-      if (qrURL.length > MAX_URL && (compact.ow||compact.ad||compact.ph||compact.tx)) {
-        delete compact.ow; delete compact.ad; delete compact.ph; delete compact.tx; qrURL = tryEncode(compact);
-      }
+      // ลำดับตัด: ลายเซ็น → วันที่ → ภาษี  (ที่อยู่/เบอร์ไม่ตัดเพราะสำคัญ)
       if (qrURL.length > MAX_URL && compact.sg) {
         delete compact.sg; qrURL = tryEncode(compact);
         toast('⚠️ ลายเซ็นถูกตัดออก เพราะรายการสินค้ายาวเกิน QR');
       }
+      if (qrURL.length > MAX_URL && compact.dt) { delete compact.dt; delete compact.tm; qrURL = tryEncode(compact); }
+      if (qrURL.length > MAX_URL && compact.tx) { delete compact.tx; qrURL = tryEncode(compact); }
 
       new QRCode(anchor, { text:qrURL, width:240, height:240, colorDark:'#1a3a6b', colorLight:'#ffffff', correctLevel:QRCode.CorrectLevel.L });
 
@@ -3317,10 +3315,14 @@ function verifyBillFromQR(rawData) {
           sigSrc = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgStr)));
         } catch(e2) {}
       }
+      // ตั้ง onload ก่อน src เสมอ เพื่อให้ trigger ได้ถูกต้อง
       sigImg.onload  = () => { collectEl.style.display = 'flex'; };
       sigImg.onerror = () => { collectEl.style.display = 'none'; };
       sigImg.src = sigSrc;
-      if (sigImg.complete && sigImg.naturalWidth > 0) collectEl.style.display = 'flex';
+      // SVG data URI โหลดแบบ sync — force show ทันที
+      if (sigSrc.startsWith('data:image/svg')) {
+        collectEl.style.display = 'flex';
+      }
     } else if (collectEl) {
       collectEl.style.display = 'none';
     }
