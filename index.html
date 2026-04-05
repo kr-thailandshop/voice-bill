@@ -2038,9 +2038,6 @@ function createBill() {
   window._lastBillTotal = total;
   window._lastBillQRData= QR_PAYLOAD;
 
-  // บันทึกประวัติ
-  saveHist({ no, date:isoDate, nonce, hash, total, shop:cfgShop||'ร้านค้า', items:billItems, scans:[] });
-
   // อัพเดต DOM บิล
   const b = window._bill;
   setText('b-shop', b.shop);
@@ -2094,6 +2091,8 @@ function createBill() {
       }
     } catch(e) { console.warn('sig err:', e); }
 
+    // บันทึกประวัติ (ย้ายมาหลัง showScreen เพื่อไม่ block UI)
+    try { saveHist({ no, date:isoDate, nonce, hash, total, shop:cfgShop||'ร้านค้า', items:billItems, scans:[] }); } catch(e) {}
     // เรียน memory
     try { learnFromBill(billItems); renderMemoryChips(); } catch(e) {}
   });
