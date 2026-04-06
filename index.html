@@ -1462,7 +1462,8 @@ document.getElementById('settings-modal').addEventListener('click', function(e) 
 // ══════════════════════════════
 (function() {
   let drawing = false;
-  let lastX = 0, lastY = 0;
+  let allStrokes = [];   // เก็บทุก stroke [[{x,y},...], ...]
+  let currentStroke = [];
 
   function initSigPad() {
     const canvas = document.getElementById('sig-canvas');
@@ -1476,8 +1477,6 @@ document.getElementById('settings-modal').addEventListener('click', function(e) 
     ctx.imageSmoothingEnabled = true;
     ctx.imageSmoothingQuality = 'high';
 
-    let pts = [];  // เก็บ points ใน stroke ปัจจุบัน
-
     function getPos(e) {
       const rect = canvas.getBoundingClientRect();
       const scaleX = canvas.width / rect.width;
@@ -1486,46 +1485,44 @@ document.getElementById('settings-modal').addEventListener('click', function(e) 
       return { x: (src.clientX - rect.left) * scaleX, y: (src.clientY - rect.top) * scaleY };
     }
 
-    function drawSmooth(pts) {
-      if (pts.length < 2) return;
+    function down(e) {
+      e.preventDefault();
+      drawing = true;
+      const p = getPos(e);
+      currentStroke = [p];
       ctx.beginPath();
-      ctx.moveTo(pts[0].x, pts[0].y);
-      if (pts.length === 2) {
-        ctx.lineTo(pts[1].x, pts[1].y);
-      } else {
-        // Catmull-Rom → Bezier: เส้นโค้งนุ่มเหมือนปากกาจริง
-        for (let i = 1; i < pts.length - 1; i++) {
-          const mx = (pts[i].x + pts[i+1 < pts.length ? i+1 : i].x) / 2;
-          const my = (pts[i].y + pts[i+1 < pts.length ? i+1 : i].y) / 2;
-          ctx.quadraticCurveTo(pts[i].x, pts[i].y, mx, my);
-        }
-        ctx.lineTo(pts[pts.length-1].x, pts[pts.length-1].y);
-      }
-      ctx.stroke();
+      ctx.moveTo(p.x, p.y);
     }
 
-    function down(e) {
-      e.preventDefault(); drawing = true;
-      const p = getPos(e); lastX = p.x; lastY = p.y;
-      pts = [p];
-      ctx.beginPath(); ctx.moveTo(p.x, p.y);
-    }
     function move(e) {
-      e.preventDefault(); if (!drawing) return;
+      e.preventDefault();
+      if (!drawing) return;
       const p = getPos(e);
-      pts.push(p);
-      // วาด segment แบบ smooth ทุก 3 จุด
-      if (pts.length >= 3) {
-        const l = pts.length;
-        const p0 = pts[l-3], p1 = pts[l-2], p2 = pts[l-1];
+      currentStroke.push(p);
+      // วาด smooth ทุก 3 จุด
+      const l = currentStroke.length;
+      if (l >= 3) {
+        const p0 = currentStroke[l-3];
+        const p1 = currentStroke[l-2];
+        const p2 = currentStroke[l-1];
         const mx = (p1.x + p2.x) / 2, my = (p1.y + p2.y) / 2;
-        ctx.beginPath(); ctx.moveTo((p0.x+p1.x)/2, (p0.y+p1.y)/2);
+        ctx.beginPath();
+        ctx.moveTo((p0.x+p1.x)/2, (p0.y+p1.y)/2);
         ctx.quadraticCurveTo(p1.x, p1.y, mx, my);
         ctx.stroke();
       }
-      lastX = p.x; lastY = p.y;
     }
-    function up(e) { e.preventDefault(); drawing = false; pts = []; }
+
+    function up(e) {
+      e.preventDefault();
+      if (!drawing) return;
+      drawing = false;
+      if (currentStroke.length > 1) {
+        allStrokes.push([...currentStroke]);
+      }
+      currentStroke = [];
+    }
+
     canvas.addEventListener('mousedown', down);
     canvas.addEventListener('mousemove', move);
     canvas.addEventListener('mouseup', up);
@@ -1539,81 +1536,68 @@ document.getElementById('settings-modal').addEventListener('click', function(e) 
     const canvas = document.getElementById('sig-canvas');
     if (!canvas) return;
     canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
+    allStrokes = [];
+    currentStroke = [];
   };
 
   window.sigSave = function() {
     const canvas = document.getElementById('sig-canvas');
     if (!canvas) return;
-    const blank = document.createElement('canvas');
-    blank.width = canvas.width; blank.height = canvas.height;
-    if (canvas.toDataURL('image/png') === blank.toDataURL('image/png')) { toast('กรุณาเซ็นชื่อก่อนบันทึก'); return; }
 
-    const ctx = canvas.getContext('2d');
+    // ตรวจว่ามี stroke หรือไม่
+    if (allStrokes.length === 0) { toast('กรุณาเซ็นชื่อก่อนบันทึก'); return; }
+
     const W = canvas.width, H = canvas.height;
-    const imgData = ctx.getImageData(0, 0, W, H);
-    const px = imgData.data;
 
-    // ── helper: scan pixel → segments ──
-    function scanSegs(step, alpha) {
-      const segs = [];
-      for (let y = 0; y < H; y += step) {
-        let seg = [];
-        for (let x = 0; x < W; x++) {
-          if (px[(y * W + x) * 4 + 3] > alpha) seg.push([x, y]);
-          else if (seg.length > 1) { segs.push(seg); seg = []; }
-          else seg = [];
-        }
-        if (seg.length > 1) segs.push(seg);
-      }
-      return segs;
-    }
-
-    // ── helper: Douglas-Peucker ──
+    // ── Douglas-Peucker simplify ──
     function dp(pts, tol) {
       if (pts.length <= 2) return pts;
       let maxD = 0, idx = 0;
-      const [x1,y1] = pts[0], [x2,y2] = pts[pts.length-1];
+      const x1 = pts[0].x, y1 = pts[0].y;
+      const x2 = pts[pts.length-1].x, y2 = pts[pts.length-1].y;
       const len = Math.hypot(x2-x1, y2-y1) || 1;
       for (let i = 1; i < pts.length-1; i++) {
-        const d = Math.abs((y2-y1)*pts[i][0]-(x2-x1)*pts[i][1]+x2*y1-y2*x1)/len;
+        const d = Math.abs((y2-y1)*pts[i].x - (x2-x1)*pts[i].y + x2*y1 - y2*x1) / len;
         if (d > maxD) { maxD = d; idx = i; }
       }
-      if (maxD > tol) return [...dp(pts.slice(0,idx+1),tol).slice(0,-1), ...dp(pts.slice(idx),tol)];
+      if (maxD > tol) {
+        return [...dp(pts.slice(0, idx+1), tol).slice(0,-1), ...dp(pts.slice(idx), tol)];
+      }
       return [pts[0], pts[pts.length-1]];
     }
 
-    // ── helper: สร้าง SVG string ──
-    function buildSVG(segs, vw, tol, round) {
+    // ── สร้าง SVG path จาก strokes ──
+    function buildSVGFromStrokes(strokes, vw, tol) {
       const vh = Math.round(vw * H / W);
       const sx = vw / W, sy = vh / H;
       let d = '';
-      for (const seg of segs) {
-        const s = dp(seg, tol);
-        if (s.length < 2) continue;
-        const r = v => Math.round(v * round) / round;
-        d += `M${r(s[0][0]*sx)},${r(s[0][1]*sy)}`;
-        for (let i = 1; i < s.length; i++) d += `L${r(s[i][0]*sx)},${r(s[i][1]*sy)}`;
+      for (const stroke of strokes) {
+        if (stroke.length < 2) continue;
+        const s = dp(stroke, tol);
+        d += `M${Math.round(s[0].x*sx)},${Math.round(s[0].y*sy)}`;
+        for (let i = 1; i < s.length; i++) {
+          d += `L${Math.round(s[i].x*sx)},${Math.round(s[i].y*sy)}`;
+        }
       }
-      return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${vw} ${vh}"><path d="${d}" fill="none" stroke="#1a1410" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+      return { d, vw, vh };
     }
 
-    // ── Version 1: ละเอียด → แสดงบนบิล (ชัดสวย) ──
-    const segsHQ = scanSegs(1, 20);
-    const svgHQ  = buildSVG(segsHQ, 400, 0.5, 4);   // VW=400, tol=0.5, round=0.25
-    const b64HQ  = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgHQ)));
+    // ── HQ: แสดงบนบิล (ละเอียด tol=0.5, VW=400) ──
+    const hq = buildSVGFromStrokes(allStrokes, 400, 0.5);
+    const svgHQ = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${hq.vw} ${hq.vh}"><path d="${hq.d}" fill="none" stroke="#1a1410" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+    const b64HQ = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgHQ)));
 
-    // ── Version 2: เล็ก → ฝังใน QR ──
-    const segsQR = scanSegs(4, 40);
-    const svgQR  = buildSVG(segsQR, 100, 3.0, 1);   // VW=100, tol=3.0, round=1
-    const b64QR  = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgQR)));
+    // ── QR: ฝัง QR (กะทัดรัด tol=2.5, VW=100) ──
+    const qr = buildSVGFromStrokes(allStrokes, 100, 2.5);
+    const svgQR = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${qr.vw} ${qr.vh}"><path d="${qr.d}" fill="none" stroke="#1a1410" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+    const b64QR = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgQR)));
 
-    // ── บันทึกทั้ง 2 ──
+    // ── บันทึก ──
     cfgSig   = b64HQ;
     cfgSigQR = b64QR;
     localStorage.setItem('vb_sig',    b64HQ);
     localStorage.setItem('vb_sig_qr', b64QR);
 
-    // ── แสดง preview ละเอียด ──
     document.getElementById('sig-preview-img').src = b64HQ;
     document.getElementById('sig-preview-img').style.display = 'block';
     document.getElementById('sig-preview-empty').style.display = 'none';
