@@ -846,7 +846,7 @@ html,body{height:100%;height:100dvh;overflow:hidden;background:var(--bg);color:v
         </div>
         <div class="bhead-title-wrap">
           <div class="bhead-cash">บิลเงินสด</div>
-          <div class="bhead-cash-en">CASH SALE</div>
+          <div class="bhead-cash-en">CASH SALE · 现金收据</div>
           <div class="bhead-sub" id="b-datetime">—</div>
         </div>
       </div>
@@ -883,16 +883,12 @@ html,body{height:100%;height:100dvh;overflow:hidden;background:var(--bg);color:v
 
       <!-- Total -->
       <div class="btotal-row">
-        <div>
-          <div class="btl">รวมทั้งสิ้น / TOTAL</div>
-          <div class="btvat">ราคารวมภาษีมูลค่าเพิ่ม (ถ้ามี)</div>
-        </div>
+        <div class="btl">รวมทั้งสิ้น / TOTAL</div>
         <div class="btv" id="b-total">0 ฿</div>
       </div>
 
       <!-- Signature -->
       <div class="bcollect">
-        <div class="bcollect-lbl">ผู้รับเงิน / COLLECTOR</div>
         <canvas class="bcollect-canvas" id="bill-sig-canvas" width="360" height="120"></canvas>
         <div class="bcollect-name" id="bill-collector-name"></div>
       </div>
@@ -905,7 +901,6 @@ html,body{height:100%;height:100dvh;overflow:hidden;background:var(--bg);color:v
       <!-- Footer -->
       <div class="bfooter">
         <div class="bfv">✅ บิลลงลายมือชื่อดิจิทัลแล้ว · ไม่สามารถแก้ไขได้</div>
-        <div class="bft">ออกโดยระบบบิลเสียง AI · ใช้เป็นหลักฐานค่าใช้จ่ายตามจริงได้</div>
       </div>
     </div><!-- /bill-paper -->
   </div><!-- /bill-scroll -->
@@ -987,7 +982,7 @@ html,body{height:100%;height:100dvh;overflow:hidden;background:var(--bg);color:v
         </div>
         <div class="bhead-title-wrap">
           <div class="bhead-cash">บิลเงินสด</div>
-          <div class="bhead-cash-en">CASH SALE</div>
+          <div class="bhead-cash-en">CASH SALE · 现金收据</div>
         </div>
       </div>
       <div class="bshop-row">
@@ -1014,13 +1009,12 @@ html,body{height:100%;height:100dvh;overflow:hidden;background:var(--bg);color:v
       </div>
       <div class="bitems" id="vf-items"></div>
       <div class="btotal-row">
-        <div><div class="btl">รวมทั้งสิ้น / TOTAL</div><div class="btvat">ราคารวมภาษีมูลค่าเพิ่ม (ถ้ามี)</div></div>
+        <div class="btl">รวมทั้งสิ้น / TOTAL</div>
         <div class="btv" id="vf-total">0 ฿</div>
       </div>
 
       <!-- ลายเซ็น -->
       <div class="bcollect" id="vf-collect" style="display:none;flex-direction:column;align-items:center;padding:12px 16px 8px;background:#faf8f2;border-top:1.5px dashed #d0c8b0;">
-        <div class="bcollect-lbl" style="font-size:8.5px;color:#9a8e78;text-transform:uppercase;letter-spacing:1px;font-family:'IBM Plex Mono',monospace;margin-bottom:6px;">ผู้รับเงิน / COLLECTOR</div>
         <img id="vf-sig-img" src="" style="height:64px;max-width:200px;object-fit:contain;display:block;">
         <div class="bcollect-name" id="vf-collector-name"></div>
       </div>
@@ -1036,7 +1030,6 @@ html,body{height:100%;height:100dvh;overflow:hidden;background:var(--bg);color:v
       </div>
       <div class="bfooter">
         <div class="bfv" id="vf-result-line">กำลังตรวจสอบ...</div>
-        <div class="bft">ออกโดยระบบบิลเสียง AI · ใช้เป็นหลักฐานค่าใช้จ่ายตามจริงได้</div>
       </div>
     </div>
     <!-- ⚠️ กล่องเตือน -->
@@ -2260,7 +2253,7 @@ function showReview() {
       <div class="review-item-num">${idx + 1}</div>
       <div class="review-item-body">
         <div class="review-item-name">${it.name}</div>
-        <div class="review-item-detail">${it.qty} pcs × ${fmt(it.up)} ฿</div>
+        <div class="review-item-detail">${it.qty} ชิ้น × ${fmt(it.up)} ฿</div>
       </div>
       <div class="review-item-sub">${fmt(it.sub)} ฿</div>
     </div>`).join('');
@@ -2318,9 +2311,9 @@ function createBill() {
     tax:       cfgTax||'',
     custName:  custName,
     dateTH:    now.toLocaleDateString('th-TH',{year:'numeric',month:'long',day:'numeric'}),
-    dateShort: `${now.getDate()}/${String(now.getMonth()+1).padStart(2,'0')}/${now.getFullYear()+543}`,
+    dateShort: now.toLocaleDateString('th-TH',{year:'numeric',month:'short',day:'numeric'}),
     timeTH:    now.toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit'}),
-    datetimeTH:`${now.getDate()}/${String(now.getMonth()+1).padStart(2,'0')}/${now.getFullYear()+543}`,
+    datetimeTH:now.toLocaleDateString('th-TH',{weekday:'short',year:'numeric',month:'long',day:'numeric'}),
     items:     billItems, cnt: billItems.length
   };
   // backward compat
@@ -2359,7 +2352,7 @@ function createBill() {
 
   document.getElementById('b-items').innerHTML = billItems.map(it=>`
     <div class="bitem">
-      <div><div class="biname">${it.name}</div><div class="biqty">${it.qty} pcs</div></div>
+      <div><div class="biname">${it.name}</div><div class="biqty">${it.qty} ชิ้น</div></div>
       <div class="bicol">${it.qty} × ${fmt(it.up)}</div>
       <div class="bisub">${fmt(it.sub)} ฿</div>
     </div>`).join('');
@@ -2550,7 +2543,7 @@ function buildBillCopyHTML(b, _unused) {
 
   const itemsHTML = b.items.map(it => `
     <div style="display:grid;grid-template-columns:1fr 80px 68px;padding:9px 0;border-bottom:1px dashed #e0d8c8;align-items:start;gap:4px;">
-      <div><div style="font-size:13px;font-weight:700;color:#1a1410;">${it.name}</div><div style="font-size:10px;color:#7a6a52;margin-top:2px;">${it.qty} pcs</div></div>
+      <div><div style="font-size:13px;font-weight:700;color:#1a1410;">${it.name}</div><div style="font-size:10px;color:#7a6a52;margin-top:2px;">${it.qty} ชิ้น</div></div>
       <div style="font-size:12px;font-weight:600;color:#3d3228;text-align:right;">${it.qty} × ${Number(it.up).toLocaleString('th-TH')}</div>
       <div style="font-family:monospace;font-size:13px;font-weight:700;color:#1a1410;text-align:right;">${Number(it.sub).toLocaleString('th-TH')} ฿</div>
     </div>`).join('');
@@ -2607,7 +2600,7 @@ body{background:#e8e0d0;font-family:'Sarabun',Arial,sans-serif;padding:0 0 40px;
     </div>
     <div style="text-align:center;padding:4px 16px 10px;border-top:1px solid rgba(255,255,255,.15);">
       <div style="font-family:'Noto Serif Thai',serif;font-size:20px;font-weight:900;color:#fff;">บิลเงินสด</div>
-      <div style="font-size:10px;color:rgba(255,255,255,.65);letter-spacing:3px;text-transform:uppercase;margin-top:1px;">CASH SALE</div>
+      <div style="font-size:10px;color:rgba(255,255,255,.65);letter-spacing:3px;text-transform:uppercase;margin-top:1px;">CASH SALE · 现金收据</div>
     </div>
   </div>
   <div style="background:#f0ebe0;padding:10px 16px;border-bottom:1.5px solid #d0c8b0;position:relative;z-index:2;">
@@ -2637,14 +2630,10 @@ body{background:#e8e0d0;font-family:'Sarabun',Arial,sans-serif;padding:0 0 40px;
   </div>
   <div style="padding:0 16px;position:relative;z-index:2;">${itemsHTML}</div>
   <div style="background:#f0ebe0;border-top:2px solid #1a5fa8;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;position:relative;z-index:2;">
-    <div>
-      <div style="font-size:13px;color:#6a5e4a;font-weight:700;">รวมทั้งสิ้น / TOTAL</div>
-      <div style="font-size:10px;color:#9a8e78;margin-top:2px;">ราคารวมภาษีมูลค่าเพิ่ม (ถ้ามี)</div>
-    </div>
+    <div style="font-size:13px;color:#6a5e4a;font-weight:700;">รวมทั้งสิ้น / TOTAL</div>
     <div style="font-family:monospace;font-weight:900;color:#1a5fa8;font-size:22px;">${Number(b.total).toLocaleString('th-TH')} ฿</div>
   </div>
   <div style="padding:10px 16px 8px;background:#faf8f2;border-top:1.5px dashed #d0c8b0;display:flex;flex-direction:column;align-items:center;gap:4px;position:relative;z-index:2;">
-    <div style="font-size:8.5px;color:#9a8e78;text-transform:uppercase;letter-spacing:1px;font-family:monospace;">ผู้รับเงิน / COLLECTOR</div>
     ${sigSection}
     ${collectorLine}
   </div>
@@ -2653,7 +2642,6 @@ body{background:#e8e0d0;font-family:'Sarabun',Arial,sans-serif;padding:0 0 40px;
   </div>
   <div style="padding:10px 16px 14px;text-align:center;background:#faf8f2;border-top:1.5px solid #e0d8c8;position:relative;z-index:2;">
     <div style="font-size:10px;color:#1a6b3a;font-weight:700;margin-bottom:2px;" id="vf-result">✅ บิลลงลายมือชื่อดิจิทัลแล้ว · ไม่สามารถแก้ไขได้</div>
-    <div style="font-size:9px;color:#9a8e78;">ออกโดยระบบบิลเสียง AI · ใช้เป็นหลักฐานค่าใช้จ่ายตามจริงได้</div>
   </div>
 </div>
 <div style="margin:10px 10px 0;background:rgba(26,63,107,.07);border:1.5px dashed #1a5fa8;border-radius:9px;padding:10px 13px;text-align:center;font-size:11px;color:#1a3a6b;font-weight:600;line-height:1.6;">
@@ -3394,13 +3382,15 @@ function verifyBillFromQR(rawData) {
     const addr_v   = b.ad   || b.addr   || '';
     const phone_v  = b.ph   || b.phone  || '';
     const tax_v    = b.tx   || b.tax    || '';
-    // วันที่/เวลา — fallback จาก iso ถ้า dt/tm ถูกตัดออก
+    // วันที่/เวลา — แปลงเป็น d/MM/YYYY เหมือนบิลร้านค้า
     let date_v = b.dt || b.date || '';
     let time_v = b.tm || b.time || '';
-    if ((!date_v || !time_v) && iso) {
+    // ถ้า date_v เป็นรูปแบบเก่า (มีภาษาไทย) หรือว่าง → คำนวณจาก iso
+    const needConvert = !date_v || /[ก-์]/.test(date_v);
+    if ((needConvert || !time_v) && iso) {
       const d = new Date(iso);
       if (!isNaN(d)) {
-        if (!date_v) date_v = d.toLocaleDateString('th-TH',{year:'numeric',month:'short',day:'numeric'});
+        if (needConvert) date_v = `${d.getDate()}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()+543}`;
         if (!time_v) time_v = d.toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit'});
       }
     }
@@ -3463,7 +3453,7 @@ function verifyBillFromQR(rawData) {
 
     document.getElementById('vf-items').innerHTML = billItems.map(it => `
       <div class="bitem">
-        <div><div class="biname">${it.name}</div><div class="biqty">${it.qty} pcs</div></div>
+        <div><div class="biname">${it.name}</div><div class="biqty">${it.qty} ชิ้น</div></div>
         <div class="bicol">${it.qty} × ${fmt(it.up)}</div>
         <div class="bisub">${fmt(it.sub)} ฿</div>
       </div>`).join('');
@@ -3538,42 +3528,60 @@ async function downloadVerifyPDF() {
   btn.innerHTML = '⏳ กำลังสร้าง PDF...';
   btn.disabled = true;
   try {
-    // ── pre-render SVG signature → canvas เพื่อให้ html2canvas จับได้ ──
+    // ── แทนที่ <img> SVG ด้วย <canvas> จริงก่อน capture ──
+    // html2canvas ไม่รองรับ SVG data URI ใน <img> จึงต้องแปลงก่อน
     const sigImg = document.getElementById('vf-sig-img');
-    let tempCanvas = null;
-    if (sigImg && sigImg.src && sigImg.src.startsWith('data:image/svg')) {
-      tempCanvas = document.createElement('canvas');
-      tempCanvas.width  = sigImg.offsetWidth  || 220;
-      tempCanvas.height = sigImg.offsetHeight || 64;
-      tempCanvas.style.cssText = `position:absolute;left:${sigImg.offsetLeft}px;top:${sigImg.offsetTop}px;pointer-events:none;`;
-      await new Promise(res => {
-        const img = new Image();
-        img.onload = () => {
-          tempCanvas.getContext('2d').drawImage(img, 0, 0, tempCanvas.width, tempCanvas.height);
+    const collectEl = document.getElementById('vf-collect');
+    let replacedCanvas = null;
+    let origDisplay = null;
+
+    if (sigImg && sigImg.src && sigImg.src.startsWith('data:image/svg') && collectEl && collectEl.style.display !== 'none') {
+      // สร้าง canvas แทน img
+      replacedCanvas = document.createElement('canvas');
+      const dpr = 2;
+      const w = sigImg.offsetWidth  || 200;
+      const h = sigImg.offsetHeight || 64;
+      replacedCanvas.width  = w * dpr;
+      replacedCanvas.height = h * dpr;
+      replacedCanvas.style.width  = w + 'px';
+      replacedCanvas.style.height = h + 'px';
+      replacedCanvas.style.display = 'block';
+      replacedCanvas.style.margin = '4px auto 0';
+
+      await new Promise((res, rej) => {
+        const tmp = new Image();
+        tmp.onload = () => {
+          const ctx = replacedCanvas.getContext('2d');
+          ctx.scale(dpr, dpr);
+          ctx.drawImage(tmp, 0, 0, w, h);
           res();
         };
-        img.src = sigImg.src;
+        tmp.onerror = rej;
+        tmp.src = sigImg.src;
       });
-      // วาง canvas ทับ img ชั่วคราว
-      sigImg.parentElement.style.position = 'relative';
-      sigImg.parentElement.appendChild(tempCanvas);
-      sigImg.style.visibility = 'hidden';
+
+      // ซ่อน img เดิม แทรก canvas
+      origDisplay = sigImg.style.display;
+      sigImg.style.display = 'none';
+      sigImg.parentElement.insertBefore(replacedCanvas, sigImg);
     }
 
     const prev = el.style.pointerEvents;
     el.style.pointerEvents = 'auto';
     await new Promise(r => requestAnimationFrame(r));
-    await new Promise(r => requestAnimationFrame(r)); // 2 frames ให้ DOM settle
+    await new Promise(r => requestAnimationFrame(r));
+
     const canvas = await html2canvas(el, {
-      scale: 2.5, useCORS: true, backgroundColor: '#ffffff', logging: false,
-      allowTaint: true
+      scale: 2.5, useCORS: true, backgroundColor: '#ffffff',
+      logging: false, allowTaint: true
     });
+
     el.style.pointerEvents = prev;
 
     // คืนสภาพ
-    if (tempCanvas) {
-      tempCanvas.remove();
-      if (sigImg) sigImg.style.visibility = '';
+    if (replacedCanvas) {
+      replacedCanvas.remove();
+      if (sigImg) sigImg.style.display = origDisplay || '';
     }
 
     const { jsPDF } = window.jspdf;
