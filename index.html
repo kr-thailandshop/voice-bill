@@ -305,16 +305,16 @@ html,body{height:100%;height:100dvh;overflow:hidden;background:var(--bg);color:v
 .bml{font-size:8.5px;color:#9a8e78;text-transform:uppercase;letter-spacing:0.5px;font-family:'IBM Plex Mono',monospace;}
 .bmv{font-size:11.5px;font-weight:800;color:#1a1410;margin-top:2px;}
 
-/* Customer name bar (above bill) — Collapsible */
-.cust-bar{margin:0 11px 7px;background:var(--surface);border:2px solid var(--border);border-radius:13px;box-shadow:var(--shadow);flex-shrink:0;overflow:hidden;transition:all 0.2s ease;}
-.cust-trigger{display:flex;align-items:center;justify-content:space-between;padding:11px 13px;cursor:pointer;user-select:none;-webkit-tap-highlight-color:transparent;}
-.cust-trigger-left{display:flex;align-items:center;gap:8px;}
-.cust-trigger-icon{font-size:16px;}
-.cust-trigger-name{font-weight:700;color:var(--text);font-size:calc(0.9rem * var(--sz));max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.cust-trigger-placeholder{font-weight:600;color:var(--muted);font-size:calc(0.85rem * var(--sz));}
-.cust-trigger-arrow{font-size:12px;color:var(--muted);transition:transform 0.2s;flex-shrink:0;}
+/* Customer name bar (above bill) — Compact Collapsible */
+.cust-bar{margin:0 11px 5px;background:var(--surface);border:1.5px solid var(--border);border-radius:10px;box-shadow:var(--shadow);flex-shrink:0;overflow:hidden;transition:all 0.2s ease;}
+.cust-trigger{display:flex;align-items:center;justify-content:space-between;padding:7px 11px;cursor:pointer;user-select:none;-webkit-tap-highlight-color:transparent;}
+.cust-trigger-left{display:flex;align-items:center;gap:7px;}
+.cust-trigger-icon{font-size:14px;}
+.cust-trigger-name{font-weight:700;color:var(--text);font-size:calc(0.85rem * var(--sz));max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.cust-trigger-placeholder{font-weight:600;color:var(--muted);font-size:calc(0.8rem * var(--sz));}
+.cust-trigger-arrow{font-size:11px;color:var(--muted);transition:transform 0.2s;flex-shrink:0;}
 .cust-bar.open .cust-trigger-arrow{transform:rotate(180deg);}
-.cust-panel{display:none;padding:0 13px 13px;border-top:1.5px dashed var(--border);}
+.cust-panel{display:none;padding:0 11px 11px;border-top:1px dashed var(--border);}
 .cust-bar.open .cust-panel{display:block;}
 .cust-row{display:flex;gap:6px;align-items:center;margin-top:10px;}
 .cust-input{flex:1;background:var(--bg2);border:2px solid var(--border);border-radius:9px;padding:10px 12px;font-family:'Sarabun',sans-serif;font-weight:600;color:var(--text);outline:none;min-height:46px;font-size:calc(0.9rem * var(--sz));transition:border-color 0.15s;}
@@ -510,15 +510,51 @@ html,body{height:100%;height:100dvh;overflow:hidden;background:var(--bg);color:v
 .mcard-del{min-width:36px;height:36px;border-radius:8px;background:var(--red-bg);border:2px solid rgba(176,42,31,0.18);color:var(--red);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:13px;font-weight:700;flex-shrink:0;}
 .mem-actions{padding:9px 11px 20px;display:flex;gap:7px;border-top:2px solid var(--border);background:var(--surface);flex-shrink:0;}
 .mem-cat-badge{display:inline-flex;align-items:center;gap:5px;background:var(--grn-bg);border:1.5px solid var(--green);border-radius:100px;padding:4px 12px;color:var(--green);font-weight:700;font-size:calc(0.78rem * var(--sz));margin-bottom:8px;}
-/* ── BILL ACTION BAR — เขียนใหม่ z-index ชัด ── */
+/* ── BILL ACTION BAR — Floating share button + slide-out tray ── */
 .bill-action-bar{
-  background:#1a3a6b;
-  padding:8px 10px 10px;
-  display:flex;gap:5px;
+  /* ซ่อน bar เดิม — แทนด้วย floating button */
+  display:none;
+}
+/* Floating share button ด้านขวาของ topbar */
+.bill-share-fab{
+  width:46px;height:46px;
+  border-radius:12px;
+  background:rgba(255,200,0,0.28);
+  border:1.5px solid rgba(255,200,0,0.7);
+  color:#fff;
+  font-size:22px;
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;
   flex-shrink:0;
-  border-bottom:2px solid rgba(255,255,255,0.1);
-  position:relative;
-  z-index:20;          /* สูงกว่า bill-paper ที่มี pointer-events:none */
+  transition:background 0.12s,transform 0.1s;
+  -webkit-tap-highlight-color:transparent;
+  touch-action:manipulation;
+}
+.bill-share-fab:active{background:rgba(255,200,0,0.55);transform:scale(0.92);}
+
+/* Slide-out tray จาก topbar ลงมา */
+.bab-tray{
+  position:absolute;
+  top:100%;           /* ใต้ topbar */
+  right:0;left:0;
+  background:#1a3a6b;
+  border-bottom:2px solid rgba(255,255,255,0.12);
+  display:flex;gap:5px;
+  padding:8px 10px 10px;
+  z-index:19;
+  overflow:hidden;
+  max-height:0;
+  opacity:0;
+  pointer-events:none;
+  transition:max-height 0.28s cubic-bezier(0.4,0,0.2,1),
+             opacity    0.22s ease,
+             padding    0.28s ease;
+}
+.bab-tray.open{
+  max-height:90px;
+  opacity:1;
+  pointer-events:auto;
+  padding:8px 10px 10px;
 }
 .bab-btn{
   flex:1;
@@ -543,7 +579,6 @@ html,body{height:100%;height:100dvh;overflow:hidden;background:var(--bg);color:v
 .bab-main:active{background:rgba(255,200,0,0.45);}
 .bab-qr{background:rgba(80,200,120,0.22);border-color:rgba(80,200,120,0.55);}
 .bab-qr:active{background:rgba(80,200,120,0.45);}
-
 .bab-icon{font-size:19px;line-height:1;}
 
 /* ── QR BILL MODAL ── */
@@ -561,6 +596,8 @@ html,body{height:100%;height:100dvh;overflow:hidden;background:var(--bg);color:v
 .qr-bill-close:active{opacity:0.88;}
 .qr-loading{font-size:12px;color:#9a8e78;font-weight:600;}
 .bab-lbl{font-size:9.5px;font-weight:700;text-align:center;line-height:1.25;white-space:nowrap;}
+/* topbar ต้อง relative เพื่อให้ tray absolute ใต้มันได้ */
+.bill-topbar{position:relative;z-index:20;}
 
 /* ── QR MODAL ── */
 .qr-modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.72);z-index:600;align-items:center;justify-content:center;backdrop-filter:blur(4px);}
@@ -774,37 +811,41 @@ html,body{height:100%;height:100dvh;overflow:hidden;background:var(--bg);color:v
     <button class="back-btn" onclick="goConfirm()" style="background:rgba(255,255,255,0.12);border-color:rgba(255,255,255,0.25);color:#fff;">←</button>
     <div class="bill-tb-title">บิลเงินสดดิจิทัล</div>
     <div class="locked-badge">🔒 ล็อค</div>
+    <!-- ปุ่ม Share FAB — กดเปิด/ปิด tray -->
+    <button class="bill-share-fab" id="bill-share-fab" onclick="toggleBabTray()" title="ส่งบิล / แชร์">
+      ↗
+    </button>
+    <!-- Slide-out tray อยู่ใน topbar เพื่อ absolute positioning -->
+    <div class="bab-tray" id="bab-tray">
+      <button class="bab-btn bab-main" onclick="billAction('send');closeBabTray()">
+        <span class="bab-icon">📲</span>
+        <span class="bab-lbl">ส่งบิล<br>ลูกค้า</span>
+      </button>
+      <button class="bab-btn bab-qr" onclick="billAction('qr');closeBabTray()" id="bab-qr-btn">
+        <span class="bab-icon">📷</span>
+        <span class="bab-lbl">QR<br>สแกน</span>
+      </button>
+      <button class="bab-btn" onclick="billAction('png');closeBabTray()">
+        <span class="bab-icon">🖼️</span>
+        <span class="bab-lbl">บันทึก<br>ภาพ</span>
+      </button>
+      <button class="bab-btn" onclick="billAction('pdf');closeBabTray()">
+        <span class="bab-icon">📄</span>
+        <span class="bab-lbl">PDF</span>
+      </button>
+      <button class="bab-btn" onclick="billAction('text');closeBabTray()">
+        <span class="bab-icon">💬</span>
+        <span class="bab-lbl">ข้อความ</span>
+      </button>
+    </div>
   </div>
 
-  <!-- ── ACTION BAR ── -->
-  <div class="bill-action-bar">
-    <button class="bab-btn bab-main" onclick="billAction('send')">
-      <span class="bab-icon">📲</span>
-      <span class="bab-lbl">ส่งบิล<br>ให้ลูกค้า</span>
-    </button>
+  <!-- ── ACTION BAR (hidden — replaced by FAB tray) ── -->
+  <div class="bill-action-bar"></div>
 
-    <button class="bab-btn bab-qr" onclick="billAction('qr')" id="bab-qr-btn">
-      <span class="bab-icon">📷</span>
-      <span class="bab-lbl">QR<br>สแกน</span>
-    </button>
-
-    <button class="bab-btn" onclick="billAction('png')">
-      <span class="bab-icon">🖼️</span>
-      <span class="bab-lbl">บันทึก<br>ภาพ</span>
-    </button>
-    <button class="bab-btn" onclick="billAction('pdf')">
-      <span class="bab-icon">📄</span>
-      <span class="bab-lbl">PDF</span>
-    </button>
-    <button class="bab-btn" onclick="billAction('text')">
-      <span class="bab-icon">💬</span>
-      <span class="bab-lbl">ข้อความ</span>
-    </button>
-  </div>
-
-  <!-- ── ชื่อลูกค้า — Collapsible ── -->
-  <div class="cust-bar" id="cust-bar">
-    <!-- ปุ่มกด toggle -->
+  <!-- ── ชื่อลูกค้า — Compact slide-down panel ── -->
+  <div id="cust-bar" class="cust-bar">
+    <!-- trigger row แสดงเสมอ: icon + ชื่อ + arrow -->
     <div class="cust-trigger" onclick="toggleCustBar()">
       <div class="cust-trigger-left">
         <span class="cust-trigger-icon">👤</span>
@@ -812,7 +853,7 @@ html,body{height:100%;height:100dvh;overflow:hidden;background:var(--bg);color:v
       </div>
       <span class="cust-trigger-arrow">▼</span>
     </div>
-    <!-- Panel ที่ซ่อน/แสดง -->
+    <!-- panel ซ่อน/แสดง -->
     <div class="cust-panel" id="cust-panel">
       <div class="cust-row">
         <input class="cust-input" id="cust-name-input" placeholder="พิมพ์หรือกดค้างปุ่มพูด..." type="text" oninput="updateCustName()">
@@ -846,7 +887,7 @@ html,body{height:100%;height:100dvh;overflow:hidden;background:var(--bg);color:v
         </div>
         <div class="bhead-title-wrap">
           <div class="bhead-cash">บิลเงินสด</div>
-          <div class="bhead-cash-en">CASH SALE · 现金收据</div>
+          <div class="bhead-cash-en">CASH SALE</div>
           <div class="bhead-sub" id="b-datetime">—</div>
         </div>
       </div>
@@ -891,6 +932,7 @@ html,body{height:100%;height:100dvh;overflow:hidden;background:var(--bg);color:v
       <div class="bcollect">
         <canvas class="bcollect-canvas" id="bill-sig-canvas" width="360" height="120"></canvas>
         <div class="bcollect-name" id="bill-collector-name"></div>
+        <div class="bcollect-lbl">ผู้รับเงิน / CASHIER</div>
       </div>
 
       <!-- Digital Sig -->
@@ -982,7 +1024,7 @@ html,body{height:100%;height:100dvh;overflow:hidden;background:var(--bg);color:v
         </div>
         <div class="bhead-title-wrap">
           <div class="bhead-cash">บิลเงินสด</div>
-          <div class="bhead-cash-en">CASH SALE · 现金收据</div>
+          <div class="bhead-cash-en">CASH SALE</div>
         </div>
       </div>
       <div class="bshop-row">
@@ -1017,6 +1059,7 @@ html,body{height:100%;height:100dvh;overflow:hidden;background:var(--bg);color:v
       <div class="bcollect" id="vf-collect" style="display:none;flex-direction:column;align-items:center;padding:12px 16px 8px;background:#faf8f2;border-top:1.5px dashed #d0c8b0;">
         <img id="vf-sig-img" src="" style="height:64px;max-width:200px;object-fit:contain;display:block;">
         <div class="bcollect-name" id="vf-collector-name"></div>
+        <div class="bcollect-lbl">ผู้รับเงิน / CASHIER</div>
       </div>
       <!-- ตราประทับ -->
       <div id="vf-stamp-wrap" style="display:none;padding:10px 16px;background:#faf8f2;border-top:1.5px dashed #d0c8b0;display:none;align-items:center;justify-content:center;">
@@ -2352,7 +2395,7 @@ function createBill() {
 
   document.getElementById('b-items').innerHTML = billItems.map(it=>`
     <div class="bitem">
-      <div><div class="biname">${it.name}</div><div class="biqty">${it.qty} ชิ้น</div></div>
+      <div><div class="biname">${it.name}</div><div class="biqty">${it.qty} pcs</div></div>
       <div class="bicol">${it.qty} × ${fmt(it.up)}</div>
       <div class="bisub">${fmt(it.sub)} ฿</div>
     </div>`).join('');
@@ -2534,7 +2577,19 @@ function buildBillCopyHTML(b, _unused) {
   // ── ลายเซ็น: ดึงจาก cfgSig โดยตรงเสมอ ──
   const sigSrc = cfgSig || '';
   const sigSection = sigSrc
-    ? `<img src="${sigSrc}" style="height:64px;max-width:220px;object-fit:contain;display:block;margin:4px auto 0;">`
+    ? `<canvas id="bill-copy-sig-cv" style="height:80px;max-width:220px;display:block;margin:4px auto 0;"></canvas>
+       <script>
+       (function(){
+         var img=new Image(),cv=document.getElementById('bill-copy-sig-cv');
+         img.onload=function(){
+           cv.width=img.naturalWidth*2;cv.height=img.naturalHeight*2;
+           cv.style.height=Math.min(80,img.naturalHeight)+'px';
+           cv.style.maxWidth='220px';
+           cv.getContext('2d').drawImage(img,0,0,cv.width,cv.height);
+         };
+         img.src='${sigSrc}';
+       })();
+       <\/script>`
     : `<div style="width:180px;height:1px;background:#c0b89a;margin:32px auto 4px;"></div>`;
 
   const collectorLine = cfgCollector
@@ -2543,7 +2598,7 @@ function buildBillCopyHTML(b, _unused) {
 
   const itemsHTML = b.items.map(it => `
     <div style="display:grid;grid-template-columns:1fr 80px 68px;padding:9px 0;border-bottom:1px dashed #e0d8c8;align-items:start;gap:4px;">
-      <div><div style="font-size:13px;font-weight:700;color:#1a1410;">${it.name}</div><div style="font-size:10px;color:#7a6a52;margin-top:2px;">${it.qty} ชิ้น</div></div>
+      <div><div style="font-size:13px;font-weight:700;color:#1a1410;">${it.name}</div><div style="font-size:10px;color:#7a6a52;margin-top:2px;">${it.qty} pcs</div></div>
       <div style="font-size:12px;font-weight:600;color:#3d3228;text-align:right;">${it.qty} × ${Number(it.up).toLocaleString('th-TH')}</div>
       <div style="font-family:monospace;font-size:13px;font-weight:700;color:#1a1410;text-align:right;">${Number(it.sub).toLocaleString('th-TH')} ฿</div>
     </div>`).join('');
@@ -2600,7 +2655,7 @@ body{background:#e8e0d0;font-family:'Sarabun',Arial,sans-serif;padding:0 0 40px;
     </div>
     <div style="text-align:center;padding:4px 16px 10px;border-top:1px solid rgba(255,255,255,.15);">
       <div style="font-family:'Noto Serif Thai',serif;font-size:20px;font-weight:900;color:#fff;">บิลเงินสด</div>
-      <div style="font-size:10px;color:rgba(255,255,255,.65);letter-spacing:3px;text-transform:uppercase;margin-top:1px;">CASH SALE · 现金收据</div>
+      <div style="font-size:10px;color:rgba(255,255,255,.65);letter-spacing:3px;text-transform:uppercase;margin-top:1px;">CASH SALE</div>
     </div>
   </div>
   <div style="background:#f0ebe0;padding:10px 16px;border-bottom:1.5px solid #d0c8b0;position:relative;z-index:2;">
@@ -2679,6 +2734,37 @@ function billAction(type) {
   }
 }
 
+// ── Share FAB tray toggle ──
+function toggleBabTray() {
+  const tray = document.getElementById('bab-tray');
+  const fab  = document.getElementById('bill-share-fab');
+  if (!tray) return;
+  const isOpen = tray.classList.contains('open');
+  if (isOpen) {
+    tray.classList.remove('open');
+    if (fab) fab.style.background = 'rgba(255,200,0,0.28)';
+  } else {
+    tray.classList.add('open');
+    if (fab) fab.style.background = 'rgba(255,200,0,0.55)';
+    setTimeout(() => {
+      document.addEventListener('click', _closeTrayOutside, { once: true, capture: true });
+    }, 50);
+  }
+}
+function closeBabTray() {
+  const tray = document.getElementById('bab-tray');
+  const fab  = document.getElementById('bill-share-fab');
+  if (tray) tray.classList.remove('open');
+  if (fab)  fab.style.background = 'rgba(255,200,0,0.28)';
+}
+function _closeTrayOutside(e) {
+  const tray = document.getElementById('bab-tray');
+  const fab  = document.getElementById('bill-share-fab');
+  if (tray && !tray.contains(e.target) && fab && !fab.contains(e.target)) {
+    closeBabTray();
+  }
+}
+
 // ══════════════════════════════
 // QR MODAL — สร้าง QR จาก JSON payload ที่บิลออกแล้ว
 // ใช้ qrcodejs จาก CDN — เรียก setTimeout ให้ modal เปิดก่อนค่อยสร้าง
@@ -2707,15 +2793,21 @@ function showQRModal() {
       if (!anchor) return;
       anchor.innerHTML = '';
 
-      // ── ดึง path จาก cfgSigQR (SVG เล็ก เฉพาะ QR) ──
+      // ── ดึง path จาก cfgSig (HQ) → สร้าง compact format สำหรับ QR ──
+      // ใช้ VW=300 (แทน 100) เพื่อลายเซ็นคมชัดในบิลลูกค้า แต่ยังไม่ใหญ่เกิน QR
       const sigCompact = (() => {
-        const src = cfgSigQR || cfgSig;  // fallback cfgSig ถ้ายังไม่มี QR version
+        const src = cfgSig || cfgSigQR;  // ใช้ HQ ก่อนเสมอ
         if (!src || !src.startsWith('data:image/svg+xml;base64,')) return '';
         try {
           const svgFull = decodeURIComponent(escape(atob(src.slice(26))));
           const mPath = svgFull.match(/d="([^"]+)"/);
           const mVB   = svgFull.match(/viewBox="0 0 (\d+) (\d+)"/);
-          return (mPath && mVB) ? mVB[1]+','+mVB[2]+'|'+mPath[1] : '';
+          if (!mPath || !mVB) return '';
+          // scale down path coordinates จาก VW=600 → VW=300 เพื่อลดขนาด QR
+          const origVW = +mVB[1], origVH = +mVB[2];
+          const newVW = 300, scale = newVW / origVW, newVH = Math.round(origVH * scale);
+          const scaledPath = mPath[1].replace(/(-?\d+\.?\d*)/g, (_, n) => Math.round(+n * scale));
+          return newVW + ',' + newVH + '|' + scaledPath;
         } catch(e) { return ''; }
       })();
 
@@ -3415,7 +3507,7 @@ function verifyBillFromQR(rawData) {
       else { vfCustRow.style.display = 'none'; }
     }
 
-    // ── render ลายเซ็น — รองรับ compact format "VW,VH|path" และ data URI เดิม ──
+    // ── render ลายเซ็น — แปลง SVG → PNG canvas เพื่อความคมชัดและ PDF export ──
     const collectEl = document.getElementById('vf-collect');
     const sigImg    = document.getElementById('vf-sig-img');
     if (b.sg && sigImg && collectEl) {
@@ -3425,18 +3517,49 @@ function verifyBillFromQR(rawData) {
           const pipe = b.sg.indexOf('|');
           const dims = b.sg.slice(0, pipe).split(',');
           const pathD = b.sg.slice(pipe + 1);
-          const svgStr = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${dims[0]} ${dims[1]}"><path d="${pathD}" fill="none" stroke="#1a1410" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+          // stroke-width 3.5 (หนาขึ้นจาก 1.8) เพื่อลายเซ็นชัดในบิลและ PDF
+          const svgStr = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${dims[0]} ${dims[1]}"><path d="${pathD}" fill="none" stroke="#1a1410" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
           sigSrc = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgStr)));
         } catch(e2) {}
       }
-      // ตั้ง onload ก่อน src เสมอ เพื่อให้ trigger ได้ถูกต้อง
-      sigImg.onload  = () => { collectEl.style.display = 'flex'; };
-      sigImg.onerror = () => { collectEl.style.display = 'none'; };
-      sigImg.src = sigSrc;
-      // SVG data URI โหลดแบบ sync — force show ทันที
-      if (sigSrc.startsWith('data:image/svg')) {
-        collectEl.style.display = 'flex';
-      }
+      // แปลง SVG → PNG canvas เพื่อให้ html2canvas capture ได้คมชัด
+      const renderSigAsPNG = (src) => {
+        return new Promise((resolve) => {
+          const tmpImg = new Image();
+          tmpImg.onload = () => {
+            const W = 400, H = Math.round(400 * (tmpImg.naturalHeight || 80) / (tmpImg.naturalWidth || 200));
+            const cv = document.createElement('canvas');
+            cv.width = W * 2; cv.height = (H || 80) * 2; // 2x for sharpness
+            cv.style.width  = W + 'px';
+            cv.style.height = (H || 80) + 'px';
+            cv.style.maxWidth = '200px';
+            cv.style.display = 'block';
+            cv.style.margin  = '4px auto 0';
+            cv.getContext('2d').drawImage(tmpImg, 0, 0, cv.width, cv.height);
+            resolve(cv);
+          };
+          tmpImg.onerror = () => resolve(null);
+          tmpImg.src = src;
+        });
+      };
+      // แทนที่ <img> ด้วย <canvas> เพื่อ PDF คมชัด
+      renderSigAsPNG(sigSrc).then(cv => {
+        if (cv && collectEl) {
+          sigImg.style.display = 'none';
+          // ลบ canvas เก่าถ้ามี
+          const oldCv = collectEl.querySelector('canvas.sig-rendered');
+          if (oldCv) oldCv.remove();
+          cv.className = 'sig-rendered';
+          sigImg.parentElement.insertBefore(cv, sigImg);
+          collectEl.style.display = 'flex';
+        } else {
+          // fallback ใช้ img ปกติ
+          sigImg.onload  = () => { collectEl.style.display = 'flex'; };
+          sigImg.onerror = () => { collectEl.style.display = 'none'; };
+          sigImg.src = sigSrc;
+          if (sigSrc.startsWith('data:image/svg')) collectEl.style.display = 'flex';
+        }
+      });
     } else if (collectEl) {
       collectEl.style.display = 'none';
     }
@@ -3453,7 +3576,7 @@ function verifyBillFromQR(rawData) {
 
     document.getElementById('vf-items').innerHTML = billItems.map(it => `
       <div class="bitem">
-        <div><div class="biname">${it.name}</div><div class="biqty">${it.qty} ชิ้น</div></div>
+        <div><div class="biname">${it.name}</div><div class="biqty">${it.qty} pcs</div></div>
         <div class="bicol">${it.qty} × ${fmt(it.up)}</div>
         <div class="bisub">${fmt(it.sub)} ฿</div>
       </div>`).join('');
@@ -3528,61 +3651,22 @@ async function downloadVerifyPDF() {
   btn.innerHTML = '⏳ กำลังสร้าง PDF...';
   btn.disabled = true;
   try {
-    // ── แทนที่ <img> SVG ด้วย <canvas> จริงก่อน capture ──
-    // html2canvas ไม่รองรับ SVG data URI ใน <img> จึงต้องแปลงก่อน
-    const sigImg = document.getElementById('vf-sig-img');
-    const collectEl = document.getElementById('vf-collect');
-    let replacedCanvas = null;
-    let origDisplay = null;
-
-    if (sigImg && sigImg.src && sigImg.src.startsWith('data:image/svg') && collectEl && collectEl.style.display !== 'none') {
-      // สร้าง canvas แทน img
-      replacedCanvas = document.createElement('canvas');
-      const dpr = 2;
-      const w = sigImg.offsetWidth  || 200;
-      const h = sigImg.offsetHeight || 64;
-      replacedCanvas.width  = w * dpr;
-      replacedCanvas.height = h * dpr;
-      replacedCanvas.style.width  = w + 'px';
-      replacedCanvas.style.height = h + 'px';
-      replacedCanvas.style.display = 'block';
-      replacedCanvas.style.margin = '4px auto 0';
-
-      await new Promise((res, rej) => {
-        const tmp = new Image();
-        tmp.onload = () => {
-          const ctx = replacedCanvas.getContext('2d');
-          ctx.scale(dpr, dpr);
-          ctx.drawImage(tmp, 0, 0, w, h);
-          res();
-        };
-        tmp.onerror = rej;
-        tmp.src = sigImg.src;
-      });
-
-      // ซ่อน img เดิม แทรก canvas
-      origDisplay = sigImg.style.display;
-      sigImg.style.display = 'none';
-      sigImg.parentElement.insertBefore(replacedCanvas, sigImg);
-    }
-
+    // ลายเซ็นถูก render เป็น <canvas> ไว้ใน DOM แล้ว (ใน verifyBillFromQR)
+    // html2canvas รองรับ <canvas> ได้ดีกว่า SVG <img> → PDF คมชัด
     const prev = el.style.pointerEvents;
     el.style.pointerEvents = 'auto';
     await new Promise(r => requestAnimationFrame(r));
     await new Promise(r => requestAnimationFrame(r));
 
     const canvas = await html2canvas(el, {
-      scale: 2.5, useCORS: true, backgroundColor: '#ffffff',
-      logging: false, allowTaint: true
+      scale: 3,          // เพิ่มจาก 2.5 → 3 เพื่อความคมชัด
+      useCORS: true,
+      backgroundColor: '#ffffff',
+      logging: false,
+      allowTaint: true
     });
 
     el.style.pointerEvents = prev;
-
-    // คืนสภาพ
-    if (replacedCanvas) {
-      replacedCanvas.remove();
-      if (sigImg) sigImg.style.display = origDisplay || '';
-    }
 
     const { jsPDF } = window.jspdf;
     const W = canvas.width, H = canvas.height;
