@@ -1608,27 +1608,52 @@ document.getElementById('settings-modal').addEventListener('click', function(e) 
     const svgHQ = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${hq.vw} ${hq.vh}"><path d="${hq.d}" fill="none" stroke="#1a1410" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
     const b64HQ = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgHQ)));
 
-    // ── QR: ฝัง QR (กะทัดรัด tol=2.5, VW=100) ──
-    const qr = buildSVGFromStrokes(allStrokes, 100, 2.5);
-    const svgQR = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${qr.vw} ${qr.vh}"><path d="${qr.d}" fill="none" stroke="#1a1410" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
-    const b64QR = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgQR)));
+    // ── QR: ละเอียดขึ้น (VW=300, tol=0.8) + บีบด้วย relative commands ──
+    // VW=300 → พิกัดละเอียด 3× จากเดิม (100) เส้นโค้งลื่นขึ้นมาก
+    // tol=0.8 → เก็บรายละเอียดโค้งดีกว่า tol=2.5
+    // ใช้ relative l แทน absolute L → ตัวเลขเล็กลง ขนาดรวมใกล้เดิม
+    (function buildQR() {
+      const VW_QR = 300;
+      const VH_QR = Math.round(VW_QR * H / W);
+      const sx = VW_QR / W, sy = VH_QR / H;
+      // round ทศนิยม 1 ตำแหน่ง → สมดุลระหว่างความละเอียดและขนาด
+      const r1 = v => Math.round(v * 10) / 10;
+      let d = '';
+      for (const stroke of allStrokes) {
+        if (stroke.length < 2) continue;
+        const s = dp(stroke, 0.8);
+        // M absolute สำหรับจุดแรกของแต่ละ stroke
+        let px = r1(s[0].x * sx), py = r1(s[0].y * sy);
+        d += `M${px},${py}`;
+        // l relative สำหรับจุดถัดไป → ตัวเลขเล็ก บวก/ลบจากจุดก่อน
+        for (let i = 1; i < s.length; i++) {
+          const nx = r1(s[i].x * sx), ny = r1(s[i].y * sy);
+          const dx = r1(nx - px), dy = r1(ny - py);
+          d += `l${dx},${dy}`;
+          px = nx; py = ny;
+        }
+      }
+      const svgQR = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${VW_QR} ${VH_QR}"><path d="${d}" fill="none" stroke="#1a1410" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+      const b64QR = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgQR)));
 
-    // ── บันทึก ──
-    cfgSig   = b64HQ;
-    cfgSigQR = b64QR;
-    localStorage.setItem('vb_sig',    b64HQ);
-    localStorage.setItem('vb_sig_qr', b64QR);
+      cfgSigQR = b64QR;
+      localStorage.setItem('vb_sig_qr', b64QR);
+
+      const qrChars = svgQR.length;
+      if (qrChars > 900) {
+        toast(`⚠️ ลายเซ็น QR ใหญ่ ${qrChars} ตัว · ลองเซ็นสั้นกว่านี้`);
+      } else {
+        toast(`✍️ บันทึกลายเซ็นแล้ว ✅ · QR: ${qrChars} ตัว (คมชัด)`);
+      }
+    })();
+
+    // ── บันทึก HQ ──
+    cfgSig = b64HQ;
+    localStorage.setItem('vb_sig', b64HQ);
 
     document.getElementById('sig-preview-img').src = b64HQ;
     document.getElementById('sig-preview-img').style.display = 'block';
     document.getElementById('sig-preview-empty').style.display = 'none';
-
-    const qrChars = svgQR.length;
-    if (qrChars > 800) {
-      toast(`⚠️ ลายเซ็น QR ใหญ่ ${qrChars} ตัว · ลองเซ็นสั้นกว่านี้`);
-    } else {
-      toast(`✍️ บันทึกลายเซ็นแล้ว ✅ · QR: ${qrChars} ตัว`);
-    }
   };
 
   window.sigLoad = function() {
