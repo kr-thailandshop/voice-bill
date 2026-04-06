@@ -1431,7 +1431,8 @@ let cfgAddr  = localStorage.getItem('vb_addr')  || '';
 let cfgAddr2 = localStorage.getItem('vb_addr2') || '';
 let cfgPhone = localStorage.getItem('vb_phone') || '';
 let cfgTax       = localStorage.getItem('vb_tax')       || '';
-let cfgSig       = localStorage.getItem('vb_sig')       || '';  // base64 ลายเซ็น
+let cfgSig       = localStorage.getItem('vb_sig')    || '';  // SVG ละเอียด → แสดงบนบิล
+let cfgSigQR     = localStorage.getItem('vb_sig_qr') || '';  // SVG เล็ก    → ฝังใน QR
 let cfgCollector = localStorage.getItem('vb_collector') || '';  // ชื่อผู้รับเงิน
 let cfgStamp     = localStorage.getItem('vb_stamp')     || '';  // SVG ตราประทับ
 let cfgUrl       = '';  // ไม่ใช้แล้ว — QR ใช้ URL ปัจจุบันอัตโนมัติ
@@ -1547,29 +1548,28 @@ document.getElementById('settings-modal').addEventListener('click', function(e) 
     blank.width = canvas.width; blank.height = canvas.height;
     if (canvas.toDataURL('image/png') === blank.toDataURL('image/png')) { toast('กรุณาเซ็นชื่อก่อนบันทึก'); return; }
 
-    // ── SVG compact สำหรับ QR ──
-    // เป้าหมาย: SVG < 400 ตัวอักษร → QR รับได้สบาย
-    // STEP=3 (sample ทุก 3px แนวตั้ง), tolerance=2.0 (DP aggressive)
-    // viewBox 100×N (ตัวเลขสั้น ใช้พื้นที่น้อย)
     const ctx = canvas.getContext('2d');
     const W = canvas.width, H = canvas.height;
     const imgData = ctx.getImageData(0, 0, W, H);
     const px = imgData.data;
 
-    const STEP = 3;
-    const segs = [];
-    for (let y = 0; y < H; y += STEP) {
-      let seg = [];
-      for (let x = 0; x < W; x++) {
-        const a = px[(y * W + x) * 4 + 3];
-        if (a > 40) seg.push([x, y]);
-        else if (seg.length > 1) { segs.push(seg); seg = []; }
-        else seg = [];
+    // ── helper: scan pixel → segments ──
+    function scanSegs(step, alpha) {
+      const segs = [];
+      for (let y = 0; y < H; y += step) {
+        let seg = [];
+        for (let x = 0; x < W; x++) {
+          if (px[(y * W + x) * 4 + 3] > alpha) seg.push([x, y]);
+          else if (seg.length > 1) { segs.push(seg); seg = []; }
+          else seg = [];
+        }
+        if (seg.length > 1) segs.push(seg);
       }
-      if (seg.length > 1) segs.push(seg);
+      return segs;
     }
 
-    function dpSimplify(pts, tol) {
+    // ── helper: Douglas-Peucker ──
+    function dp(pts, tol) {
       if (pts.length <= 2) return pts;
       let maxD = 0, idx = 0;
       const [x1,y1] = pts[0], [x2,y2] = pts[pts.length-1];
@@ -1578,47 +1578,60 @@ document.getElementById('settings-modal').addEventListener('click', function(e) 
         const d = Math.abs((y2-y1)*pts[i][0]-(x2-x1)*pts[i][1]+x2*y1-y2*x1)/len;
         if (d > maxD) { maxD = d; idx = i; }
       }
-      if (maxD > tol) {
-        return [...dpSimplify(pts.slice(0,idx+1),tol).slice(0,-1), ...dpSimplify(pts.slice(idx),tol)];
-      }
+      if (maxD > tol) return [...dp(pts.slice(0,idx+1),tol).slice(0,-1), ...dp(pts.slice(idx),tol)];
       return [pts[0], pts[pts.length-1]];
     }
 
-    // viewBox 100×N → ตัวเลข 0-100 สั้นมาก
-    const VW = 100, VH = Math.round(VW * H / W);
-    const sx = VW / W, sy = VH / H;
-    let d = '';
-    for (const seg of segs) {
-      const s = dpSimplify(seg, 2.0);   // tolerance 2.0 → ตัดจุดที่ไม่จำเป็นออกมาก
-      if (s.length < 2) continue;
-      d += `M${Math.round(s[0][0]*sx)},${Math.round(s[0][1]*sy)}`;
-      for (let i = 1; i < s.length; i++) {
-        d += `L${Math.round(s[i][0]*sx)},${Math.round(s[i][1]*sy)}`;
+    // ── helper: สร้าง SVG string ──
+    function buildSVG(segs, vw, tol, round) {
+      const vh = Math.round(vw * H / W);
+      const sx = vw / W, sy = vh / H;
+      let d = '';
+      for (const seg of segs) {
+        const s = dp(seg, tol);
+        if (s.length < 2) continue;
+        const r = v => Math.round(v * round) / round;
+        d += `M${r(s[0][0]*sx)},${r(s[0][1]*sy)}`;
+        for (let i = 1; i < s.length; i++) d += `L${r(s[i][0]*sx)},${r(s[i][1]*sy)}`;
       }
+      return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${vw} ${vh}"><path d="${d}" fill="none" stroke="#1a1410" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
     }
 
-    const svgStr = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${VW} ${VH}"><path d="${d}" fill="none" stroke="#1a1410" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
-    const svgB64 = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgStr)));
+    // ── Version 1: ละเอียด → แสดงบนบิล (ชัดสวย) ──
+    const segsHQ = scanSegs(1, 20);
+    const svgHQ  = buildSVG(segsHQ, 400, 0.5, 4);   // VW=400, tol=0.5, round=0.25
+    const b64HQ  = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgHQ)));
 
-    cfgSig = svgB64;
-    localStorage.setItem('vb_sig', svgB64);
-    document.getElementById('sig-preview-img').src = svgB64;
+    // ── Version 2: เล็ก → ฝังใน QR ──
+    const segsQR = scanSegs(4, 40);
+    const svgQR  = buildSVG(segsQR, 100, 3.0, 1);   // VW=100, tol=3.0, round=1
+    const b64QR  = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgQR)));
+
+    // ── บันทึกทั้ง 2 ──
+    cfgSig   = b64HQ;
+    cfgSigQR = b64QR;
+    localStorage.setItem('vb_sig',    b64HQ);
+    localStorage.setItem('vb_sig_qr', b64QR);
+
+    // ── แสดง preview ละเอียด ──
+    document.getElementById('sig-preview-img').src = b64HQ;
     document.getElementById('sig-preview-img').style.display = 'block';
     document.getElementById('sig-preview-empty').style.display = 'none';
 
-    // แสดงขนาดจริง ถ้า > 800 ตัว แจ้งเตือน
-    const chars = svgStr.length;
-    if (chars > 800) {
-      toast(`⚠️ ลายเซ็นใหญ่ ${chars} ตัว · ลองเซ็นสั้นกว่านี้`);
+    const qrChars = svgQR.length;
+    if (qrChars > 800) {
+      toast(`⚠️ ลายเซ็น QR ใหญ่ ${qrChars} ตัว · ลองเซ็นสั้นกว่านี้`);
     } else {
-      toast(`✍️ บันทึกลายเซ็นแล้ว ✅ (${chars} ตัว · ใส่ QR ได้)`);
+      toast(`✍️ บันทึกลายเซ็นแล้ว ✅ · QR: ${qrChars} ตัว`);
     }
   };
 
   window.sigLoad = function() {
     initSigPad();
-    const saved = localStorage.getItem('vb_sig') || '';
-    cfgSig = saved;
+    const saved   = localStorage.getItem('vb_sig')    || '';
+    const savedQR = localStorage.getItem('vb_sig_qr') || '';
+    cfgSig   = saved;
+    cfgSigQR = savedQR || saved;  // fallback ใช้ค่าเดิมถ้ายังไม่มี QR version
     if (saved) {
       const img = new Image();
       img.onload = () => {
@@ -2662,12 +2675,12 @@ function showQRModal() {
       if (!anchor) return;
       anchor.innerHTML = '';
 
-      // ── payload pipe-separated + base64 (ย่อ 70% vs JSON+encodeURI) ──
-      // format: v|no|iso|nc|h|tot|sh|ow|ad|ph|tx|cn|dt|tm|sg|item1name:q:p;item2...
+      // ── ดึง path จาก cfgSigQR (SVG เล็ก เฉพาะ QR) ──
       const sigCompact = (() => {
-        if (!cfgSig || !cfgSig.startsWith('data:image/svg+xml;base64,')) return '';
+        const src = cfgSigQR || cfgSig;  // fallback cfgSig ถ้ายังไม่มี QR version
+        if (!src || !src.startsWith('data:image/svg+xml;base64,')) return '';
         try {
-          const svgFull = decodeURIComponent(escape(atob(cfgSig.slice(26))));
+          const svgFull = decodeURIComponent(escape(atob(src.slice(26))));
           const mPath = svgFull.match(/d="([^"]+)"/);
           const mVB   = svgFull.match(/viewBox="0 0 (\d+) (\d+)"/);
           return (mPath && mVB) ? mVB[1]+','+mVB[2]+'|'+mPath[1] : '';
