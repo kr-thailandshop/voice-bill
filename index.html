@@ -3517,7 +3517,9 @@ function verifyBillFromQR(rawData) {
       else { vfCustRow.style.display = 'none'; }
     }
 
-    // ── render ลายเซ็น — แปลง SVG → PNG canvas เพื่อความคมชัดและ PDF export ──
+    // ── render ลายเซ็น — match pixel ร้านค้าให้ตรงกัน ──
+    // ร้านค้า: canvas 360×120px แสดงที่ 180×60px CSS (2x DPR) stroke-width=2.5
+    // ลูกค้า: สร้าง canvas 360×120px แสดงที่ 180×60px เหมือนกันทุกอย่าง
     const collectEl = document.getElementById('vf-collect');
     const sigImg    = document.getElementById('vf-sig-img');
     if (b.sg && sigImg && collectEl) {
@@ -3527,43 +3529,48 @@ function verifyBillFromQR(rawData) {
           const pipe = b.sg.indexOf('|');
           const dims = b.sg.slice(0, pipe).split(',');
           const pathD = b.sg.slice(pipe + 1);
-          // stroke-width 3.5 (หนาขึ้นจาก 1.8) เพื่อลายเซ็นชัดในบิลและ PDF
-          const svgStr = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${dims[0]} ${dims[1]}"><path d="${pathD}" fill="none" stroke="#1a1410" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+          // stroke-width=2.5 ตรงกับที่บันทึกใน HQ SVG (sigSave)
+          // viewBox เดิมจาก compact format (VW=300) → ใช้ตรงๆ ไม่ scale
+          const svgStr = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${dims[0]} ${dims[1]}"><path d="${pathD}" fill="none" stroke="#1a1410" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
           sigSrc = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgStr)));
         } catch(e2) {}
       }
-      // แปลง SVG → PNG canvas เพื่อให้ html2canvas capture ได้คมชัด
+      // สร้าง canvas ขนาด 360×120 (2x ของ 180×60) เหมือน bill-sig-canvas ฝั่งร้าน
       const renderSigAsPNG = (src) => {
         return new Promise((resolve) => {
           const tmpImg = new Image();
           tmpImg.onload = () => {
-            const W = 400, H = Math.round(400 * (tmpImg.naturalHeight || 80) / (tmpImg.naturalWidth || 200));
+            const CANVAS_W = 360, CANVAS_H = 120; // ตรงกับ bill-sig-canvas ฝั่งร้านค้า
             const cv = document.createElement('canvas');
-            cv.width = W * 2; cv.height = (H || 80) * 2; // 2x for sharpness
-            cv.style.width  = W + 'px';
-            cv.style.height = (H || 80) + 'px';
-            cv.style.maxWidth = '200px';
-            cv.style.display = 'block';
-            cv.style.margin  = '4px auto 0';
-            cv.getContext('2d').drawImage(tmpImg, 0, 0, cv.width, cv.height);
+            cv.width  = CANVAS_W;
+            cv.height = CANVAS_H;
+            // CSS display = 180×60 (2x DPR) เหมือนกับ .bcollect-canvas ฝั่งร้านค้า
+            cv.style.width    = '180px';
+            cv.style.height   = '60px';
+            cv.style.display  = 'block';
+            cv.style.borderBottom = '1.5px solid #c0b89a';
+            // วาดให้พอดี canvas แต่คงสัดส่วน (เหมือน createBill)
+            const iW = tmpImg.naturalWidth  || CANVAS_W;
+            const iH = tmpImg.naturalHeight || CANVAS_H;
+            const scale = Math.min(CANVAS_W / iW, CANVAS_H / iH);
+            const dW = iW * scale, dH = iH * scale;
+            const dx = (CANVAS_W - dW) / 2, dy = (CANVAS_H - dH) / 2;
+            cv.getContext('2d').drawImage(tmpImg, dx, dy, dW, dH);
             resolve(cv);
           };
           tmpImg.onerror = () => resolve(null);
           tmpImg.src = src;
         });
       };
-      // แทนที่ <img> ด้วย <canvas> เพื่อ PDF คมชัด
       renderSigAsPNG(sigSrc).then(cv => {
         if (cv && collectEl) {
           sigImg.style.display = 'none';
-          // ลบ canvas เก่าถ้ามี
           const oldCv = collectEl.querySelector('canvas.sig-rendered');
           if (oldCv) oldCv.remove();
           cv.className = 'sig-rendered';
           sigImg.parentElement.insertBefore(cv, sigImg);
           collectEl.style.display = 'flex';
         } else {
-          // fallback ใช้ img ปกติ
           sigImg.onload  = () => { collectEl.style.display = 'flex'; };
           sigImg.onerror = () => { collectEl.style.display = 'none'; };
           sigImg.src = sigSrc;
