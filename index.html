@@ -517,41 +517,48 @@ html,body{height:100%;height:100dvh;overflow:hidden;background:var(--bg);color:v
 }
 /* Floating share button ด้านขวาของ topbar */
 .bill-share-fab{
-  width:46px;height:46px;
-  border-radius:12px;
-  background:rgba(255,200,0,0.28);
-  border:1.5px solid rgba(255,200,0,0.7);
+  width:44px;height:44px;
+  border-radius:22px;
+  background:rgba(255,255,255,0.18);
+  border:1.5px solid rgba(255,255,255,0.35);
   color:#fff;
-  font-size:22px;
+  font-size:18px;
   display:flex;align-items:center;justify-content:center;
   cursor:pointer;
   flex-shrink:0;
-  transition:background 0.12s,transform 0.1s;
+  transition:background 0.15s,transform 0.12s,border-color 0.15s;
   -webkit-tap-highlight-color:transparent;
   touch-action:manipulation;
+  box-shadow:0 2px 8px rgba(0,0,0,0.18);
 }
-.bill-share-fab:active{background:rgba(255,200,0,0.55);transform:scale(0.92);}
+.bill-share-fab:active{background:rgba(255,255,255,0.32);transform:scale(0.90);}
+.bill-share-fab.active{
+  background:rgba(255,255,255,0.28);
+  border-color:rgba(255,255,255,0.7);
+  box-shadow:0 0 0 3px rgba(255,255,255,0.18),0 2px 8px rgba(0,0,0,0.18);
+}
 
 /* Slide-out tray จาก topbar ลงมา */
 .bab-tray{
   position:absolute;
-  top:100%;           /* ใต้ topbar */
+  top:100%;
   right:0;left:0;
-  background:#1a3a6b;
-  border-bottom:2px solid rgba(255,255,255,0.12);
-  display:flex;gap:5px;
-  padding:8px 10px 10px;
+  background:linear-gradient(180deg,#1a3a6b 0%,#162f58 100%);
+  border-bottom:2px solid rgba(255,255,255,0.10);
+  box-shadow:0 6px 20px rgba(0,0,0,0.28);
+  display:flex;gap:6px;
+  padding:0 10px;
   z-index:19;
   overflow:hidden;
   max-height:0;
   opacity:0;
   pointer-events:none;
-  transition:max-height 0.28s cubic-bezier(0.4,0,0.2,1),
-             opacity    0.22s ease,
-             padding    0.28s ease;
+  transition:max-height 0.30s cubic-bezier(0.4,0,0.2,1),
+             opacity    0.20s ease,
+             padding    0.30s cubic-bezier(0.4,0,0.2,1);
 }
 .bab-tray.open{
-  max-height:90px;
+  max-height:88px;
   opacity:1;
   pointer-events:auto;
   padding:8px 10px 10px;
@@ -813,7 +820,10 @@ html,body{height:100%;height:100dvh;overflow:hidden;background:var(--bg);color:v
     <div class="locked-badge">🔒 ล็อค</div>
     <!-- ปุ่ม Share FAB — กดเปิด/ปิด tray -->
     <button class="bill-share-fab" id="bill-share-fab" onclick="toggleBabTray()" title="ส่งบิล / แชร์">
-      ↗
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
+        <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+      </svg>
     </button>
     <!-- Slide-out tray อยู่ใน topbar เพื่อ absolute positioning -->
     <div class="bab-tray" id="bab-tray">
@@ -2742,10 +2752,10 @@ function toggleBabTray() {
   const isOpen = tray.classList.contains('open');
   if (isOpen) {
     tray.classList.remove('open');
-    if (fab) fab.style.background = 'rgba(255,200,0,0.28)';
+    if (fab) fab.classList.remove('active');
   } else {
     tray.classList.add('open');
-    if (fab) fab.style.background = 'rgba(255,200,0,0.55)';
+    if (fab) fab.classList.add('active');
     setTimeout(() => {
       document.addEventListener('click', _closeTrayOutside, { once: true, capture: true });
     }, 50);
@@ -2755,7 +2765,7 @@ function closeBabTray() {
   const tray = document.getElementById('bab-tray');
   const fab  = document.getElementById('bill-share-fab');
   if (tray) tray.classList.remove('open');
-  if (fab)  fab.style.background = 'rgba(255,200,0,0.28)';
+  if (fab)  fab.classList.remove('active');
 }
 function _closeTrayOutside(e) {
   const tray = document.getElementById('bab-tray');
