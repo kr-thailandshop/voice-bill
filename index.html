@@ -532,78 +532,83 @@ html,body{height:100%;height:100dvh;overflow:hidden;background:var(--bg);color:v
   /* ซ่อน bar เดิม — แทนด้วย floating button */
   display:none;
 }
-/* Floating share button ด้านขวาของ topbar */
+/* Floating share button — fixed ด้านล่างขวา */
 .bill-share-fab{
-  width:44px;height:44px;
-  border-radius:22px;
-  background:rgba(255,255,255,0.18);
-  border:1.5px solid rgba(255,255,255,0.35);
+  position:fixed;
+  bottom:22px;
+  right:14px;
+  z-index:350;
+  width:56px;height:56px;
+  border-radius:16px;
+  background:var(--accent);
+  border:none;
   color:#fff;
-  font-size:18px;
+  font-size:24px;
   display:flex;align-items:center;justify-content:center;
   cursor:pointer;
   flex-shrink:0;
-  transition:background 0.15s,transform 0.12s,border-color 0.15s;
+  transition:background 0.15s,transform 0.12s,box-shadow 0.15s;
   -webkit-tap-highlight-color:transparent;
   touch-action:manipulation;
-  box-shadow:0 2px 8px rgba(0,0,0,0.18);
+  box-shadow:0 4px 16px rgba(26,95,168,0.4);
 }
-.bill-share-fab:active{background:rgba(255,255,255,0.32);transform:scale(0.90);}
+.bill-share-fab:active{transform:scale(0.93);box-shadow:0 2px 8px rgba(26,95,168,0.3);}
 .bill-share-fab.active{
-  background:rgba(255,255,255,0.28);
-  border-color:rgba(255,255,255,0.7);
-  box-shadow:0 0 0 3px rgba(255,255,255,0.18),0 2px 8px rgba(0,0,0,0.18);
+  background:var(--acc-dark);
+  box-shadow:0 0 0 4px rgba(26,95,168,0.2),0 4px 16px rgba(26,95,168,0.4);
 }
 
-/* Slide-out tray จาก topbar ลงมา */
+/* Tray popup ขึ้นจากด้านล่างขวา (ใต้ FAB) */
 .bab-tray{
-  position:absolute;
-  top:100%;
-  right:0;left:0;
-  background:linear-gradient(180deg,#1a3a6b 0%,#162f58 100%);
-  border-bottom:2px solid rgba(255,255,255,0.10);
-  box-shadow:0 6px 20px rgba(0,0,0,0.28);
-  display:flex;gap:6px;
-  padding:0 10px;
-  z-index:19;
+  position:fixed;
+  bottom:86px;
+  right:14px;
+  z-index:349;
+  background:var(--surface);
+  border:2px solid var(--border);
+  border-radius:16px;
+  box-shadow:0 8px 32px rgba(0,0,0,0.22);
+  display:flex;flex-direction:column;gap:4px;
+  padding:0;
   overflow:hidden;
   max-height:0;
   opacity:0;
   pointer-events:none;
-  transition:max-height 0.30s cubic-bezier(0.4,0,0.2,1),
+  min-width:140px;
+  transition:max-height 0.28s cubic-bezier(0.4,0,0.2,1),
              opacity    0.20s ease,
-             padding    0.30s cubic-bezier(0.4,0,0.2,1);
+             padding    0.28s cubic-bezier(0.4,0,0.2,1);
 }
 .bab-tray.open{
-  max-height:88px;
+  max-height:320px;
   opacity:1;
   pointer-events:auto;
-  padding:8px 10px 10px;
+  padding:6px;
 }
 .bab-btn{
-  flex:1;
-  background:rgba(255,255,255,0.12);
-  border:1.5px solid rgba(255,255,255,0.22);
+  flex:none;
+  background:var(--bg2);
+  border:1.5px solid var(--border);
   border-radius:10px;
-  color:#fff;
-  padding:7px 3px;
+  color:var(--text);
+  padding:11px 14px;
   cursor:pointer;
-  display:flex;flex-direction:column;align-items:center;gap:2px;
+  display:flex;flex-direction:row;align-items:center;gap:10px;
   font-family:'Sarabun',sans-serif;
   transition:background 0.1s,transform 0.1s;
   -webkit-tap-highlight-color:transparent;
   touch-action:manipulation;
+  width:100%;
 }
-.bab-btn:active{background:rgba(255,255,255,0.32);transform:scale(0.93);}
+.bab-btn:active{background:var(--acc-light);transform:scale(0.97);}
 .bab-main{
-  background:rgba(255,200,0,0.25);
-  border-color:rgba(255,200,0,0.6);
-  flex:1.5;
+  background:rgba(196,154,42,0.12);
+  border-color:rgba(196,154,42,0.5);
 }
-.bab-main:active{background:rgba(255,200,0,0.45);}
-.bab-qr{background:rgba(80,200,120,0.22);border-color:rgba(80,200,120,0.55);}
-.bab-qr:active{background:rgba(80,200,120,0.45);}
-.bab-icon{font-size:19px;line-height:1;}
+.bab-main:active{background:rgba(196,154,42,0.25);}
+.bab-qr{background:rgba(26,107,58,0.10);border-color:rgba(26,107,58,0.4);}
+.bab-qr:active{background:rgba(26,107,58,0.22);}
+.bab-icon{font-size:22px;line-height:1;flex-shrink:0;}
 
 /* ── QR BILL MODAL ── */
 .qr-bill-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:800;align-items:flex-end;justify-content:center;backdrop-filter:blur(5px);}
@@ -619,8 +624,7 @@ html,body{height:100%;height:100dvh;overflow:hidden;background:var(--bg);color:v
 .qr-bill-close{margin:14px 20px 0;width:calc(100% - 40px);padding:14px;border-radius:14px;background:var(--accent);border:none;color:#fff;font-family:'Sarabun',sans-serif;font-weight:800;font-size:16px;cursor:pointer;}
 .qr-bill-close:active{opacity:0.88;}
 .qr-loading{font-size:12px;color:#9a8e78;font-weight:600;}
-.bab-lbl{font-size:9.5px;font-weight:700;text-align:center;line-height:1.25;white-space:nowrap;}
-/* topbar ต้อง relative เพื่อให้ tray absolute ใต้มันได้ */
+.bab-lbl{font-size:13px;font-weight:700;text-align:left;line-height:1;white-space:nowrap;color:var(--text);}
 .bill-topbar{position:relative;z-index:20;}
 
 /* ── QR MODAL ── */
@@ -837,31 +841,31 @@ html,body{height:100%;height:100dvh;overflow:hidden;background:var(--bg);color:v
     <div class="locked-badge">🔒 ล็อค</div>
     <!-- ปุ่ม Share FAB — กดเปิด/ปิด tray -->
     <button class="bill-share-fab" id="bill-share-fab" onclick="toggleBabTray()" title="ส่งบิล / แชร์">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-        <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
-        <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
-      </svg>
+      📤
     </button>
-    <!-- Slide-out tray อยู่ใน topbar เพื่อ absolute positioning -->
+    <!-- Tray popup ลอยอยู่ด้านล่างขวา — อยู่นอก topbar แล้ว -->
     <div class="bab-tray" id="bab-tray">
       <button class="bab-btn bab-qr" onclick="billAction('qr');closeBabTray()" id="bab-qr-btn">
-        <span class="bab-icon">📷</span>
-        <span class="bab-lbl">QR<br>สแกน</span>
+        <span class="bab-icon">🔗</span>
+        <span class="bab-lbl">QR สแกน</span>
       </button>
       <button class="bab-btn" onclick="billAction('png');closeBabTray()">
         <span class="bab-icon">🖼️</span>
-        <span class="bab-lbl">บันทึก<br>ภาพ</span>
+        <span class="bab-lbl">บันทึกภาพ</span>
       </button>
       <button class="bab-btn" onclick="billAction('pdf');closeBabTray()">
-        <span class="bab-icon">📄</span>
+        <span class="bab-icon">📋</span>
         <span class="bab-lbl">PDF</span>
       </button>
       <button class="bab-btn" onclick="billAction('text');closeBabTray()">
         <span class="bab-icon">💬</span>
-        <span class="bab-lbl">ข้อความ</span>
+        <span class="bab-lbl">ส่งข้อความ</span>
       </button>
     </div>
   </div>
+
+  <!-- Overlay ปิด tray เมื่อกดข้างนอก -->
+  <div id="bab-overlay" onclick="closeBabTray()" style="display:none;position:fixed;inset:0;z-index:348;"></div>
 
   <!-- ── ACTION BAR (hidden — replaced by FAB tray) ── -->
   <div class="bill-action-bar"></div>
@@ -2153,7 +2157,7 @@ function buildPrompt(text) {
 
   const categoryHint = mem.category ? `ร้านนี้เป็น${mem.category}` : '';
   const memHint = knownItems
-    ? `\nสินค้าที่ร้านนี้เคยขาย (ใช้อ้างอิงชื่อและราคา): ${knownItems}`
+    ? `\nสินค้าที่ร้านนี้เคยขาย (ใช้อ้างอิงชื่อเท่านั้น — ราคาใน memory ใช้ได้เฉพาะเมื่อไม่มีการพูดราคาในข้อความ): ${knownItems}`
     : '';
 
   return `คุณคือระบบแยกรายการสินค้าจากคำพูดภาษาไทย${categoryHint ? ' ของ' + categoryHint : ''}.${memHint}
@@ -2902,6 +2906,7 @@ function billAction(type) {
 function toggleBabTray() {
   const tray = document.getElementById('bab-tray');
   const fab  = document.getElementById('bill-share-fab');
+  const ov   = document.getElementById('bab-overlay');
   if (!tray) return;
   const isOpen = tray.classList.contains('open');
   if (isOpen) {
@@ -2918,6 +2923,8 @@ function toggleBabTray() {
 function closeBabTray() {
   const tray = document.getElementById('bab-tray');
   const fab  = document.getElementById('bill-share-fab');
+  const ov   = document.getElementById('bab-overlay');
+  if (ov) ov.style.display = 'none';
   if (tray) tray.classList.remove('open');
   if (fab)  fab.classList.remove('active');
 }
