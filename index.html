@@ -532,83 +532,78 @@ html,body{height:100%;height:100dvh;overflow:hidden;background:var(--bg);color:v
   /* ซ่อน bar เดิม — แทนด้วย floating button */
   display:none;
 }
-/* Floating share button — fixed ด้านล่างขวา */
+/* Floating share button ด้านขวาของ topbar */
 .bill-share-fab{
-  position:fixed;
-  bottom:22px;
-  right:14px;
-  z-index:350;
-  width:56px;height:56px;
-  border-radius:16px;
-  background:var(--accent);
-  border:none;
+  width:44px;height:44px;
+  border-radius:22px;
+  background:rgba(255,255,255,0.18);
+  border:1.5px solid rgba(255,255,255,0.35);
   color:#fff;
-  font-size:24px;
+  font-size:18px;
   display:flex;align-items:center;justify-content:center;
   cursor:pointer;
   flex-shrink:0;
-  transition:background 0.15s,transform 0.12s,box-shadow 0.15s;
+  transition:background 0.15s,transform 0.12s,border-color 0.15s;
   -webkit-tap-highlight-color:transparent;
   touch-action:manipulation;
-  box-shadow:0 4px 16px rgba(26,95,168,0.4);
+  box-shadow:0 2px 8px rgba(0,0,0,0.18);
 }
-.bill-share-fab:active{transform:scale(0.93);box-shadow:0 2px 8px rgba(26,95,168,0.3);}
+.bill-share-fab:active{background:rgba(255,255,255,0.32);transform:scale(0.90);}
 .bill-share-fab.active{
-  background:var(--acc-dark);
-  box-shadow:0 0 0 4px rgba(26,95,168,0.2),0 4px 16px rgba(26,95,168,0.4);
+  background:rgba(255,255,255,0.28);
+  border-color:rgba(255,255,255,0.7);
+  box-shadow:0 0 0 3px rgba(255,255,255,0.18),0 2px 8px rgba(0,0,0,0.18);
 }
 
-/* Tray popup ขึ้นจากด้านล่างขวา (ใต้ FAB) */
+/* Slide-out tray จาก topbar ลงมา */
 .bab-tray{
-  position:fixed;
-  bottom:86px;
-  right:14px;
-  z-index:349;
-  background:var(--surface);
-  border:2px solid var(--border);
-  border-radius:16px;
-  box-shadow:0 8px 32px rgba(0,0,0,0.22);
-  display:flex;flex-direction:column;gap:4px;
-  padding:0;
+  position:absolute;
+  top:100%;
+  right:0;left:0;
+  background:linear-gradient(180deg,#1a3a6b 0%,#162f58 100%);
+  border-bottom:2px solid rgba(255,255,255,0.10);
+  box-shadow:0 6px 20px rgba(0,0,0,0.28);
+  display:flex;gap:6px;
+  padding:0 10px;
+  z-index:19;
   overflow:hidden;
   max-height:0;
   opacity:0;
   pointer-events:none;
-  min-width:140px;
-  transition:max-height 0.28s cubic-bezier(0.4,0,0.2,1),
+  transition:max-height 0.30s cubic-bezier(0.4,0,0.2,1),
              opacity    0.20s ease,
-             padding    0.28s cubic-bezier(0.4,0,0.2,1);
+             padding    0.30s cubic-bezier(0.4,0,0.2,1);
 }
 .bab-tray.open{
-  max-height:320px;
+  max-height:88px;
   opacity:1;
   pointer-events:auto;
-  padding:6px;
+  padding:8px 10px 10px;
 }
 .bab-btn{
-  flex:none;
-  background:var(--bg2);
-  border:1.5px solid var(--border);
+  flex:1;
+  background:rgba(255,255,255,0.12);
+  border:1.5px solid rgba(255,255,255,0.22);
   border-radius:10px;
-  color:var(--text);
-  padding:11px 14px;
+  color:#fff;
+  padding:7px 3px;
   cursor:pointer;
-  display:flex;flex-direction:row;align-items:center;gap:10px;
+  display:flex;flex-direction:column;align-items:center;gap:2px;
   font-family:'Sarabun',sans-serif;
   transition:background 0.1s,transform 0.1s;
   -webkit-tap-highlight-color:transparent;
   touch-action:manipulation;
-  width:100%;
 }
-.bab-btn:active{background:var(--acc-light);transform:scale(0.97);}
+.bab-btn:active{background:rgba(255,255,255,0.32);transform:scale(0.93);}
 .bab-main{
-  background:rgba(196,154,42,0.12);
-  border-color:rgba(196,154,42,0.5);
+  background:rgba(255,200,0,0.25);
+  border-color:rgba(255,200,0,0.6);
+  flex:1.5;
 }
-.bab-main:active{background:rgba(196,154,42,0.25);}
-.bab-qr{background:rgba(26,107,58,0.10);border-color:rgba(26,107,58,0.4);}
-.bab-qr:active{background:rgba(26,107,58,0.22);}
-.bab-icon{font-size:22px;line-height:1;flex-shrink:0;}
+.bab-main:active{background:rgba(255,200,0,0.45);}
+.bab-qr{background:rgba(80,200,120,0.22);border-color:rgba(80,200,120,0.55);}
+.bab-qr:active{background:rgba(80,200,120,0.45);}
+.bab-icon{font-size:19px;line-height:1;}
 
 /* ── QR BILL MODAL ── */
 .qr-bill-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:800;align-items:flex-end;justify-content:center;backdrop-filter:blur(5px);}
@@ -624,7 +619,8 @@ html,body{height:100%;height:100dvh;overflow:hidden;background:var(--bg);color:v
 .qr-bill-close{margin:14px 20px 0;width:calc(100% - 40px);padding:14px;border-radius:14px;background:var(--accent);border:none;color:#fff;font-family:'Sarabun',sans-serif;font-weight:800;font-size:16px;cursor:pointer;}
 .qr-bill-close:active{opacity:0.88;}
 .qr-loading{font-size:12px;color:#9a8e78;font-weight:600;}
-.bab-lbl{font-size:13px;font-weight:700;text-align:left;line-height:1;white-space:nowrap;color:var(--text);}
+.bab-lbl{font-size:9.5px;font-weight:700;text-align:center;line-height:1.25;white-space:nowrap;}
+/* topbar ต้อง relative เพื่อให้ tray absolute ใต้มันได้ */
 .bill-topbar{position:relative;z-index:20;}
 
 /* ── QR MODAL ── */
@@ -841,31 +837,31 @@ html,body{height:100%;height:100dvh;overflow:hidden;background:var(--bg);color:v
     <div class="locked-badge">🔒 ล็อค</div>
     <!-- ปุ่ม Share FAB — กดเปิด/ปิด tray -->
     <button class="bill-share-fab" id="bill-share-fab" onclick="toggleBabTray()" title="ส่งบิล / แชร์">
-      📤
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
+        <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+      </svg>
     </button>
-    <!-- Tray popup ลอยอยู่ด้านล่างขวา — อยู่นอก topbar แล้ว -->
+    <!-- Slide-out tray อยู่ใน topbar เพื่อ absolute positioning -->
     <div class="bab-tray" id="bab-tray">
       <button class="bab-btn bab-qr" onclick="billAction('qr');closeBabTray()" id="bab-qr-btn">
-        <span class="bab-icon">🔗</span>
-        <span class="bab-lbl">QR สแกน</span>
+        <span class="bab-icon">📷</span>
+        <span class="bab-lbl">QR<br>สแกน</span>
       </button>
       <button class="bab-btn" onclick="billAction('png');closeBabTray()">
         <span class="bab-icon">🖼️</span>
-        <span class="bab-lbl">บันทึกภาพ</span>
+        <span class="bab-lbl">บันทึก<br>ภาพ</span>
       </button>
       <button class="bab-btn" onclick="billAction('pdf');closeBabTray()">
-        <span class="bab-icon">📋</span>
+        <span class="bab-icon">📄</span>
         <span class="bab-lbl">PDF</span>
       </button>
       <button class="bab-btn" onclick="billAction('text');closeBabTray()">
         <span class="bab-icon">💬</span>
-        <span class="bab-lbl">ส่งข้อความ</span>
+        <span class="bab-lbl">ข้อความ</span>
       </button>
     </div>
   </div>
-
-  <!-- Overlay ปิด tray เมื่อกดข้างนอก -->
-  <div id="bab-overlay" onclick="closeBabTray()" style="display:none;position:fixed;inset:0;z-index:348;"></div>
 
   <!-- ── ACTION BAR (hidden — replaced by FAB tray) ── -->
   <div class="bill-action-bar"></div>
@@ -2167,8 +2163,8 @@ function buildPrompt(text) {
 กฎสำคัญ:
 - ตอบเป็น JSON เท่านั้น ห้ามมีข้อความอื่น ห้ามมี markdown ห้ามมีคำอธิบาย
 - รูปแบบ: {"items":[{"name":"ชื่อสินค้า","qty":จำนวน,"unitPrice":ราคาต่อหน่วย}]}
-- ⚠️ ราคาที่พูดในข้อความมีความสำคัญสูงสุด — ถ้าพูดราคามาให้ใช้ราคานั้นเสมอ ห้ามใช้ราคาจาก memory แทน
 - ถ้าไม่มีจำนวนให้ใส่ 1 ถ้าไม่ได้พูดราคามาเลยให้ดูจากสินค้าที่เคยขาย ถ้าไม่มีเลยให้ใส่ 0
+- ⚠️ ราคาที่พูดในข้อความมีความสำคัญสูงสุด — ถ้าพูดราคามาให้ใช้ราคานั้นเสมอ ห้ามใช้ราคาจาก memory แทนเด็ดขาด
 - คำว่า "ขาย" / "ซื้อ" / "บิล" นำหน้า ให้ตัดออก ไม่ใช่ส่วนหนึ่งของชื่อสินค้า
 - ชื่อสินค้าคือคำนามรวมถึงคำขยาย เช่น "กางเกงยีนส์" เป็นชื่อเดียวกัน
 
@@ -2190,35 +2186,17 @@ function buildPrompt(text) {
 - "เสื้อ 20 คูณ 50" → qty:20, unitPrice:50
 - "หมวก 5 * 10" → qty:5, unitPrice:10
 
-ตัวอย่างรายการเดียว:
+ตัวอย่างสำนวนพูดทั่วไป (ต้องแม่นยำ):
 - "เสื้อ 5 ตัว 100 บาท" → name:"เสื้อ", qty:5, unitPrice:100
 - "กางเกง 8 ตัว ตัวละ 120" → name:"กางเกง", qty:8, unitPrice:120
 - "กางเกงยีนส์ 20 ตัว ตัวละ 50 บาท" → name:"กางเกงยีนส์", qty:20, unitPrice:50
 - "ขายกางเกงยีนส์ 20 ตัว ตัวละ 50 บาท" → name:"กางเกงยีนส์", qty:20, unitPrice:50
 - "กางเกงยีนส์ 20 ตัวตัวละ 50 บาท" → name:"กางเกงยีนส์", qty:20, unitPrice:50
+- ⚠️ "กางเกงยีนส์ 5 ตัวตัวละ 100 บาทเสื้อแขนยาว 6 ตัวตัวละ 50 บาท" → 2 รายการ: กางเกงยีนส์ qty:5 price:100 และ เสื้อแขนยาว qty:6 price:50 ("บาทเสื้อ" ติดกัน = คั่นระหว่างรายการ)
 - "กระเป๋าโหลนึง 40 บาท" → name:"กระเป๋า", qty:12, unitPrice:40
 - "เสื้อยืดสามโหล ตัวละ 50" → name:"เสื้อยืด", qty:36, unitPrice:50
 - "ถุงเท้า 3 แพ็ค แพ็คละ 60" → name:"ถุงเท้า", qty:3, unitPrice:60
 - "เสื้อยืดคอกลม 20 คูณ 50" → name:"เสื้อยืดคอกลม", qty:20, unitPrice:50
-- ⚠️ "เสื้อยืดคอกลม 10 ตัวตัวละ 120" → name:"เสื้อยืดคอกลม", qty:10, unitPrice:120 (ใช้ 120 ตามที่พูด ไม่ใช้ราคา memory)
-- ⚠️ "เสื้อแขนยาวลายดอกไม้ 10 ตัวตัวละ 150" → name:"เสื้อแขนยาวลายดอกไม้", qty:10, unitPrice:150 ("ตัวตัวละ" = qty ตัว ราคาตัวละ ไม่ใช่ชื่อสินค้า)
-
-ตัวอย่างหลายรายการในประโยคเดียว (สำคัญมาก — ต้องแยกให้ครบทุกรายการ):
-- "ขายกางเกงยีนส์ 10 ตัวตัวละ 50 บาท เสื้อคอกลม 10 ตัวตัวละ 80 บาท หมวกสีขาว 5 ใบ ใบละ 100 บาท กระโปรงลายดอกไม้ 20 ตัวตัวละ 80 บาท"
-  → items: [
-      {"name":"กางเกงยีนส์","qty":10,"unitPrice":50},
-      {"name":"เสื้อคอกลม","qty":10,"unitPrice":80},
-      {"name":"หมวกสีขาว","qty":5,"unitPrice":100},
-      {"name":"กระโปรงลายดอกไม้","qty":20,"unitPrice":80}
-    ]
-- "เสื้อ 5 ตัว 100 บาท กางเกง 3 ตัว 200 บาท" → [{"name":"เสื้อ","qty":5,"unitPrice":100},{"name":"กางเกง","qty":3,"unitPrice":200}]
-- "น้ำ 10 ขวด ขวดละ 15 ขนม 20 ชิ้น ชิ้นละ 5 บาท" → [{"name":"น้ำ","qty":10,"unitPrice":15},{"name":"ขนม","qty":20,"unitPrice":5}]
-
-กฎการแยกรายการหลายชนิด:
-- แต่ละสินค้าใหม่จะเริ่มด้วยชื่อสินค้า (คำนาม) ตามด้วยจำนวน และราคา
-- ตัดคำ "ขาย" / "ซื้อ" / "บิล" ที่อยู่ต้นประโยคออก ไม่ใช่ชื่อสินค้า
-- สินค้าหนึ่งรายการ = ชื่อ + จำนวน + ราคาต่อหน่วย ครบ 3 ส่วน
-- ถ้าไม่มีจำนวนให้ใส่ 1 ถ้าไม่มีราคาให้ดูจาก memory ถ้าไม่มีเลยให้ใส่ 0
 
 ถ้าชื่อสินค้าใกล้เคียงกับรายการที่เคยขาย ให้ใช้ชื่อมาตรฐานนั้น`;
 }
@@ -2336,48 +2314,48 @@ async function processAI(text, merge) {
 
 function simpleParse(text) {
   const out = [];
-  // pre-process: replace Thai unit words with numbers
+  let t = text;
+
+  // ── pre-process 1: โหล ──
   const unitMap = [
     ['สี่โหล','48 ชิ้น'],['สามโหล','36 ชิ้น'],['สองโหล','24 ชิ้น'],
     ['ครึ่งโหล','6 ชิ้น'],['โหลนึง','12 ชิ้น'],['โหลหนึ่ง','12 ชิ้น'],['โหล','12 ชิ้น'],
   ];
-  let t = text;
   unitMap.forEach(([w,v]) => { t = t.replace(new RegExp(w,'g'), v); });
 
-  // รูปแบบ "คูณ": ชื่อสินค้า N คูณ M
+  // ── pre-process 2: ตัดคำนำหน้าที่ไม่ใช่สินค้า ──
+  t = t.replace(/^(?:ขาย|ซื้อ|บิล)\s*/,'');
+
+  // ── pre-process 3: "บาท" คั่นระหว่างรายการ (มีหรือไม่มีเว้นวรรค) ──
+  t = t.replace(/(\d+)\s*บาท([ก-์])/g, '$1 $2'); // "100บาทเสื้อ" → "100 เสื้อ"
+  t = t.replace(/(\d+)\s*บาท\s+/g,    '$1 ');     // "100 บาท " → "100 "
+  t = t.replace(/(\d+)\s*บาท$/g,       '$1');      // "100 บาท" ท้ายสุด → "100"
+
+  // ── pre-process 4: หน่วยนับ+คำบอกราคาที่ติดกัน → เว้นวรรค ──
+  [['ตัว','ตัวละ'],['ชิ้น','ชิ้นละ'],['อัน','อันละ'],['ใบ','ใบละ'],
+   ['คู่','คู่ละ'],['แพ็ค','แพ็คละ'],['ถุง','ถุงละ'],['ขวด','ขวดละ'],['ห่อ','ห่อละ']
+  ].forEach(([a,b]) => { t = t.replace(new RegExp('('+a+')('+b+')','g'),'$1 $2'); });
+
+  // ── คำห้ามขึ้นต้นชื่อสินค้า ──
+  const skipStart = new Set(['บาท','ละ','ราคา','รวม','ตัวละ','ชิ้นละ','อันละ','ใบละ','คู่ละ']);
+
+  // ── รูปแบบ "คูณ" ──
   const reMul = /([ก-์a-zA-Z][ก-์a-zA-Z\s]*?)\s+(\d+)\s*(?:คูณ|ตัวคูณ|\*|×|[xX])\s*(\d+)/g;
   let mm;
   while ((mm = reMul.exec(t)) !== null) {
     const name = mm[1].trim().replace(/\s+/g,' ');
+    if (skipStart.has(name.split(' ')[0])) continue;
     const qty = +mm[2], up = +mm[3];
     if (name && qty > 0) out.push({ name, qty, up, sub: qty * up });
   }
-  // pre-process 1: ตัดคำนำหน้าที่ไม่ใช่ชื่อสินค้า
-  t = t.replace(/^(?:ขาย|ซื้อ|บิล)\s*/,'');
-  // pre-process 2: "บาท" ระหว่างรายการ → เว้นวรรค (ไม่ให้ติดชื่อสินค้าถัดไป)
-  t = t.replace(/\s+บาท\s+/g, ' ');
-  t = t.replace(/\s+บาท$/g, '');
-  // pre-process 3: หน่วยนับที่ติดกับคำบอกราคา → เว้นวรรคคั่น
-  t = t.replace(/(ตัว)(ตัวละ)/g, '$1 $2');
-  t = t.replace(/(ชิ้น)(ชิ้นละ)/g, '$1 $2');
-  t = t.replace(/(อัน)(อันละ)/g, '$1 $2');
-  t = t.replace(/(ใบ)(ใบละ)/g, '$1 $2');
-  t = t.replace(/(คู่)(คู่ละ)/g, '$1 $2');
-  t = t.replace(/(แพ็ค)(แพ็คละ)/g, '$1 $2');
-  t = t.replace(/(ถุง)(ถุงละ)/g, '$1 $2');
-  t = t.replace(/(ขวด)(ขวดละ)/g, '$1 $2');
-  t = t.replace(/(ห่อ)(ห่อละ)/g, '$1 $2');
-  // คำที่ห้ามขึ้นต้นชื่อสินค้า (เศษจากรายการก่อน)
-  const skipStart = new Set(['บาท','ละ','ราคา','รวม','ตัวละ','ชิ้นละ','อันละ','ใบละ','คู่ละ']);
-  // regex หลัก: ต้องมีคำบอกราคา (ตัวละ/ชิ้นละ ฯลฯ) จึงจะ match
+
+  // ── regex หลัก: ต้องมีคำบอกราคา ──
   const re = /([ก-์a-zA-Z][ก-์a-zA-Z\s]*?)\s+(\d+)\s*(?:ตัว|ชิ้น|อัน|กิโล|ถุง|กล่อง|แพ็ค|แพค|คู่|ผืน|ชุด|ใบ|ขวด|ห่อ)?\s*(?:ตัวละ|ชิ้นละ|อันละ|ตัวๆละ|คู่ละ|แพ็คละ|ถุงละ|ใบละ|ขวดละ|ห่อละ|ละ|ราคา|@)\s*(\d+)/g;
   let m;
   while ((m = re.exec(t)) !== null) {
     const name = m[1].trim().replace(/\s+/g,' ');
-    const firstWord = name.split(' ')[0];
-    if (skipStart.has(firstWord)) continue;
-    const qty  = +m[2];
-    const up   = +m[3];
+    if (skipStart.has(name.split(' ')[0])) continue;
+    const qty  = +m[2], up = +m[3];
     if (name && qty > 0) out.push({ name, qty, up, sub: qty * up });
   }
   return out;
@@ -2906,7 +2884,6 @@ function billAction(type) {
 function toggleBabTray() {
   const tray = document.getElementById('bab-tray');
   const fab  = document.getElementById('bill-share-fab');
-  const ov   = document.getElementById('bab-overlay');
   if (!tray) return;
   const isOpen = tray.classList.contains('open');
   if (isOpen) {
@@ -2923,8 +2900,6 @@ function toggleBabTray() {
 function closeBabTray() {
   const tray = document.getElementById('bab-tray');
   const fab  = document.getElementById('bill-share-fab');
-  const ov   = document.getElementById('bab-overlay');
-  if (ov) ov.style.display = 'none';
   if (tray) tray.classList.remove('open');
   if (fab)  fab.classList.remove('active');
 }
