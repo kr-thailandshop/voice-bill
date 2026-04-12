@@ -3415,11 +3415,15 @@ async function saveAsPDF() {
     const { jsPDF } = window.jspdf;
     const imgData   = canvas.toDataURL('image/png');
     const pxW = canvas.width, pxH = canvas.height;
-    // A4 width = 210mm; calculate height proportionally
-    const pdfW  = 210;
-    const pdfH  = (pxH / pxW) * pdfW;
-    const doc   = new jsPDF({ orientation: 'portrait', unit: 'mm', format: [pdfW, pdfH] });
-    doc.addImage(imgData, 'PNG', 0, 0, pdfW, pdfH);
+    // วางบิลตรงกลางกระดาษ A4 (210×297mm) พร้อม margin สองข้าง
+    const A4_W = 210, A4_H = 297;
+    const margin = 15; // margin ซ้าย-ขวา (mm)
+    const billW  = A4_W - margin * 2;
+    const billH  = (pxH / pxW) * billW;
+    const offsetX = margin;
+    const offsetY = (A4_H - billH) / 2; // วางกลางแนวตั้ง
+    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+    doc.addImage(imgData, 'PNG', offsetX, offsetY > 0 ? offsetY : 5, billW, billH);
 
     const no = document.getElementById('b-no').textContent;
     doc.save(`bill-${no}.pdf`);
@@ -3979,9 +3983,15 @@ async function downloadVerifyPDF() {
 
     const { jsPDF } = window.jspdf;
     const W = canvas.width, H = canvas.height;
-    const pdfW = 210, pdfH = (H / W) * pdfW;
-    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: [pdfW, pdfH] });
-    doc.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 0, pdfW, pdfH);
+    // วางบิลตรงกลางกระดาษ A4 (210×297mm) พร้อม margin สองข้าง
+    const A4_W = 210, A4_H = 297;
+    const margin = 15;
+    const billW  = A4_W - margin * 2;
+    const billH  = (H / W) * billW;
+    const offsetX = margin;
+    const offsetY = (A4_H - billH) / 2;
+    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+    doc.addImage(canvas.toDataURL('image/png'), 'PNG', offsetX, offsetY > 0 ? offsetY : 5, billW, billH);
     const no = document.getElementById('vf-no').textContent || 'bill';
     doc.save(`bill-${no}.pdf`);
     btn.innerHTML = '✅ ดาวน์โหลดแล้ว!';
