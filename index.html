@@ -711,10 +711,10 @@ html,body{height:100%;height:100dvh;overflow:hidden;background:var(--bg);color:v
       <div class="ring ring-1"></div>
       <div class="ring ring-2"></div>
       <button class="mic-btn" id="mic-btn"
-        ontouchstart="startMain(event)" ontouchend="stopMain(event)"
-        onmousedown="startMain(event)" onmouseup="stopMain(event)">
+        ontouchstart="startMain(event)"
+        onmousedown="startMain(event)">
         <div class="mic-emoji">🎙️</div>
-        <div id="mic-lbl" style="font-weight:700;color:var(--text2);font-size:calc(0.88rem * var(--sz));">กดค้างแล้วพูด</div>
+        <div id="mic-lbl" style="font-weight:700;color:var(--text2);font-size:calc(0.88rem * var(--sz));">แตะเพื่อพูด</div>
       </button>
     </div>
 
@@ -761,9 +761,9 @@ html,body{height:100%;height:100dvh;overflow:hidden;background:var(--bg);color:v
     <div class="more-label">🎙 พูดเพิ่ม / แก้ไขรายการ</div>
     <div class="more-row">
       <button class="mic-mini" id="mic-mini"
-        ontouchstart="startMore(event)" ontouchend="stopMore(event)"
-        onmousedown="startMore(event)" onmouseup="stopMore(event)">🎙️</button>
-      <div class="more-tc" id="more-tc">กดค้างแล้วพูดเพิ่มรายการ...</div>
+        ontouchstart="startMore(event)"
+        onmousedown="startMore(event)">🎙️</button>
+      <div class="more-tc" id="more-tc">แตะเพื่อพูดเพิ่มรายการ...</div>
     </div>
   </div>
 
@@ -1477,12 +1477,17 @@ function makeRec(onResult) {
 }
 
 function startMain(e) {
-  e.preventDefault(); if (isMain) return;
+  e.preventDefault();
+  // Toggle mode: ถ้ากำลังฟังอยู่ → หยุด, ถ้าหยุดอยู่ → เริ่ม
+  if (isMain) {
+    _stopMainWithDelay();
+    return;
+  }
   isMain = true; trMain = '';
   if (recMain) { recMain.stop(); recMain = null; }
   document.getElementById('mic-btn').classList.add('rec');
   document.getElementById('tc').classList.add('rec');
-  document.getElementById('mic-lbl').textContent = 'กำลังฟัง...';
+  document.getElementById('mic-lbl').textContent = 'กำลังฟัง... (แตะเพื่อหยุด)';
   setStatus('live', 'กำลังฟัง...');
   setTc('', false);
   recMain = makeRec((display, finalTxt) => {
@@ -1491,27 +1496,52 @@ function startMain(e) {
   });
   recMain.start();
 }
-function stopMain(e) {
-  if (e) e.preventDefault(); if (!isMain) return;
-  isMain = false;
+
+function _stopMainWithDelay() {
+  // หน่วง 800ms ให้ Speech Recognition flush ข้อความสุดท้ายก่อน
   document.getElementById('mic-btn').classList.remove('rec');
   document.getElementById('tc').classList.remove('rec');
-  document.getElementById('mic-lbl').textContent = 'กดค้างแล้วพูด';
-  // ดึง final ก่อน stop เพื่อให้ได้ข้อความครบ
-  const text = (recMain ? recMain.getFinal() : '') || trMain.trim();
-  trMain = '';
-  if (recMain) { recMain.stop(); recMain = null; }
-  if (!text) { setStatus('idle', 'พร้อมรับคำสั่งเสียง'); return; }
-  items = [];
-  processAI(text, false);
+  document.getElementById('mic-lbl').textContent = 'กำลังประมวลผล...';
+  setStatus('live', 'รอข้อความสุดท้าย...');
+  setTimeout(() => {
+    if (!isMain) return;
+    isMain = false;
+    const text = (recMain ? recMain.getFinal() : '') || trMain.trim();
+    trMain = '';
+    if (recMain) { recMain.stop(); recMain = null; }
+    document.getElementById('mic-lbl').textContent = 'แตะเพื่อพูด';
+    if (!text) { setStatus('idle', 'พร้อมรับคำสั่งเสียง'); return; }
+    items = [];
+    processAI(text, false);
+  }, 800);
+}
+
+function stopMain(e) {
+  // ปิด hold-to-talk เดิม — ไม่ทำอะไร (ใช้ toggle แทน)
+  if (e) e.preventDefault();
 }
 
 function startMore(e) {
-  e.preventDefault(); if (isMore) return;
+  e.preventDefault();
+  if (isMore) {
+    // Toggle: กำลังฟังอยู่ → หยุดพร้อม delay
+    document.getElementById('mic-mini').classList.remove('rec');
+    document.getElementById('more-tc').textContent = 'กำลังประมวลผล...';
+    setTimeout(() => {
+      if (!isMore) return;
+      isMore = false;
+      const text = (recMore ? recMore.getFinal() : '') || trMore.trim();
+      trMore = '';
+      if (recMore) { recMore.stop(); recMore = null; }
+      if (!text) { document.getElementById('more-tc').textContent = 'แตะเพื่อพูดเพิ่มรายการ...'; return; }
+      processAI(text, true);
+    }, 800);
+    return;
+  }
   isMore = true; trMore = '';
   if (recMore) { recMore.stop(); recMore = null; }
   document.getElementById('mic-mini').classList.add('rec');
-  document.getElementById('more-tc').textContent = 'กำลังฟัง...';
+  document.getElementById('more-tc').textContent = 'กำลังฟัง... (แตะเพื่อหยุด)';
   recMore = makeRec((display) => {
     trMore = display;
     document.getElementById('more-tc').textContent = display || '...';
@@ -1519,19 +1549,11 @@ function startMore(e) {
   recMore.start();
 }
 function stopMore(e) {
-  if (e) e.preventDefault(); if (!isMore) return;
-  isMore = false;
-  document.getElementById('mic-mini').classList.remove('rec');
-  const text = (recMore ? recMore.getFinal() : '') || trMore.trim();
-  trMore = '';
-  if (recMore) { recMore.stop(); recMore = null; }
-  if (!text) { document.getElementById('more-tc').textContent = 'กดค้างแล้วพูดเพิ่มรายการ...'; return; }
-  processAI(text, true);
+  // ปิด hold-to-talk เดิม
+  if (e) e.preventDefault();
 }
 
-document.addEventListener('mouseup',     e => { if (isMain) stopMain(e);  if (isMore) stopMore(e); if (isCustMic) stopCustMic(e); });
-document.addEventListener('touchend',    e => { if (isMain) stopMain(e);  if (isMore) stopMore(e); if (isCustMic) stopCustMic(e); }, {passive:false});
-document.addEventListener('touchcancel', e => { if (isMain) stopMain(e);  if (isMore) stopMore(e); if (isCustMic) stopCustMic(e); }, {passive:false});
+document.addEventListener('touchcancel', e => { if (isCustMic) stopCustMic(e); }, {passive:false});
 // ป้องกัน context menu เฉพาะบนบิล ไม่บล็อก input fields
 document.addEventListener('contextmenu', e => {
   const tag = e.target.tagName;
