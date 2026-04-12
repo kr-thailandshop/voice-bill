@@ -347,13 +347,13 @@ html,body{height:100%;height:100dvh;overflow:hidden;background:var(--bg);color:v
 .btv{font-family:'IBM Plex Mono',monospace;font-weight:900;color:#1a5fa8;font-size:22px;}
 
 /* QR row */
-.bqr{padding:16px;display:flex;flex-direction:column;align-items:center;gap:8px;background:#faf8f2;border-top:1.5px dashed #d0c8b0;}
+.bqr{padding:8px 16px;display:flex;flex-direction:column;align-items:center;gap:4px;background:#faf8f2;border-top:1.5px dashed #d0c8b0;}
 .bqrl{font-size:9px;color:#9a8e78;letter-spacing:1.5px;text-transform:uppercase;font-family:'IBM Plex Mono',monospace;}
 .bqrw{padding:8px;background:#fff;border-radius:8px;border:1.5px solid #d0c8b0;}
 .bhash{font-family:'IBM Plex Mono',monospace;font-size:7.5px;color:#b8aa90;text-align:center;word-break:break-all;max-width:200px;line-height:1.6;}
 
 /* Footer */
-.bfooter{padding:10px 16px 14px;text-align:center;background:#faf8f2;border-top:1.5px solid #e0d8c8;}
+.bfooter{padding:6px 16px 10px;text-align:center;background:#faf8f2;border-top:1.5px solid #e0d8c8;}
 .bfv{font-size:10px;color:#1a6b3a;font-weight:700;margin-bottom:2px;}
 .bft{font-size:9px;color:#9a8e78;}
 /* text-security masking via CSS (fallback for non-webkit) */
@@ -361,11 +361,11 @@ html,body{height:100%;height:100dvh;overflow:hidden;background:var(--bg);color:v
 .prov-key-input[data-masked="0"], .prov-key-input:not([data-masked]) { -webkit-text-security: none; letter-spacing: normal; }
 .bsig-line{width:60%;height:1px;background:#d0c8b0;margin:8px auto 4px;}
 .bsig-lbl{font-size:8px;color:#b8aa90;letter-spacing:0.5px;}
-/* Collector / signature section */
-.bcollect{padding:10px 16px 6px;background:#faf8f2;border-top:1.5px dashed #d0c8b0;display:flex;flex-direction:column;align-items:center;gap:4px;}
-.bcollect-lbl{font-size:8.5px;color:#9a8e78;text-transform:uppercase;letter-spacing:1px;font-family:'IBM Plex Mono',monospace;}
-.bcollect-canvas{border-bottom:1.5px solid #c0b89a;width:180px;height:60px;display:block;}
-.bcollect-name{font-size:10px;color:#6a5e4a;font-weight:700;margin-top:2px;}
+/* Collector / signature section — compact row layout */
+.bcollect{padding:6px 16px 6px;background:#faf8f2;border-top:1.5px dashed #d0c8b0;display:flex;flex-direction:row;align-items:flex-end;justify-content:space-between;gap:8px;}
+.bcollect-canvas{border-bottom:1.5px solid #c0b89a;width:110px;height:38px;display:block;}
+.bcollect-name{font-size:9px;color:#6a5e4a;font-weight:700;margin-top:1px;}
+.bcollect-lbl{font-size:8px;color:#9a8e78;text-transform:uppercase;letter-spacing:1px;font-family:'IBM Plex Mono',monospace;}
 /* Settings: signature pad */
 .sig-section{display:flex;flex-direction:column;gap:6px;}
 .sig-canvas-wrap{position:relative;border:2px solid var(--border);border-radius:10px;background:var(--bg2);overflow:hidden;}
@@ -953,9 +953,13 @@ html,body{height:100%;height:100dvh;overflow:hidden;background:var(--bg);color:v
 
       <!-- Signature -->
       <div class="bcollect">
-        <canvas class="bcollect-canvas" id="bill-sig-canvas" width="360" height="120"></canvas>
-        <div class="bcollect-name" id="bill-collector-name"></div>
-        <div class="bcollect-lbl">ผู้รับเงิน / CASHIER</div>
+        <div style="display:flex;flex-direction:column;align-items:flex-start;gap:1px;flex:1;">
+          <canvas class="bcollect-canvas" id="bill-sig-canvas" width="360" height="120"></canvas>
+          <div class="bcollect-name" id="bill-collector-name"></div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;justify-content:flex-end;padding-bottom:2px;">
+          <div class="bcollect-lbl">ผู้รับเงิน / CASHIER</div>
+        </div>
       </div>
 
       <!-- Digital Sig -->
@@ -1080,10 +1084,14 @@ html,body{height:100%;height:100dvh;overflow:hidden;background:var(--bg);color:v
       </div>
 
       <!-- ลายเซ็น -->
-      <div class="bcollect" id="vf-collect" style="display:none;flex-direction:column;align-items:center;padding:12px 16px 8px;background:#faf8f2;border-top:1.5px dashed #d0c8b0;">
-        <img id="vf-sig-img" src="" style="height:64px;max-width:200px;object-fit:contain;display:block;">
-        <div class="bcollect-name" id="vf-collector-name"></div>
-        <div class="bcollect-lbl">ผู้รับเงิน / CASHIER</div>
+      <div class="bcollect" id="vf-collect" style="display:none;flex-direction:row;align-items:flex-end;justify-content:space-between;padding:6px 16px 6px;background:#faf8f2;border-top:1.5px dashed #d0c8b0;">
+        <div style="display:flex;flex-direction:column;align-items:flex-start;gap:1px;flex:1;">
+          <img id="vf-sig-img" src="" style="height:38px;max-width:110px;object-fit:contain;display:block;border-bottom:1.5px solid #c0b89a;">
+          <div class="bcollect-name" id="vf-collector-name"></div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;justify-content:flex-end;padding-bottom:2px;">
+          <div class="bcollect-lbl">ผู้รับเงิน / CASHIER</div>
+        </div>
       </div>
       <!-- ตราประทับ -->
       <div id="vf-stamp-wrap" style="display:none;padding:10px 16px;background:#faf8f2;border-top:1.5px dashed #d0c8b0;display:none;align-items:center;justify-content:center;">
