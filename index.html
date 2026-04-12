@@ -194,17 +194,17 @@ html,body{height:100%;height:100dvh;overflow:hidden;background:var(--bg);color:v
   transition:opacity 0.12s,transform 0.1s;
 }
 .review-actions .btn-pri-lg:active{opacity:0.88;transform:scale(0.97);}
-.confirm-scroll{flex:1;overflow-y:auto;padding:8px 11px 4px;display:flex;flex-direction:column;gap:7px;-webkit-overflow-scrolling:touch;}
+.confirm-scroll{flex:1;overflow-y:auto;padding:6px 10px 4px;display:flex;flex-direction:column;gap:5px;-webkit-overflow-scrolling:touch;}
 .confirm-scroll:empty::after{content:'';display:none;}
-.item-card{background:var(--surface);border:2px solid var(--border);border-radius:13px;padding:13px;display:flex;align-items:center;gap:9px;box-shadow:var(--shadow);flex-shrink:0;}
-.item-idx{min-width:32px;height:32px;background:var(--bg2);border:2px solid var(--border);border-radius:9px;display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Mono',monospace;font-weight:700;color:var(--muted);flex-shrink:0;font-size:calc(0.78rem * var(--sz));}
-.item-body{flex:1;min-width:0;}
-.item-name{font-weight:800;color:var(--text);word-break:break-word;font-size:calc(1rem * var(--sz));}
+.item-card{background:var(--surface);border:2px solid var(--border);border-radius:11px;padding:9px 11px;display:flex;align-items:center;gap:8px;box-shadow:var(--shadow);flex-shrink:0;flex-wrap:wrap;transition:border-color 0.15s;}
+.item-card.editing{border-color:var(--accent);}
+.item-idx{min-width:26px;height:26px;background:var(--bg2);border:2px solid var(--border);border-radius:7px;display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Mono',monospace;font-weight:700;color:var(--muted);flex-shrink:0;font-size:calc(0.72rem * var(--sz));}
+.item-body{flex:1;min-width:0;cursor:pointer;}
+.item-name{font-weight:800;color:var(--text);word-break:break-word;font-size:calc(0.95rem * var(--sz));line-height:1.2;}
+.item-meta{color:var(--muted);font-size:calc(0.75rem * var(--sz));font-weight:600;margin-top:1px;}
 .item-detail{color:var(--muted);margin-top:2px;font-weight:600;font-size:calc(0.8rem * var(--sz));}
-.item-sub{font-family:'IBM Plex Mono',monospace;font-weight:700;color:var(--accent);white-space:nowrap;font-size:calc(1rem * var(--sz));}
-.del-btn{min-width:40px;height:40px;border-radius:9px;background:var(--red-bg);border:2px solid rgba(176,42,31,0.2);color:var(--red);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:15px;font-weight:700;flex-shrink:0;}
-/* inline edit */
-.item-card{flex-wrap:wrap;}
+.item-sub{font-family:'IBM Plex Mono',monospace;font-weight:700;color:var(--accent);white-space:nowrap;font-size:calc(0.95rem * var(--sz));}
+.del-btn{min-width:34px;height:34px;border-radius:8px;background:var(--red-bg);border:2px solid rgba(176,42,31,0.2);color:var(--red);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:14px;font-weight:700;flex-shrink:0;}
 .item-edit-row{
   width:100%;
   display:grid;
@@ -1003,8 +1003,9 @@ html,body{height:100%;height:100dvh;overflow:hidden;background:var(--bg);color:v
     </div>
   </div>
   <div class="hist-list" id="hist-list"></div>
-  <div class="exp-bar">
-    <button class="exp-btn" onclick="exportCSV()">⬇️ ดาวน์โหลด CSV ทั้งหมด</button>
+  <div class="exp-bar" style="display:flex;gap:7px;">
+    <button class="exp-btn" onclick="exportCSV()" style="flex:2;">⬇️ ดาวน์โหลด CSV ทั้งหมด</button>
+    <button class="exp-btn" onclick="deleteAllHist()" style="flex:1;background:var(--red);border-color:var(--red);">🗑️ ลบทั้งหมด</button>
   </div>
 </div>
 
@@ -2193,7 +2194,7 @@ function buildPrompt(text) {
 - "ขายกางเกงยีนส์ 20 ตัว ตัวละ 50 บาท" → name:"กางเกงยีนส์", qty:20, unitPrice:50
 - "กางเกงยีนส์ 20 ตัวตัวละ 50 บาท" → name:"กางเกงยีนส์", qty:20, unitPrice:50
 - ⚠️ "กางเกงยีนส์ 5 ตัวตัวละ 100 บาทเสื้อแขนยาว 6 ตัวตัวละ 50 บาท" → 2 รายการ: กางเกงยีนส์ qty:5 price:100 และ เสื้อแขนยาว qty:6 price:50 ("บาทเสื้อ" ติดกัน = คั่นระหว่างรายการ)
-- ⚠️ "40 ตัวตัวละ 50 บาทเสื้อยืด" → ชื่อสินค้าอยู่ท้าย: name:"เสื้อยืด", qty:40, unitPrice:50 (ชื่ออยู่หลัง "บาท" ให้นำมาเป็นชื่อสินค้า)
+- ⚠️ "40 ตัวตัวละ 50 บาทเสื้อยืด" → ชื่อสินค้าอยู่ท้าย: name:"เสื้อยืด", qty:40, unitPrice:50
 - ⚠️ "40 ตัวละ 50 บาทกระโปรง" → name:"กระโปรง", qty:40, unitPrice:50
 - "กระเป๋าโหลนึง 40 บาท" → name:"กระเป๋า", qty:12, unitPrice:40
 - "เสื้อยืดสามโหล ตัวละ 50" → name:"เสื้อยืด", qty:36, unitPrice:50
@@ -2203,95 +2204,146 @@ function buildPrompt(text) {
 ถ้าชื่อสินค้าใกล้เคียงกับรายการที่เคยขาย ให้ใช้ชื่อมาตรฐานนั้น`;
 }
 
+// ── helper: เรียก AI 1 ครั้ง → คืน result string ──
+async function callAI(prompt, maxTokens) {
+  maxTokens = maxTokens || 2000;
+  if (!cfgKey) throw new Error('no-key');
+
+  if (cfgProv === 'claude') {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': cfgKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: maxTokens,
+        system: 'ตอบเป็น JSON เท่านั้น ห้ามมีข้อความอื่น ห้ามมี markdown ห้ามมีคำอธิบาย',
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+    const d = await res.json();
+    if (d.error) throw new Error(d.error.message);
+    return (d.content || []).map(c => c.text || '').join('');
+
+  } else if (cfgProv === 'gemini') {
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${cfgKey}`,
+      { method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }) }
+    );
+    const d = await res.json();
+    if (d.error) throw new Error(d.error.message);
+    return d.candidates?.[0]?.content?.parts?.[0]?.text || '';
+
+  } else if (cfgProv === 'openai') {
+    const res = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + cfgKey },
+      body: JSON.stringify({ model: 'gpt-4o-mini', max_tokens: maxTokens,
+        messages: [
+          { role: 'system', content: 'ตอบเป็น JSON เท่านั้น ห้ามมีข้อความอื่น ห้ามมี markdown' },
+          { role: 'user', content: prompt }
+        ] })
+    });
+    const d = await res.json();
+    if (d.error) throw new Error(d.error.message);
+    return d.choices?.[0]?.message?.content || '';
+
+  } else if (cfgProv === 'llama') {
+    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + cfgKey },
+      body: JSON.stringify({ model: 'llama-3.3-70b-versatile', max_tokens: maxTokens,
+        messages: [
+          { role: 'system', content: 'ตอบเป็น JSON เท่านั้น ห้ามมีข้อความอื่น ห้ามมี markdown' },
+          { role: 'user', content: prompt }
+        ] })
+    });
+    const d = await res.json();
+    if (d.error) throw new Error(d.error.message || JSON.stringify(d.error));
+    return d.choices?.[0]?.message?.content || '';
+  }
+  return '';
+}
+
+function parseAIResult(result) {
+  let raw = result.replace(/```json|```/g, '').trim();
+  const jsonMatch = raw.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) throw new Error('AI ตอบไม่ถูกรูปแบบ JSON');
+  raw = jsonMatch[0];
+  const parsed = JSON.parse(raw);
+  return (parsed.items || []).map(i => ({
+    name: i.name, qty: +i.qty || 1, up: +i.unitPrice || 0,
+    sub: (+i.qty || 1) * (+i.unitPrice || 0)
+  }));
+}
+
+// ── Prompt รอบ 2: ตรวจสอบผลลัพธ์รอบแรก ──
+function buildVerifyPrompt(originalText, firstPassItems) {
+  const itemsStr = firstPassItems.map((it,i) =>
+    `${i+1}. ชื่อ:"${it.name}" จำนวน:${it.qty} ราคา/ชิ้น:${it.up} รวม:${it.sub}`
+  ).join('\n');
+  return `ข้อความต้นฉบับ: "${originalText}"
+
+AI รอบแรกดึงรายการได้ดังนี้:
+${itemsStr}
+
+ตรวจสอบว่าถูกต้องไหม:
+- ชื่อสินค้าครบไหม? มีสินค้าที่หายไปหรือ "ของไม่ทราบชื่อ" ไหม?
+- ราคาถูกต้องไหม? ไม่มีราคา = 0 โดยไม่ควร?
+- จำนวนถูกต้องไหม?
+
+ถ้าถูกต้องแล้ว ให้ส่งกลับเหมือนเดิม
+ถ้าพบข้อผิดพลาด ให้แก้ไขให้ถูกต้อง
+
+ตอบเป็น JSON เท่านั้น: {"items":[{"name":"ชื่อสินค้า","qty":จำนวน,"unitPrice":ราคาต่อหน่วย}]}`;
+}
+
 // ══════════════════════════════
-// AI PROCESSING
+// AI PROCESSING (2-pass)
 // ══════════════════════════════
 async function processAI(text, merge) {
   document.getElementById('ai-load').classList.add('show');
-  setStatus('live', 'AI กำลังวิเคราะห์...');
-
-  const prompt = buildPrompt(text);
+  setStatus('live', 'AI กำลังวิเคราะห์... (รอบ 1)');
 
   try {
     if (!cfgKey) throw new Error('no-key');
-    let result = '';
 
-    if (cfgProv === 'claude') {
-      const res = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': cfgKey,
-          'anthropic-version': '2023-06-01',
-          'anthropic-dangerous-direct-browser-access': 'true'
-        },
-        body: JSON.stringify({
-          model: 'claude-haiku-4-5-20251001',
-          max_tokens: 800,
-          system: 'ตอบเป็น JSON เท่านั้น ห้ามมีข้อความอื่น ห้ามมี markdown ห้ามมีคำอธิบาย',
-          messages: [{ role: 'user', content: prompt }]
-        })
-      });
-      const d = await res.json();
-      if (d.error) throw new Error(d.error.message);
-      result = (d.content || []).map(c => c.text || '').join('');
+    // ── รอบ 1: ดึงรายการจากข้อความ ──
+    const result1 = await callAI(buildPrompt(text), 2000);
+    let firstPassItems = parseAIResult(result1);
 
-    } else if (cfgProv === 'gemini') {
-      const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${cfgKey}`,
-        { method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }) }
-      );
-      const d = await res.json();
-      if (d.error) throw new Error(d.error.message);
-      result = d.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    // ── รอบ 2: ตรวจสอบ/แก้ไข (เฉพาะเมื่อพบปัญหา) ──
+    const hasUnknown = firstPassItems.some(it => it.name.includes('ไม่ทราบ') || it.name.includes('unknown'));
+    const hasZeroPrice = firstPassItems.some(it => it.up === 0);
+    const needsVerify = hasUnknown || hasZeroPrice || firstPassItems.length === 0;
 
-    } else if (cfgProv === 'openai') {
-      const res = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + cfgKey },
-        body: JSON.stringify({ model: 'gpt-4o-mini', max_tokens: 800,
-          messages: [
-            { role: 'system', content: 'ตอบเป็น JSON เท่านั้น ห้ามมีข้อความอื่น ห้ามมี markdown' },
-            { role: 'user', content: prompt }
-          ] })
-      });
-      const d = await res.json();
-      if (d.error) throw new Error(d.error.message);
-      result = d.choices?.[0]?.message?.content || '';
-
-    } else if (cfgProv === 'llama') {
-      const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + cfgKey },
-        body: JSON.stringify({ model: 'llama-3.3-70b-versatile', max_tokens: 800,
-          messages: [
-            { role: 'system', content: 'ตอบเป็น JSON เท่านั้น ห้ามมีข้อความอื่น ห้ามมี markdown' },
-            { role: 'user', content: prompt }
-          ] })
-      });
-      const d = await res.json();
-      if (d.error) throw new Error(d.error.message || JSON.stringify(d.error));
-      result = d.choices?.[0]?.message?.content || '';
+    let finalItems = firstPassItems;
+    if (needsVerify) {
+      setStatus('live', 'AI ตรวจสอบผล... (รอบ 2)');
+      try {
+        const result2 = await callAI(buildVerifyPrompt(text, firstPassItems), 2000);
+        const secondPassItems = parseAIResult(result2);
+        // ใช้รอบ 2 ถ้าดีกว่า (มีชื่อ และไม่มี "ไม่ทราบ")
+        if (secondPassItems.length > 0 &&
+            !secondPassItems.some(it => it.name.includes('ไม่ทราบ'))) {
+          finalItems = secondPassItems;
+        }
+      } catch(e2) {
+        // รอบ 2 ล้มเหลว ใช้รอบ 1 ต่อ
+      }
     }
 
-    // ดึงเฉพาะ JSON object ออกมา ป้องกัน AI แนบข้อความพิเศษ
-    let raw = result.replace(/```json|```/g, '').trim();
-    const jsonMatch = raw.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) throw new Error('AI ตอบไม่ถูกรูปแบบ JSON');
-    raw = jsonMatch[0];
-    const parsed = JSON.parse(raw);
-    const newItems = (parsed.items || []).map(i => ({
-      name: i.name, qty: +i.qty || 1, up: +i.unitPrice || 0,
-      sub: (+i.qty || 1) * (+i.unitPrice || 0)
-    }));
-
     if (merge) {
-      items = [...items, ...newItems];
-      document.getElementById('more-tc').textContent = `✅ เพิ่มแล้ว ${newItems.length} รายการ`;
-      toast(`✅ เพิ่ม ${newItems.length} รายการแล้ว`);
+      items = [...items, ...finalItems];
+      document.getElementById('more-tc').textContent = `✅ เพิ่มแล้ว ${finalItems.length} รายการ`;
+      toast(`✅ เพิ่ม ${finalItems.length} รายการแล้ว`);
     } else {
-      items = newItems;
+      items = finalItems;
     }
     setStatus('ok', `วิเคราะห์สำเร็จ ${items.length} รายการ`);
 
@@ -2305,7 +2357,10 @@ async function processAI(text, merge) {
     setStatus('err', 'วิเคราะห์ไม่สำเร็จ ใช้โหมดสำรอง');
     const fb = simpleParse(text);
     if (merge) items = [...items, ...fb]; else items = fb;
-    if (!items.length) { document.getElementById('ai-load').classList.remove('show'); setStatus('idle', 'พร้อมรับคำสั่งเสียง'); return; }
+    if (!items.length) {
+      document.getElementById('ai-load').classList.remove('show');
+      setStatus('idle', 'พร้อมรับคำสั่งเสียง'); return;
+    }
   }
 
   document.getElementById('ai-load').classList.remove('show');
@@ -2329,10 +2384,9 @@ function simpleParse(text) {
   t = t.replace(/^(?:ขาย|ซื้อ|บิล)\s*/,'');
 
   // ── pre-process 2b: ชื่อสินค้าอยู่ท้ายหลัง "บาท" → ย้ายมาหน้า ──
-  // เช่น "40 ตัวตัวละ 50 บาทเสื้อยืด" → "เสื้อยืด 40 ตัวตัวละ 50 บาท"
-  // รูปแบบ: ตัวเลข + หน่วยนับ? + ละ/ตัวละ/ฯลฯ + ตัวเลข + บาท + ชื่อสินค้า(ท้าย)
+  // เช่น "40 ตัวตัวละ 50 บาทเสื้อยืด" → "เสื้อยืด 40 ตัวละ 50 บาท"
   t = t.replace(
-    /(\d+)\s*(?:ตัว|ชิ้น|อัน|กิโล|ถุง|กล่อง|แพ็ค|แพค|คู่|ผืน|ชุด|ใบ|ขวด|ห่อ)?\s*(?:ตัวละ|ชิ้นละ|อันละ|ตัวๆละ|คู่ละ|แพ็คละ|ถุงละ|ใบละ|ขวดละ|ห่อละ|ละ|ราคา|@)\s*(\d+)\s*บาท([ก-์][ก-์\s]*?)(?:\s|$)/g,
+    /(\d+)\s*(?:ตัว|ชิ้น|อัน|กิโล|ถุง|กล่อง|แพ็ค|แพค|คู่|ผืน|ชุด|ใบ|ขวด|ห่อ)?\s*(?:ตัวละ|ชิ้นละ|อันละ|ตัวๆละ|คู่ละ|แพ็คละ|ถุงละ|ใบละ|ขวดละ|ห่อละ|ละ|ราคา|@)\s*(\d+)\s*บาท([ก-์][ก-์\s]*?)(?:\s*$)/g,
     (match, qty, price, trailingName) => {
       const name = trailingName.trim();
       if (name) return name + ' ' + qty + ' ตัวละ ' + price + ' บาท ';
@@ -2363,8 +2417,7 @@ function simpleParse(text) {
     if (name && qty > 0) out.push({ name, qty, up, sub: qty * up });
   }
 
-  // ── regex หลัก: รองรับทั้งมีและไม่มีคำบอกราคา (ตัวเลขท้ายคือราคา) ──
-  // pattern A: ชื่อ + qty + หน่วย? + คำบอกราคา + price
+  // ── regex หลัก pattern A: ชื่อ + qty + หน่วย? + คำบอกราคา + price ──
   const reA = /([ก-์a-zA-Z][ก-์a-zA-Z\s]*?)\s+(\d+)\s*(?:ตัว|ชิ้น|อัน|กิโล|ถุง|กล่อง|แพ็ค|แพค|คู่|ผืน|ชุด|ใบ|ขวด|ห่อ)?\s*(?:ตัวละ|ชิ้นละ|อันละ|ตัวๆละ|คู่ละ|แพ็คละ|ถุงละ|ใบละ|ขวดละ|ห่อละ|ละ|ราคา|@)\s*(\d+)/g;
   let m;
   while ((m = reA.exec(t)) !== null) {
@@ -2374,7 +2427,7 @@ function simpleParse(text) {
     if (name && qty > 0) out.push({ name, qty, up, sub: qty * up });
   }
 
-  // pattern B: ชื่อ + qty + หน่วย + price (ไม่มีคำ "ละ" กลาง เช่น "เสื้อยืด 40 ตัว 50")
+  // ── pattern B: ชื่อ + qty + หน่วย + price (ไม่มีคำ "ละ" กลาง) ──
   if (!out.length) {
     const reB = /([ก-์a-zA-Z][ก-์a-zA-Z\s]*?)\s+(\d+)\s*(?:ตัว|ชิ้น|อัน|กิโล|ถุง|กล่อง|แพ็ค|แพค|คู่|ผืน|ชุด|ใบ|ขวด|ห่อ)\s+(\d+)/g;
     while ((m = reB.exec(t)) !== null) {
@@ -2392,17 +2445,22 @@ function simpleParse(text) {
 // ══════════════════════════════
 function renderItems() {
   const list = document.getElementById('items-list');
-  // ใช้ DocumentFragment — append ครั้งเดียว ไม่ reflow ทีละ card
   const frag = document.createDocumentFragment();
   items.forEach((item, i) => {
     const el = document.createElement('div');
     el.className = 'item-card';
+    el.dataset.idx = i;
     el.innerHTML =
+      // แถวหลัก — compact single row
       `<div class="item-idx">${i + 1}</div>` +
-      `<div class="item-body" style="flex:1;min-width:0;"><div class="item-name">${item.name}</div></div>` +
-      `<div class="item-sub">${fmt(item.sub)} ฿</div>` +
+      `<div class="item-body" style="flex:1;min-width:0;">` +
+        `<div class="item-name">${item.name}</div>` +
+        `<div class="item-meta">${item.qty} × ${fmt(item.up)} ฿</div>` +
+      `</div>` +
+      `<div class="item-sub" id="sub-${i}">${fmt(item.sub)} ฿</div>` +
       `<div class="del-btn" onclick="delItem(${i})">✕</div>` +
-      `<div class="item-edit-row">` +
+      // แถว edit — ซ่อนอยู่ กดที่ชื่อเพื่อขยาย
+      `<div class="item-edit-row" id="edit-row-${i}" style="display:none;">` +
         `<span class="ie-lbl">จำนวน</span>` +
         `<input class="ie-input ie-qty" type="number" inputmode="numeric" min="1" max="9999" value="${item.qty}"` +
           ` oninput="this.value=this.value.slice(0,4);editItem(${i},'qty',this.value)"` +
@@ -2412,25 +2470,53 @@ function renderItems() {
         `<input class="ie-input ie-price" type="number" inputmode="decimal" min="0" max="999999" value="${item.up}"` +
           ` oninput="this.value=this.value.slice(0,7);editItem(${i},'up',this.value)"` +
           ` onchange="this.value=Math.min(999999,Math.max(0,+this.value||0));editItem(${i},'up',this.value)">` +
-        `<div class="ie-sub-row"><span class="ie-eq">=</span><span class="ie-sub" id="sub-${i}">${fmt(item.sub)} ฿</span></div>` +
+        `<div class="ie-sub-row"><span class="ie-eq">=</span><span class="ie-sub">${fmt(item.sub)} ฿</span></div>` +
       `</div>`;
+    // กดที่ชื่อ/เมต้า เพื่อ toggle edit row
+    el.querySelector('.item-body').addEventListener('click', () => toggleEditRow(i));
     frag.appendChild(el);
   });
-  list.innerHTML = '';       // clear เพียงครั้งเดียว
-  list.appendChild(frag);   // append ครั้งเดียว → reflow ครั้งเดียว
+  list.innerHTML = '';
+  list.appendChild(frag);
   updateTotal();
+}
+
+function toggleEditRow(i) {
+  const row = document.getElementById('edit-row-' + i);
+  if (!row) return;
+  const isOpen = row.style.display !== 'none';
+  // ปิดทุกอัน
+  document.querySelectorAll('.item-edit-row').forEach(r => r.style.display = 'none');
+  document.querySelectorAll('.item-card').forEach(c => c.classList.remove('editing'));
+  if (!isOpen) {
+    row.style.display = 'grid';
+    const card = row.closest('.item-card');
+    if (card) card.classList.add('editing');
+    // focus qty input
+    const inp = row.querySelector('.ie-qty');
+    if (inp) setTimeout(() => inp.focus(), 50);
+  }
 }
 
 function editItem(i, field, val) {
   const v = parseFloat(val) || 0;
   items[i][field] = v;
   items[i].sub = (items[i].qty || 0) * (items[i].up || 0);
-  // update subtotal label live — no full re-render (avoid losing focus)
+  // update subtotal badge
   const subEl = document.getElementById('sub-' + i);
   if (subEl) subEl.textContent = fmt(items[i].sub) + ' ฿';
-  // also update the header subtotal badge
-  const cards = document.querySelectorAll('.item-sub');
-  if (cards[i]) cards[i].textContent = fmt(items[i].sub) + ' ฿';
+  // update edit row sub
+  const editRow = document.getElementById('edit-row-' + i);
+  if (editRow) {
+    const ieSub = editRow.querySelector('.ie-sub');
+    if (ieSub) ieSub.textContent = fmt(items[i].sub) + ' ฿';
+  }
+  // update compact meta line (qty × price)
+  const card = document.querySelector(`.item-card[data-idx="${i}"]`);
+  if (card) {
+    const meta = card.querySelector('.item-meta');
+    if (meta) meta.textContent = items[i].qty + ' × ' + fmt(items[i].up) + ' ฿';
+  }
   updateTotal();
 }
 
@@ -3344,6 +3430,23 @@ function getHist() {
   try { return JSON.parse(localStorage.getItem('vb_hist') || '[]'); } catch (e) { return []; }
 }
 
+function deleteHist(billNo) {
+  if (!confirm('ลบบิล ' + billNo + ' ออกจากประวัติ?')) return;
+  const h = getHist().filter(b => b.no !== billNo);
+  try { localStorage.setItem('vb_hist', JSON.stringify(h)); } catch(e) {}
+  showHistory();
+  toast('🗑️ ลบบิล ' + billNo + ' แล้ว');
+}
+
+function deleteAllHist() {
+  const h = getHist();
+  if (!h.length) { toast('ไม่มีบิลในประวัติ'); return; }
+  if (!confirm('ลบประวัติบิลทั้งหมด ' + h.length + ' ใบ?\nไม่สามารถกู้คืนได้')) return;
+  try { localStorage.removeItem('vb_hist'); } catch(e) {}
+  showHistory();
+  toast('🗑️ ลบประวัติทั้งหมดแล้ว');
+}
+
 // ── บันทึกสถานะส่งบิลสำเร็จ ──
 function markBillDelivered(billNo, method) {
   const hist = getHist();
@@ -3391,7 +3494,10 @@ function showHistory() {
           <div class="hc-no">${b.no}</div>
           <div class="hc-date">${d.toLocaleDateString('th-TH', { year:'numeric', month:'long', day:'numeric' })} · ${d.toLocaleTimeString('th-TH', { hour:'2-digit', minute:'2-digit' })}</div>
         </div>
-        <div class="hc-total">${fmt(b.total)} ฿</div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <div class="hc-total">${fmt(b.total)} ฿</div>
+          <button onclick="deleteHist('${b.no}')" style="min-width:34px;height:34px;border-radius:8px;background:var(--red-bg);border:2px solid rgba(176,42,31,0.25);color:var(--red);font-size:15px;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;" title="ลบบิลนี้">🗑️</button>
+        </div>
       </div>
       <div class="hc-items">${(b.items || []).slice(0, 3).map(i => `${i.name} ×${i.qty}`).join(' · ')}${b.items.length > 3 ? ' · ...' : ''}</div>
       ${deliveryHTML}`;
